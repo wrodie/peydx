@@ -42,7 +42,13 @@ export const Media: CollectionConfig = {
     ],
   },
   access: {
-    read: () => true, // Media must be readable by the Sync Agent without a login
+    read: ({ req: { user } }) => {
+      if (!user) return false;
+      if (user.role === 'admin') return true;
+      if (user.role === 'basic') return { department: { equals: user.department } };
+      if (user.collection === 'devices') return { department: { in: user.departments } };
+      return false;
+    },
     update: ({ req: { user } }) => {
       if (user?.role === 'admin') return true;
       return { department: { equals: user?.department } };

@@ -63,6 +63,7 @@ export type SupportedTimezones =
 
 export interface Config {
   auth: {
+    devices: DeviceAuthOperations;
     users: UserAuthOperations;
   };
   blocks: {};
@@ -97,10 +98,28 @@ export interface Config {
   widgets: {
     collections: CollectionsWidget;
   };
-  user: User;
+  user: Device | User;
   jobs: {
     tasks: unknown;
     workflows: unknown;
+  };
+}
+export interface DeviceAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
   };
 }
 export interface UserAuthOperations {
@@ -255,8 +274,15 @@ export interface Device {
         id?: string | null;
       }[]
     | null;
+  lastHeartbeat?: string | null;
+  currentProgram?: (number | null) | Program;
+  status?: ('online' | 'offline' | 'stale') | null;
   updatedAt: string;
   createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
+  collection: 'devices';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -299,10 +325,15 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null);
   globalSlug?: string | null;
-  user: {
-    relationTo: 'users';
-    value: number | User;
-  };
+  user:
+    | {
+        relationTo: 'devices';
+        value: number | Device;
+      }
+    | {
+        relationTo: 'users';
+        value: number | User;
+      };
   updatedAt: string;
   createdAt: string;
 }
@@ -312,10 +343,15 @@ export interface PayloadLockedDocument {
  */
 export interface PayloadPreference {
   id: number;
-  user: {
-    relationTo: 'users';
-    value: number | User;
-  };
+  user:
+    | {
+        relationTo: 'devices';
+        value: number | Device;
+      }
+    | {
+        relationTo: 'users';
+        value: number | User;
+      };
   key?: string | null;
   value?:
     | {
@@ -393,8 +429,14 @@ export interface DevicesSelect<T extends boolean = true> {
         startTime?: T;
         id?: T;
       };
+  lastHeartbeat?: T;
+  currentProgram?: T;
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

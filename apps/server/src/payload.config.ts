@@ -9,6 +9,7 @@ import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Programs } from './collections/Programs'
 import { Devices } from './collections/Devices'
+import { heartbeat } from './endpoints/heartbeat'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -27,6 +28,7 @@ export default buildConfig({
     Media,
     Users,
   ],
+  endpoints: [heartbeat],
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {

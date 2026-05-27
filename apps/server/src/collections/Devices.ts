@@ -7,6 +7,10 @@ export const Devices: CollectionConfig = {
     useAsTitle: 'name',
     group: 'Admin',
   },
+  auth: {
+    useAPIKey: true,
+    disableLocalStrategy: true,
+  },
   access: {
     read: ({ req: { user } }) => {
       if (!user) return false;
@@ -18,6 +22,8 @@ export const Devices: CollectionConfig = {
       if (user.role === 'admin') return true;
       return { departments: { contains: user.department } };
     },
+    create: ({ req: { user } }) => user?.role === 'admin',
+    delete: ({ req: { user } }) => user?.role === 'admin',
   },
   fields: [
     {
@@ -76,6 +82,28 @@ export const Devices: CollectionConfig = {
           },
         },
       ],
+    },
+    {
+      name: 'lastHeartbeat',
+      type: 'date',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+    {
+      name: 'currentProgram',
+      type: 'relationship',
+      relationTo: 'programs',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+    {
+      name: 'status',
+      type: 'select',
+      defaultValue: 'offline',
+      options: [
+        { label: 'Online', value: 'online' },
+        { label: 'Offline', value: 'offline' },
+        { label: 'Stale', value: 'stale' },
+      ],
+      admin: { readOnly: true, position: 'sidebar' },
     },
   ],
 }

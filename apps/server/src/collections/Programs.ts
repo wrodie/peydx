@@ -17,10 +17,10 @@ export const Programs: CollectionConfig = {
   access: {
     read: ({ req: { user } }) => {
       if (!user) return false;
-      if (user.role === 'admin') return true; // Admins see all
-      return {
-        department: { equals: user.department }
-      }
+      if (user.role === 'admin') return true;
+      if (user.role === 'basic') return { department: { equals: user.department } };
+      if (user.collection === 'devices') return { department: { in: user.departments } };
+      return false;
     },
     update: ({ req: { user } }) => {
       if (!user) return false;
@@ -116,6 +116,16 @@ export const Programs: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Drop files here to auto-generate slides.',
+      },
+    },
+    {
+      name: 'previewLink',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '/components/PreviewLink#PreviewLink',
+        },
       },
     },
   ],

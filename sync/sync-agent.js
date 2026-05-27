@@ -4,7 +4,8 @@ const path = require('path');
 const { exec } = require('child_process');
 
 // CONFIGURATION
-const DEVICE_ID = 'CLASSROOM-01'; 
+const DEVICE_ID = 'CLASSROOM-01';
+const API_KEY = process.env.DEVICE_API_KEY || 'your-api-key-here';
 const API_URL = 'https://your-lightsail-instance.com/api';
 const LOCAL_DIR = path.join(__dirname, 'static/local-media');
 const PLUG_IP = '192.168.1.50'; // IP of your SLWF-08
@@ -14,7 +15,9 @@ if (!fs.existsSync(LOCAL_DIR)) fs.mkdirSync(LOCAL_DIR, { recursive: true });
 async function sync() {
     try {
         // 1. Fetch Device Schedule (24hr window)
-        const res = await axios.get(`${API_URL}/devices?where[deviceId][equals]=${DEVICE_ID}&depth=3`);
+        const res = await axios.get(`${API_URL}/devices?where[deviceId][equals]=${DEVICE_ID}&depth=3`, {
+            headers: { Authorization: `users ${API_KEY}` },
+        });
         const device = res.data.docs[0];
         if (!device) return;
 
@@ -53,6 +56,12 @@ async function sync() {
             if (!requiredFilenames.has(file)) fs.unlinkSync(path.join(LOCAL_DIR, file));
         });
 
+        // 5. Send Heartbeat
+        if (device.id) {
+            const activeProgramId = activeItems[0]?.program?.id || null;
+            sendHeartbeat(activeProgramId);
+        }
+
     } catch (err) { console.error('Sync Error:', err.message); }
 }
 
@@ -66,7 +75,12 @@ async function downloadIfChanged(file) {
     }
 
     const writer = fs.createWriteStream(dest);
-    const response = await axios({ url: file.url, method: 'GET', responseType: 'stream' });
+    const response = await axios({
+        url: file.url,
+        method: 'GET',
+        responseType: 'stream',
+        headers: { Authorization: `users ${API_KEY}` },
+    });
     response.data.pipe(writer);
     
     return new Promise((resolve) => {
@@ -82,6 +96,18 @@ function controlPower(on) {
     const cmd = on ? 'on' : 'off';
     // Example SLWF-08 API call (adjust based on your specific firmware)
     axios.get(`http://${PLUG_IP}/relay?state=${cmd}`).catch(() => {});
+}
+
+async function sendHeartbeat(programId) {
+    try {
+        await axios.post(`${API_URL}/heartbeat`, {
+            programId,
+        }, {
+            headers: { Authorization: `users ${API_KEY}` },
+        });
+    } catch (err) {
+        console.error('Heartbeat failed:', err.message);
+    }
 }
 
 setInterval(sync, 60000);
