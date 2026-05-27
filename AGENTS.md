@@ -29,17 +29,21 @@ No `.env.example` exists. Server requires:
 Docker Compose additionally requires: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
 
 ## Code vs. REQUIREMENTS.md mismatches
-1. **Department values mismatch**: `Programs.ts` hardcodes `kids`/`signage` as department options, but `DEPARTMENTS` constant defines `children`/`signage`/`youth`. Other collections (Users, Devices) correctly use the constant.
-2. **Sync agent path**: Root `package.json` `sync` script points to `sync-agent/sync-agent.js`; file is at `sync/sync-agent.js`. Script will fail as-is.
-3. **Sync agent hardcoded placeholders**: `API_URL`, `DEVICE_ID`, `PLUG_IP` are placeholder values.
-4. **Deployment domain**: nginx config uses `cms.yourchurch.org` — must be replaced before deploy.
+1. **Sync agent path**: Root `package.json` `sync` script points to `sync-agent/sync-agent.js`; file is at `sync/sync-agent.js`. Script will fail as-is.
+2. **Sync agent hardcoded placeholders**: `API_URL`, `DEVICE_ID`, `PLUG_IP` are placeholder values.
+3. **Deployment domain**: nginx config uses `cms.yourchurch.org` — must be replaced before deploy.
 
 ## Current state
 - **Player app is incomplete**: Missing `src/routes/`, `svelte.config.js`, `vite.config.ts`. Not yet runnable as a SvelteKit app.
 - **All workspace dependencies are `"latest"`** — not pinned, no lockfile committed.
-- **No tsconfig.json** in either workspace or at root.
-- **No CI/CD** — no GitHub Actions or other pipeline configured.
 
 ## Deployment
 - **Server**: `docker-compose up -d --build` (Postgres + Payload + Nginx on AWS Lightsail)
 - **Client**: `pm2 start ecosystem.config.js` (player + sync agent on bare metal)
+
+## Known decisions & trade-offs
+
+1. **Media list view**: Uses Payload's default table view (bulk upload, search, sort, pagination all work). Folders (`payload-folders`) were evaluated but dropped — browse-by-folder view lacks bulk upload and media-picker (ListDrawer) doesn't respect folder view. Organization is handled via `department` field + `listSearchableFields: ['name', 'filename']`.
+2. **autoCreateSlides hook**: Program bulk media → slide auto-creation runs as an `afterChange` hook. Must pass `req` through to `payload.update()` to share the parent create transaction (prevents "Not Found" error from uncommitted transaction).
+3. **Media name auto-fill**: `beforeChange` hook sets `name` from `req.file.name` (ext-stripped) if left blank. Field is not required — UX is "type a name or leave blank to use filename".
+4. **No migration strategy**: Dev database is dropped & recreated for schema changes. No production data exists yet.

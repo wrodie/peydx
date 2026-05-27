@@ -3,6 +3,11 @@ import { DEPARTMENTS } from '../constants/departments'
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  admin: {
+    useAsTitle: 'name',
+    defaultColumns: ['name', 'department', 'filesize', 'updatedAt'],
+    listSearchableFields: ['name', 'filename'],
+  },
   upload: {
     staticDir: 'media',
     // We force WebP for maximum sync efficiency
@@ -26,6 +31,16 @@ export const Media: CollectionConfig = {
     ],
     adminThumbnail: 'thumbnail',
   },
+  hooks: {
+    beforeChange: [
+      ({ data, req }) => {
+        if (!data.name && req.file?.name) {
+          data.name = req.file.name.replace(/\.[^.]+$/, '')
+        }
+        return data
+      },
+    ],
+  },
   access: {
     read: () => true, // Media must be readable by the Sync Agent without a login
     update: ({ req: { user } }) => {
@@ -39,16 +54,19 @@ export const Media: CollectionConfig = {
   },
   fields: [
     {
+      name: 'name',
+      type: 'text',
+      required: false,
+      label: 'Display Name',
+      admin: {
+        description: 'Name shown on screens for this media item.',
+      },
+    },
+    {
       name: 'department',
       type: 'select',
       required: true,
       options: DEPARTMENTS,
-      admin: { position: 'sidebar' },
-    },
-    {
-      name: 'alt',
-      type: 'text',
-      required: true,
     },
   ],
 }

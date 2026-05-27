@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { ImageBlock, VideoBlock } from '../blocks/SlideBlocks'
 import { autoCreateSlides } from '../hooks/autoCreateSlides'
+import { DEPARTMENTS } from '../constants/departments'
 
 export const Programs: CollectionConfig = {
   slug: 'programs',
@@ -70,10 +71,7 @@ export const Programs: CollectionConfig = {
               name: 'department',
               type: 'select',
               required: true,
-              options: [
-                { label: 'Kids Ministry', value: 'kids' },
-                { label: 'Digital Signage', value: 'signage' },
-              ],
+              options: DEPARTMENTS,
             },
             {
               name: 'status',

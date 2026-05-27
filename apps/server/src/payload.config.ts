@@ -2,46 +2,39 @@ import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { buildConfig } from 'payload'
+import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
-// Import our custom collections
-import { Users } from './apps/server/src/collections/Users'
-import { Media } from './apps/server/src/collections/Media'
-import { Programs } from './apps/server/src/collections/Programs'
-import { Devices } from './apps/server/src/collections/Devices'
+import { Users } from './collections/Users'
+import { Media } from './collections/Media'
+import { Programs } from './collections/Programs'
+import { Devices } from './collections/Devices'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
+  secret: process.env.PAYLOAD_SECRET || '',
   admin: {
-    user: Users.slug, // Tells Payload which collection is used for Admin login
+    user: Users.slug,
     importMap: {
       baseDir: path.resolve(dirname),
     },
   },
-  // Registering our logic
   collections: [
     Programs,
     Devices,
     Media,
     Users,
   ],
-  // Use Lexical for any rich text needs (Description fields, etc.)
   editor: lexicalEditor({}),
-  
-  // Database Configuration for Lightsail
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URI || '',
     },
   }),
-
-  // Paths for generated TypeScript types (helpful for your SvelteKit frontend)
+  sharp,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-
-  // Sharp is used for the image resizing/processing we discussed
-  sharp: require('sharp'),
 })

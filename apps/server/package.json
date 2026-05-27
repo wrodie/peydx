@@ -1,18 +1,26 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "main": "dist/server.js",
+  "type": "module",
   "scripts": {
-    "dev": "payload dev",
-    "build": "payload build",
-    "start": "payload serve",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "generate:types": "payload generate:types"
   },
   "dependencies": {
-    "payload": "latest",
-    "@payloadcms/db-postgres": "latest",
-    "@payloadcms/richtext-lexical": "latest",
-    "dotenv": "^16.0.0",
-    "express": "^4.18.0"
+    "@payloadcms/db-postgres": "^3.84.0",
+    "@payloadcms/next": "^3.84.0",
+    "@payloadcms/richtext-lexical": "^3.84.0",
+    "dotenv": "^16.4.0",
+    "graphql": "^16.8.0",
+    "next": "^16.2.0",
+    "payload": "^3.84.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sharp": "^0.34.0"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
   }
 }
