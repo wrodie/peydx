@@ -39,6 +39,9 @@ export const Media: CollectionConfig = {
         if (!data.name && req.file?.name) {
           data.name = req.file.name.replace(/\.[^.]+$/, '')
         }
+        if (req.user && req.user.role !== 'admin') {
+          data.department = req.user.department
+        }
         return data
       },
     ],
@@ -85,6 +88,9 @@ export const Media: CollectionConfig = {
       type: 'select',
       required: true,
       options: DEPARTMENTS,
+      admin: {
+        condition: (_, __, { user }) => user?.role === 'admin',
+      },
     },
   ],
 }

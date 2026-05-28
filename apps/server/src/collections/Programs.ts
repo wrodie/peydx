@@ -37,6 +37,9 @@ export const Programs: CollectionConfig = {
       async (args) => {
         const { req, data } = args
         if (args.context?.preventSync) return data
+        if (req.user && req.user.role !== 'admin') {
+          data.department = req.user.department
+        }
         await autoCreateSlides(args)
         if (req.user && !data.createdBy) {
           data.createdBy = req.user.id
@@ -48,54 +51,43 @@ export const Programs: CollectionConfig = {
 
   fields: [
     {
-      type: 'tabs',
-      tabs: [
-        {
-          label: 'General Info',
-          fields: [
-            {
-              name: 'title',
-              type: 'text',
-              required: true,
-            },
-            {
-              name: 'description',
-              type: 'textarea',
-              admin: {
-                description: 'Brief overview for other users.',
-              },
-            },
-            {
-              name: 'department',
-              type: 'select',
-              required: true,
-              options: DEPARTMENTS,
-            },
-            {
-              name: 'status',
-              type: 'select',
-              defaultValue: 'draft',
-              options: [
-                { label: 'Draft', value: 'draft' },
-                { label: 'Approved / Ready', value: 'approved' },
-              ],
-              admin: {
-                position: 'sidebar',
-              }
-            }
-          ],
-        },
-        {
-          label: 'Slideshow Builder',
-          fields: [
-            {
-              name: 'slides',
-              type: 'blocks',
-              blocks: [ImageBlock, VideoBlock, YoutubeBlock],
-            },
-          ],
-        },
+      name: 'title',
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'description',
+      type: 'textarea',
+      admin: {
+        description: 'Brief overview for other users.',
+      },
+    },
+    {
+      name: 'slides',
+      type: 'blocks',
+      blocks: [ImageBlock, VideoBlock, YoutubeBlock],
+    },
+    {
+      name: 'department',
+      type: 'select',
+      required: true,
+      options: DEPARTMENTS,
+      admin: {
+        position: 'sidebar',
+        condition: (_, __, { user }) => user?.role === 'admin',
+      },
+    },
+    {
+      name: 'status',
+      type: 'select',
+      defaultValue: 'draft',
+      options: [
+        { label: 'Draft', value: 'draft' },
+        { label: 'Approved / Ready', value: 'approved' },
       ],
+      admin: {
+        position: 'sidebar',
+      }
     },
     {
       name: 'createdBy',

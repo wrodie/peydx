@@ -8,13 +8,13 @@ export const Users: CollectionConfig = {
     saveToJWT: ['role', 'department'],
   },
   admin: {
-    useAsTitle: 'email',
+    useAsTitle: 'name',
   },
   access: {
     // Only global admins can see the full list of users or create new accounts
     read: ({ req: { user } }) => {
       if (user?.role === 'admin') return true
-      if (user) return { id: { equals: user.id } } // Volunteers can only see themselves
+      if (user?.role === 'basic') return true
       return false
     },
     create: ({ req: { user } }) => user?.role === 'admin',
@@ -26,6 +26,15 @@ export const Users: CollectionConfig = {
       name: 'name',
       type: 'text',
       required: true,
+    },
+    {
+      name: 'email',
+      type: 'email',
+      required: true,
+      unique: true,
+      access: {
+        read: ({ req: { user } }) => user?.role === 'admin',
+      },
     },
     {
       name: 'role',

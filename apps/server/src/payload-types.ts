@@ -151,7 +151,7 @@ export interface Program {
    * Brief overview for other users.
    */
   description?: string | null;
-  department: 'children' | 'signage' | 'youth';
+  department?: ('children' | 'signage' | 'youth') | null;
   status?: ('draft' | 'approved') | null;
   slides?:
     | (
@@ -214,7 +214,7 @@ export interface Media {
    * Name shown on screens for this media item.
    */
   name?: string | null;
-  department: 'children' | 'signage' | 'youth';
+  department?: ('children' | 'signage' | 'youth') | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
