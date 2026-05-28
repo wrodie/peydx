@@ -1,11 +1,12 @@
 import type { CollectionConfig } from 'payload'
 import { DEPARTMENTS } from '../constants/departments'
+import { cleanupMediaReferences } from '../hooks/cleanupMediaReferences'
 
 export const Media: CollectionConfig = {
   slug: 'media',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'department', 'filesize', 'updatedAt'],
+    defaultColumns: ['filename', 'name', 'department', 'filesize', 'updatedAt'],
     listSearchableFields: ['name', 'filename'],
   },
   upload: {
@@ -32,6 +33,7 @@ export const Media: CollectionConfig = {
     adminThumbnail: 'thumbnail',
   },
   hooks: {
+    beforeDelete: [cleanupMediaReferences],
     beforeChange: [
       ({ data, req }) => {
         if (!data.name && req.file?.name) {
@@ -50,12 +52,22 @@ export const Media: CollectionConfig = {
       return false;
     },
     update: ({ req: { user } }) => {
-      if (user?.role === 'admin') return true;
-      return { department: { equals: user?.department } };
+      if (!user) return false;
+      if (user.role === 'admin') return true;
+      if (user.role === 'basic') return { department: { equals: user.department } };
+      return false;
     },
     delete: ({ req: { user } }) => {
-      if (user?.role === 'admin') return true;
-      return { department: { equals: user?.department } };
+      if (!user) return false;
+      if (user.role === 'admin') return true;
+      if (user.role === 'basic') return { department: { equals: user.department } };
+      return false;
+    },
+    create: ({ req: { user } }) => {
+      if (!user) return false;
+      if (user.role === 'admin') return true;
+      if (user.role === 'basic') return { department: { equals: user.department } };
+      return false;
     },
   },
   fields: [

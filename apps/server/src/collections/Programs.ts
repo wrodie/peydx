@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { ImageBlock, VideoBlock } from '../blocks/SlideBlocks'
+import { ImageBlock, VideoBlock, YoutubeBlock } from '../blocks/SlideBlocks'
 import { autoCreateSlides } from '../hooks/autoCreateSlides'
 import { DEPARTMENTS } from '../constants/departments'
 
@@ -33,17 +33,15 @@ export const Programs: CollectionConfig = {
   },
 
   hooks: {
-    afterChange: [async (args) => {
-      if (args.context?.preventSync) return args.doc
-      return autoCreateSlides(args)
-    }],
     beforeChange: [
-      ({ req, data }) => {
-        // Tag the creator on the first save
+      async (args) => {
+        const { req, data } = args
+        if (args.context?.preventSync) return data
+        await autoCreateSlides(args)
         if (req.user && !data.createdBy) {
-          data.createdBy = req.user.id;
+          data.createdBy = req.user.id
         }
-        return data;
+        return data
       },
     ],
   },
@@ -93,7 +91,7 @@ export const Programs: CollectionConfig = {
             {
               name: 'slides',
               type: 'blocks',
-              blocks: [ImageBlock, VideoBlock],
+              blocks: [ImageBlock, VideoBlock, YoutubeBlock],
             },
           ],
         },

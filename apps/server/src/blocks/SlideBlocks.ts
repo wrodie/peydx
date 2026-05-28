@@ -17,6 +17,17 @@ const getAdvanceSettings = (isVideoButton: boolean): Field[] => {
 
   return [
     {
+      name: 'transition',
+      type: 'select',
+      label: 'Transition into slide',
+      defaultValue: 'fade',
+      options: [
+        { label: 'Fade In', value: 'fade' },
+        { label: 'Instant Cut', value: 'cut' },
+        { label: 'Slide Left', value: 'slide' },
+      ],
+    },
+    {
       name: 'advanceMode',
       type: 'select',
       defaultValue: isVideoButton ? 'onEnd' : 'timed',
@@ -37,16 +48,6 @@ const getAdvanceSettings = (isVideoButton: boolean): Field[] => {
       },
       label: 'Duration (seconds)',
     },
-    {
-      name: 'transition',
-      type: 'select',
-      defaultValue: 'fade',
-      options: [
-        { label: 'Fade Out/In', value: 'fade' },
-        { label: 'Instant Cut', value: 'cut' },
-        { label: 'Slide Left', value: 'slide' },
-      ],
-    }
   ]
 }
 
@@ -92,6 +93,29 @@ export const VideoBlock: Block = {
       // Prevents images appearing in the video selection list
       filterOptions: {
         mimeType: { contains: 'video' },
+      },
+    },
+    ...getAdvanceSettings(true),
+  ],
+}
+
+export const YoutubeBlock: Block = {
+  slug: 'youtubeBlock',
+  labels: {
+    singular: 'YouTube Video',
+    plural: 'YouTube Videos',
+  },
+  admin: {
+    group: 'Content',
+  },
+  fields: [
+    {
+      name: 'youtubeId',
+      type: 'text',
+      required: true,
+      label: 'YouTube URL or ID',
+      admin: {
+        description: 'Paste a YouTube link (e.g. youtube.com/watch?v=...) or just the video ID.',
       },
     },
     ...getAdvanceSettings(true),

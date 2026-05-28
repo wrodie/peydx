@@ -11,9 +11,10 @@ interface Media {
 }
 
 interface Slide {
-  blockType: 'imageBlock' | 'videoBlock'
+  blockType: 'imageBlock' | 'videoBlock' | 'youtubeBlock'
   image?: Media | number
   video?: Media | number
+  youtubeId?: string | null
   advanceMode: 'timed' | 'manual' | 'onEnd'
   duration?: number | null
   transition?: 'fade' | 'cut' | 'slide' | null
@@ -32,7 +33,14 @@ function resolveMedia(value: Media | number | undefined): Media | null {
   return null
 }
 
-const TRANSITION_DURATION = 500
+function parseYouTubeId(input: string): string | null {
+  const match = input.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+  ) || input.match(/^([a-zA-Z0-9_-]{11})$/)
+  return match ? match[1] : null
+}
+
+const TRANSITION_DURATION = 2500
 
 export default function ProgramPreview() {
   const { id } = useParams<{ id: string }>()
@@ -41,6 +49,8 @@ export default function ProgramPreview() {
   const [error, setError] = useState<string | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const playerRef = useRef<any>(null)
+  const [videoError, setVideoError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`/api/programs/${id}?depth=2`)
@@ -61,11 +71,13 @@ export default function ProgramPreview() {
   const nextSlide = useCallback(() => {
     if (!program?.slides?.length) return
     setCurrentIndex((i) => (i < program.slides!.length - 1 ? i + 1 : 0))
+    setVideoError(null)
   }, [program?.slides])
 
   const prevSlide = useCallback(() => {
     if (!program?.slides?.length) return
     setCurrentIndex((i) => (i > 0 ? i - 1 : program.slides!.length - 1))
+    setVideoError(null)
   }, [program?.slides])
 
   const runSlideLogic = useCallback(
@@ -100,6 +112,69 @@ export default function ProgramPreview() {
     return () => window.removeEventListener('keydown', handler)
   }, [nextSlide, prevSlide])
 
+  useEffect(() => {
+    if (!currentSlide || currentSlide.blockType !== 'youtubeBlock') return
+
+    const ytId = parseYouTubeId(currentSlide.youtubeId || '')
+    if (!ytId) return
+
+    const playerId = `yt-player-${currentIndex}`
+    let interval: ReturnType<typeof setInterval> | null = null
+
+    function initPlayer() {
+      if (window.YT && window.YT.Player) {
+        interval && clearInterval(interval)
+        try {
+          playerRef.current?.destroy()
+        } catch {}
+        playerRef.current = new window.YT.Player(playerId, {
+          videoId: ytId,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            modestbranding: 1,
+            rel: 0,
+            fs: 0,
+            playsinline: 1,
+          },
+          events: {
+            onReady: (event: any) => {
+              event.target.playVideo()
+            },
+            onStateChange: (event: any) => {
+              if (event.data === window.YT.PlayerState.ENDED && currentSlide.advanceMode === 'onEnd') {
+                nextSlide()
+              }
+            },
+          },
+        })
+      }
+    }
+
+    if (!window.YT) {
+      const tag = document.createElement('script')
+      tag.src = 'https://www.youtube.com/iframe_api'
+      tag.onload = () => initPlayer()
+      document.head.appendChild(tag)
+      interval = setInterval(() => {
+        if (window.YT && window.YT.loaded) {
+          clearInterval(interval!)
+          initPlayer()
+        }
+      }, 200)
+    } else {
+      initPlayer()
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+      try {
+        playerRef.current?.destroy()
+      } catch {}
+      playerRef.current = null
+    }
+  }, [currentIndex, currentSlide, nextSlide])
+
   if (loading) {
     return (
       <div className="stage">
@@ -131,6 +206,8 @@ export default function ProgramPreview() {
       ? resolveMedia(slide.video)
       : resolveMedia(slide.image)
   const mediaUrl = slideMedia?.url ?? ''
+  const youtubeId = slide.blockType === 'youtubeBlock' ? parseYouTubeId(slide.youtubeId || '') : null
+  const youtubeBackdrop = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : null
 
   return (
     <>
@@ -167,6 +244,8 @@ export default function ProgramPreview() {
         }
         .backdrop {
           position: absolute;
+          top: 0;
+          left: 0;
           width: 110%;
           height: 110%;
           object-fit: cover;
@@ -179,6 +258,40 @@ export default function ProgramPreview() {
           max-width: 100%;
           max-height: 100%;
           object-fit: contain;
+        }
+        .youtube-embed {
+          position: relative;
+          z-index: 2;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .youtube-embed iframe {
+          width: 100vw !important;
+          height: 56.25vw !important;
+          max-height: 100vh !important;
+          max-width: 177.78vh !important;
+          border: none !important;
+        }
+        .video-error {
+          color: rgba(255,255,255,0.7);
+          font-family: system-ui, sans-serif;
+          text-align: center;
+          padding: 2rem;
+          z-index: 2;
+        }
+        .video-error p {
+          margin: 0.5rem 0;
+        }
+        .video-error-detail {
+          font-size: 0.8rem;
+          opacity: 0.5;
+        }
+        .video-error-hint {
+          font-size: 0.85rem;
+          color: #f1c40f;
         }
         .slide-indicator {
           position: fixed;
@@ -193,28 +306,27 @@ export default function ProgramPreview() {
           padding: 4px 12px;
           border-radius: 12px;
         }
-        @keyframes fadeIn {
+        @keyframes previewFadeIn {
           from { opacity: 0; }
           to   { opacity: 1; }
         }
-        @keyframes slideIn {
-          from { transform: translateX(60px); opacity: 0; }
-          to   { transform: translateX(0); opacity: 1; }
-        }
-        .animate-fade {
-          animation: fadeIn ${TRANSITION_DURATION}ms ease both;
-        }
-        .animate-cut {
-          opacity: 1;
-        }
-        .animate-slide {
-          animation: slideIn ${TRANSITION_DURATION}ms ease both;
+        @keyframes previewSlideIn {
+          from { opacity: 0; transform: translateX(60px); }
+          to   { opacity: 1; transform: translateX(0); }
         }
       `}</style>
       <div className="stage">
         <div
           key={currentIndex}
-          className={`slide-wrapper animate-${transition}`}
+          className="slide-wrapper"
+          style={{
+            animation:
+              transition === 'fade'
+                ? `previewFadeIn ${TRANSITION_DURATION}ms ease both`
+                : transition === 'slide'
+                  ? `previewSlideIn ${TRANSITION_DURATION}ms ease both`
+                  : undefined,
+          }}
         >
           {slide.blockType === 'imageBlock' && (
             <>
@@ -232,16 +344,48 @@ export default function ProgramPreview() {
             </>
           )}
           {slide.blockType === 'videoBlock' && (
-            <video
-              src={mediaUrl}
-              autoPlay
-              muted
-              playsInline
-              onEnded={() => {
-                if (slide.advanceMode === 'onEnd') nextSlide()
-              }}
-              className="foreground"
-            />
+            <>
+              <video
+                src={mediaUrl}
+                autoPlay
+                muted
+                playsInline
+                onError={() => {
+                  setVideoError(slideMedia?.mimeType || 'unknown format')
+                  if (slide.advanceMode !== 'timed') {
+                    setTimeout(nextSlide, 3000)
+                  }
+                }}
+                onEnded={() => {
+                  if (slide.advanceMode === 'onEnd') nextSlide()
+                }}
+                className="foreground"
+                style={{ display: videoError ? 'none' : undefined }}
+              />
+              {videoError && (
+                <div className="video-error">
+                  <p>This video format is not supported in your browser.</p>
+                  <p className="video-error-detail">{videoError}</p>
+                  <p className="video-error-hint">Convert to MP4 (H.264) for best compatibility, or use a YouTube link.</p>
+                </div>
+              )}
+            </>
+          )}
+          {slide.blockType === 'youtubeBlock' && youtubeId && (
+            <>
+              {youtubeBackdrop && (
+                <img
+                  src={youtubeBackdrop}
+                  className="backdrop"
+                  alt=""
+                  aria-hidden="true"
+                />
+              )}
+              <div
+                id={`yt-player-${currentIndex}`}
+                className="youtube-embed"
+              />
+            </>
           )}
         </div>
         {program.slides.length > 1 && (

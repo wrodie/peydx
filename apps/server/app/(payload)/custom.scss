@@ -1,0 +1,22 @@
+.btn--style-primary {
+  --bg-color: #2563eb;
+  --color: #fff;
+  --hover-bg: #1d4ed8;
+  --hover-color: #fff;
+}
+
+.list-selection {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+}
+
+.pill--style-white.pill--has-action {
+  background: #2563eb;
+  color: #fff;
+
+  &:hover,
+  &:active {
+    background: #1d4ed8;
+  }
+}

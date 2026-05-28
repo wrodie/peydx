@@ -157,27 +157,42 @@ export interface Program {
     | (
         | {
             image: number | Media;
+            transition?: ('fade' | 'cut' | 'slide') | null;
             /**
              * How should the player move to the next slide?
              */
             advanceMode: 'timed' | 'manual';
             duration?: number | null;
-            transition?: ('fade' | 'cut' | 'slide') | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'imageBlock';
           }
         | {
             video: number | Media;
+            transition?: ('fade' | 'cut' | 'slide') | null;
             /**
              * How should the player move to the next slide?
              */
             advanceMode: 'timed' | 'manual' | 'onEnd';
             duration?: number | null;
-            transition?: ('fade' | 'cut' | 'slide') | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'videoBlock';
+          }
+        | {
+            /**
+             * Paste a YouTube link (e.g. youtube.com/watch?v=...) or just the video ID.
+             */
+            youtubeId: string;
+            transition?: ('fade' | 'cut' | 'slide') | null;
+            /**
+             * How should the player move to the next slide?
+             */
+            advanceMode: 'timed' | 'manual' | 'onEnd';
+            duration?: number | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'youtubeBlock';
           }
       )[]
     | null;
@@ -392,9 +407,9 @@ export interface ProgramsSelect<T extends boolean = true> {
           | T
           | {
               image?: T;
+              transition?: T;
               advanceMode?: T;
               duration?: T;
-              transition?: T;
               id?: T;
               blockName?: T;
             };
@@ -402,9 +417,19 @@ export interface ProgramsSelect<T extends boolean = true> {
           | T
           | {
               video?: T;
+              transition?: T;
               advanceMode?: T;
               duration?: T;
+              id?: T;
+              blockName?: T;
+            };
+        youtubeBlock?:
+          | T
+          | {
+              youtubeId?: T;
               transition?: T;
+              advanceMode?: T;
+              duration?: T;
               id?: T;
               blockName?: T;
             };
