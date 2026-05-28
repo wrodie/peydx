@@ -151,8 +151,6 @@ export interface Program {
    * Brief overview for other users.
    */
   description?: string | null;
-  department?: ('children' | 'signage' | 'youth') | null;
-  status?: ('draft' | 'approved') | null;
   slides?:
     | (
         | {
@@ -196,11 +194,17 @@ export interface Program {
           }
       )[]
     | null;
+  department?: ('children' | 'signage' | 'youth') | null;
+  status?: ('draft' | 'approved') | null;
   createdBy?: (number | null) | User;
   /**
    * Drop files here to auto-generate slides.
    */
   bulkMedia?: (number | Media)[] | null;
+  /**
+   * Estimated runtime in minutes. Used for schedule conflict detection.
+   */
+  durationMinutes: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -286,6 +290,12 @@ export interface Device {
     | {
         program: number | Program;
         startTime: string;
+        /**
+         * Auto-filled from program duration.
+         */
+        durationMinutes?: number | null;
+        department?: ('children' | 'signage' | 'youth') | null;
+        createdBy?: (number | null) | User;
         id?: string | null;
       }[]
     | null;
@@ -398,8 +408,6 @@ export interface PayloadMigration {
 export interface ProgramsSelect<T extends boolean = true> {
   title?: T;
   description?: T;
-  department?: T;
-  status?: T;
   slides?:
     | T
     | {
@@ -434,8 +442,11 @@ export interface ProgramsSelect<T extends boolean = true> {
               blockName?: T;
             };
       };
+  department?: T;
+  status?: T;
   createdBy?: T;
   bulkMedia?: T;
+  durationMinutes?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -452,6 +463,9 @@ export interface DevicesSelect<T extends boolean = true> {
     | {
         program?: T;
         startTime?: T;
+        durationMinutes?: T;
+        department?: T;
+        createdBy?: T;
         id?: T;
       };
   lastHeartbeat?: T;

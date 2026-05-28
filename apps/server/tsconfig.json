@@ -23,6 +23,9 @@
       ],
       "@payload-config": [
         "./src/payload.config.ts"
+      ],
+      "signage-core": [
+        "../../packages/signage-core/src/index.ts"
       ]
     },
     "target": "ES2022",

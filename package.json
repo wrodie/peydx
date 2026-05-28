@@ -3,12 +3,13 @@
   "private": true,
   "workspaces": [
     "apps/server",
-    "apps/player"
+    "apps/player",
+    "packages/signage-core"
   ],
   "scripts": {
     "dev:server": "npm run dev -w apps/server",
     "dev:player": "npm run dev -w apps/player",
-    "sync": "node sync-agent/sync-agent.js",
+    "sync": "node sync/sync-agent.js",
     "build:all": "npm run build -w apps/server && npm run build -w apps/player"
   },
   "dependencies": {

@@ -38,3 +38,7 @@ next-env.d.ts
 .opencode
 apps/server/.next/dev
 apps/server/media
+apps/server/node_modules
+apps/player/node_modules
+apps/player/public
+

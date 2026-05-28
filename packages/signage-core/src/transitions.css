@@ -1,0 +1,116 @@
+.slide-stage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: black;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide-status-text {
+  color: #888;
+  font-size: 1.25rem;
+  font-family: system-ui, sans-serif;
+}
+
+.slide-status-text.slide-error {
+  color: #c44;
+}
+
+.slide-slide-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 110%;
+  height: 110%;
+  object-fit: cover;
+  filter: blur(30px) brightness(0.5);
+  z-index: 1;
+}
+
+.slide-foreground {
+  position: relative;
+  z-index: 2;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.slide-youtube-embed {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide-youtube-embed iframe {
+  width: 100vw !important;
+  height: 56.25vw !important;
+  max-height: 100vh !important;
+  max-width: 177.78vh !important;
+  border: none !important;
+}
+
+.slide-video-error {
+  color: rgba(255, 255, 255, 0.7);
+  font-family: system-ui, sans-serif;
+  text-align: center;
+  padding: 2rem;
+  z-index: 2;
+}
+
+.slide-video-error p {
+  margin: 0.5rem 0;
+}
+
+.slide-video-error-detail {
+  font-size: 0.8rem;
+  opacity: 0.5;
+}
+
+.slide-video-error-hint {
+  font-size: 0.85rem;
+  color: #f1c40f;
+}
+
+.slide-slide-indicator {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: system-ui, sans-serif;
+  font-size: 0.8rem;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+@keyframes signageFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes signageSlideIn {
+  from { opacity: 0; transform: translateX(60px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
