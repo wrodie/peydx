@@ -14,6 +14,9 @@ export const Schedule: CollectionConfig = {
     read: ({ req: { user } }) => {
       if (!user) return false
       if (user.role === 'admin') return true
+      if (user.collection === 'devices') {
+        return { department: { in: user.departments } }
+      }
       return { department: { equals: user.department } }
     },
     create: ({ req: { user } }) => {

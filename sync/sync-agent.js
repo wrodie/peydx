@@ -146,10 +146,23 @@ function buildScheduleJson(activeItems) {
   };
 }
 
+async function resolveDeviceId() {
+  const res = await fetchWithRetry(
+    `${API_URL}/devices?where[deviceId][equals]=${DEVICE_ID}&depth=0&limit=1`,
+    { headers: { Authorization: `PayloadAPIKey ${API_KEY}` } }
+  );
+  if (!res.data.docs || res.data.docs.length === 0) {
+    throw new Error(`Device not found: ${DEVICE_ID}`);
+  }
+  return res.data.docs[0].id;
+}
+
 async function sync() {
   try {
+    const numericId = await resolveDeviceId();
+
     const res = await fetchWithRetry(
-      `${API_URL}/schedule?where[devices][contains]=${DEVICE_ID}&depth=2&sort=startTime`,
+      `${API_URL}/schedule?where[devices][contains]=${numericId}&where[program.status][equals]=approved&depth=2&sort=startTime`,
       { headers: { Authorization: `PayloadAPIKey ${API_KEY}` } }
     );
 
@@ -158,18 +171,28 @@ async function sync() {
 
     const now = new Date();
     const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
+    const graceStart = new Date(now.getTime() - (24 * 60 * 60 * 1000));
 
     const activeItems = docs.filter(item => {
       const start = new Date(item.startTime);
-      return start <= tomorrow;
+      const end = item.endTime ? new Date(item.endTime) : null;
+      if (start > tomorrow) return false;
+      if (end && end < graceStart) return false;
+      if (!end && start < graceStart) return false;
+      return true;
     });
+
+    if (activeItems.length === 0) return;
 
     const requiredFilenames = new Set();
     let shouldPowerOn = false;
 
     for (const item of activeItems) {
       const start = new Date(item.startTime);
+      const end = item.endTime ? new Date(item.endTime) : null;
+
       if (start <= new Date(now.getTime() + 30 * 60000)) shouldPowerOn = true;
+      if (start <= now && (!end || now < end)) shouldPowerOn = true;
 
       if (item.program?.slides) {
         for (const slide of item.program.slides) {
@@ -209,7 +232,9 @@ async function sync() {
     const scheduleData = buildScheduleJson(activeItems);
     const dir = path.dirname(SCHEDULE_PATH);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(SCHEDULE_PATH, JSON.stringify(scheduleData, null, 2) + '\n');
+    const tmp = SCHEDULE_PATH + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(scheduleData, null, 2) + '\n');
+    fs.renameSync(tmp, SCHEDULE_PATH);
 
     const activeProgramId = activeItems[0]?.program?.id || null;
     try {
