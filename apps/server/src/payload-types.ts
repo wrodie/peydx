@@ -70,6 +70,7 @@ export interface Config {
   collections: {
     programs: Program;
     devices: Device;
+    schedule: Schedule;
     media: Media;
     users: User;
     'payload-kv': PayloadKv;
@@ -81,6 +82,7 @@ export interface Config {
   collectionsSelect: {
     programs: ProgramsSelect<false> | ProgramsSelect<true>;
     devices: DevicesSelect<false> | DevicesSelect<true>;
+    schedule: ScheduleSelect<false> | ScheduleSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -286,19 +288,6 @@ export interface Device {
   name: string;
   deviceId: string;
   departments: ('children' | 'signage' | 'youth')[];
-  schedule?:
-    | {
-        program: number | Program;
-        startTime: string;
-        /**
-         * Auto-filled from program duration.
-         */
-        durationMinutes?: number | null;
-        department?: ('children' | 'signage' | 'youth') | null;
-        createdBy?: (number | null) | User;
-        id?: string | null;
-      }[]
-    | null;
   lastHeartbeat?: string | null;
   currentProgram?: (number | null) | Program;
   status?: ('online' | 'offline' | 'stale') | null;
@@ -308,6 +297,25 @@ export interface Device {
   apiKey?: string | null;
   apiKeyIndex?: string | null;
   collection: 'devices';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "schedule".
+ */
+export interface Schedule {
+  id: number;
+  title?: string | null;
+  program: number | Program;
+  devices: (number | Device)[];
+  startTime: string;
+  /**
+   * Defaults to 1 hour after start time.
+   */
+  endTime: string;
+  department?: ('children' | 'signage' | 'youth') | null;
+  createdBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -340,6 +348,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'devices';
         value: number | Device;
+      } | null)
+    | ({
+        relationTo: 'schedule';
+        value: number | Schedule;
       } | null)
     | ({
         relationTo: 'media';
@@ -458,16 +470,6 @@ export interface DevicesSelect<T extends boolean = true> {
   name?: T;
   deviceId?: T;
   departments?: T;
-  schedule?:
-    | T
-    | {
-        program?: T;
-        startTime?: T;
-        durationMinutes?: T;
-        department?: T;
-        createdBy?: T;
-        id?: T;
-      };
   lastHeartbeat?: T;
   currentProgram?: T;
   status?: T;
@@ -476,6 +478,21 @@ export interface DevicesSelect<T extends boolean = true> {
   enableAPIKey?: T;
   apiKey?: T;
   apiKeyIndex?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "schedule_select".
+ */
+export interface ScheduleSelect<T extends boolean = true> {
+  title?: T;
+  program?: T;
+  devices?: T;
+  startTime?: T;
+  endTime?: T;
+  department?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

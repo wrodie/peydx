@@ -8,7 +8,6 @@ export const Programs: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'department', 'updatedAt', 'createdBy'],
-    group: 'Content Management',
   },
   // Automatically manages 'createdAt' and 'updatedAt' fields
   timestamps: true,

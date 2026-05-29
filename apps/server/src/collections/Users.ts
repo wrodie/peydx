@@ -9,6 +9,8 @@ export const Users: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
+    group: 'Admin',
+    hidden: ({ user }) => user?.role !== 'admin',
   },
   access: {
     // Only global admins can see the full list of users or create new accounts

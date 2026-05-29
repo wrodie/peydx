@@ -9,6 +9,7 @@ import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Programs } from './collections/Programs'
 import { Devices } from './collections/Devices'
+import { Schedule } from './collections/Schedule'
 import { heartbeat } from './endpoints/heartbeat'
 
 const filename = fileURLToPath(import.meta.url)
@@ -25,6 +26,7 @@ export default buildConfig({
   collections: [
     Programs,
     Devices,
+    Schedule,
     Media,
     Users,
   ],

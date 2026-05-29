@@ -99,10 +99,11 @@ async function downloadSizes(media, mediaBaseUrl) {
   }
 }
 
-function buildScheduleJson(device, activeItems) {
+function buildScheduleJson(activeItems) {
   const schedule = activeItems.map(item => ({
     programId: item.program?.id,
     startTime: item.startTime,
+    endTime: item.endTime,
     program: {
       id: item.program?.id,
       title: item.program?.title,
@@ -139,7 +140,7 @@ function buildScheduleJson(device, activeItems) {
   }));
 
   return {
-    deviceId: device.deviceId,
+    deviceId: DEVICE_ID,
     lastUpdated: new Date().toISOString(),
     schedule,
   };
@@ -148,17 +149,17 @@ function buildScheduleJson(device, activeItems) {
 async function sync() {
   try {
     const res = await fetchWithRetry(
-      `${API_URL}/devices?where[deviceId][equals]=${DEVICE_ID}&depth=3`,
+      `${API_URL}/schedule?where[devices][contains]=${DEVICE_ID}&depth=2&sort=startTime`,
       { headers: { Authorization: `PayloadAPIKey ${API_KEY}` } }
     );
 
-    const device = res.data.docs[0];
-    if (!device) return;
+    const docs = res.data.docs || [];
+    if (docs.length === 0) return;
 
     const now = new Date();
     const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
 
-    const activeItems = device.schedule.filter(item => {
+    const activeItems = docs.filter(item => {
       const start = new Date(item.startTime);
       return start <= tomorrow;
     });
@@ -205,22 +206,20 @@ async function sync() {
       }
     }
 
-    const scheduleData = buildScheduleJson(device, activeItems);
+    const scheduleData = buildScheduleJson(activeItems);
     const dir = path.dirname(SCHEDULE_PATH);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(SCHEDULE_PATH, JSON.stringify(scheduleData, null, 2) + '\n');
 
-    if (device.id) {
-      const activeProgramId = activeItems[0]?.program?.id || null;
-      try {
-        await axios.post(`${API_URL}/heartbeat`, {
-          programId: activeProgramId,
-        }, {
-          headers: { Authorization: `PayloadAPIKey ${API_KEY}` },
-        });
-      } catch (err) {
-        console.error('Heartbeat failed:', err.message);
-      }
+    const activeProgramId = activeItems[0]?.program?.id || null;
+    try {
+      await axios.post(`${API_URL}/heartbeat`, {
+        programId: activeProgramId,
+      }, {
+        headers: { Authorization: `PayloadAPIKey ${API_KEY}` },
+      });
+    } catch (err) {
+      console.error('Heartbeat failed:', err.message);
     }
 
   } catch (err) {
