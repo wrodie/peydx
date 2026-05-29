@@ -130,8 +130,6 @@ To optimize volunteer efficiency when dragging multiple images into a Program:
 4. Volunteers retain "Power User" override control to scan the sequence and change specific blocks (e.g., a "Memory Verse" slide) to `Manual (Click)` mode so a teacher can leave it up indefinitely.
 
 #### C. Media Collection (`Media.ts`)
-
-#### B. Media Collection (`Media.ts`)
 - **Slug:** `media`
 - **Security Isolation:** Strict Zero-Public-Access. All files and database data require valid authentication.
 - **Upload Properties:**
@@ -139,7 +137,7 @@ To optimize volunteer efficiency when dragging multiple images into a Program:
   - `formatOptions`: Forces conversion to `webp` format at `80%` quality.
   - `imageSizes`: Automatically generates a `fullHD` dimension array (1920x1080).
 - **Access Control:**
-  - `read`: Restricted. Access is only granted if `user` is a logged-in account (Admin/Basic) OR if the request carries a valid `PayloadAPIKey` header belonging to a registered hardware device.
+  - `read`: Restricted. Access is only granted if `user` is a logged-in account (Admin/Basic) OR if the request carries a valid `devices API-Key` header belonging to a registered hardware device.
   - `update`/`delete`: Restricted to `admin` OR matching department token (`user.department === media.department`).
 
 
@@ -300,7 +298,7 @@ The system enforces a strict zero-public-access boundary using a hybrid authenti
   2. Payload auto-generates a unique, high-entropy API key bound strictly to that device ID.
   3. The Admin provisions the physical client by pasting this key into the local i5 `.env` file.
 - **Execution:** The local Sync Agent must append this key to the HTTP header of every delta sync pull:
-  `Authorization: PayloadAPIKey [DEVICE_API_KEY]`
+  `Authorization: devices API-Key [DEVICE_API_KEY]`
 - **Security Scope:** Requests using a Device API Key bypass human login prompts but are rigidly restricted by read-only access control filters mapped exclusively to the departments assigned to that specific device ID.
 
 ### 7.3 JWT Custom Claims & Multi-Tenant Token Enrichment

@@ -16,7 +16,7 @@ export const Devices: CollectionConfig = {
     read: ({ req: { user } }) => {
       if (!user) return false;
       if (user.role === 'admin') return true;
-      return { departments: { contains: user.department } };
+      return { id: { equals: user.id } }
     },
     update: ({ req: { user } }) => {
       if (!user) return false;

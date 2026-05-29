@@ -22,14 +22,14 @@ The system natively supports two distinct tiers of venue hardware depending on t
 * **Use Case:** Mission-critical offline lessons and classroom instructional teaching.
 * **Hardware:** HP EliteDesk 800 G2 (or equivalent Intel Core i5 Mini PCs) with a 250GB SSD.
 * **OS Environment:** Ubuntu Server (Headless) + Openbox Window Manager running directly on the host operating system (Bare Metal) to support direct GPU execution for complex browser-rendered media pipelines.
-* **Frontend Execution:** SvelteKit App running locally inside a Chromium Kiosk instance.
+* **Frontend Execution:** React App running locally inside a Chromium Kiosk instance.
 * **Local Infrastructure:** A background Node.js "Sync Agent" worker managed via PM2 that pulls data from the cloud, manages the bare-metal storage array, and provides local asset availability.
 * **Power Management:** Target hardware BIOS configurations are modified to trigger **Auto-Power On** conditions upon intercepting AC power restoration. Software-based power control can also be triggered by the local sync agent via an **SLWF-08 WiFi Controller** to toggle TV power via software (e.g., On at 8:00 AM, Off at 5:00 PM).
 
 ### 2.2 Tier 2 Player: Google TV Streamer / Simple Browser (Signage Mode)
 * **Use Case:** Affordable digital signage in hallways, foyers, and public areas.
 * **Hardware:** Google TV Streamer devices or generic smart TV browsers.
-* **Client App:** Fully Kiosk Browser (Android App) pointed directly to the hosted SvelteKit player URL.
+* **Client App:** Fully Kiosk Browser (Android App) pointed directly to the hosted React player URL.
 * **Caching Strategy:** Relies on service workers to handle on-the-fly client-side asset caching as content loops.
 * **Power Management:** Native HDMI-CEC commands executed through the Android OS layer (configured via Fully Kiosk Browser settings) to handle automated display sleeping/waking.
 
@@ -114,7 +114,7 @@ The centerpiece of user content workflows is the Program collection built using 
 | **Transition Types** | Fade, Cut, Slide, Zoom | Fade, Cut, Slide |
 
 * **Functional Advance Logic Definitions:**
-* `Manual (Click)`: The SvelteKit player pauses on this slide indefinitely. It listens for keyboard events (`Spacebar`, `Right Arrow`) or an external presenter remote click before animating to the next slide.
+* `Manual (Click)`: The React player pauses on this slide indefinitely. It listens for keyboard events (`Spacebar`, `Right Arrow`) or an external presenter remote click before animating to the next slide.
 * `Timed`: A JavaScript `setTimeout` triggers the transition automatically after the specified seconds elapse.
 * `On End (Video Only)`: The player listens directly for the native HTML5 video `onEnded` event. This acts as a hands-free configuration for classroom presenters.
 
@@ -130,8 +130,6 @@ To optimize volunteer efficiency when dragging multiple images into a Program:
 4. Volunteers retain "Power User" override control to scan the sequence and change specific blocks (e.g., a "Memory Verse" slide) to `Manual (Click)` mode so a teacher can leave it up indefinitely.
 
 #### C. Media Collection (`Media.ts`)
-
-#### B. Media Collection (`Media.ts`)
 - **Slug:** `media`
 - **Security Isolation:** Strict Zero-Public-Access. All files and database data require valid authentication.
 - **Upload Properties:**
@@ -139,7 +137,7 @@ To optimize volunteer efficiency when dragging multiple images into a Program:
   - `formatOptions`: Forces conversion to `webp` format at `80%` quality.
   - `imageSizes`: Automatically generates a `fullHD` dimension array (1920x1080).
 - **Access Control:**
-  - `read`: Restricted. Access is only granted if `user` is a logged-in account (Admin/Basic) OR if the request carries a valid `PayloadAPIKey` header belonging to a registered hardware device.
+  - `read`: Restricted. Access is only granted if `user` is a logged-in account (Admin/Basic) OR if the request carries a valid `devices API-Key` header belonging to a registered hardware device.
   - `update`/`delete`: Restricted to `admin` OR matching department token (`user.department === media.department`).
 
 
@@ -183,7 +181,7 @@ A dedicated operational view tracking connected device states. The server record
 |   |       PM2 Engine      |      |   Bare-Metal SSD      |   |
 |   |                       |      |                       |   |
 |   |  [Process 1]          |      |  /local-media/        |   |
-|   |  SvelteKit App        |      |  (Holds offline image/|   |
+|   |  React App        |      |  (Holds offline image/|   |
 |   |  (Port 5000)          |<====>|   video files)        |   |
 |   |                       |      |           ^           |   |
 |   |  [Process 2]          |      |           |           |   |
@@ -215,8 +213,8 @@ To enforce the Zero-Public-Access rule without requiring volunteers to manage pa
 church-signage/
 ├── apps/
 │   ├── server/             # Payload CMS (Docker Container Context)
-│   └── player/             # SvelteKit Digital Signage App (Native Node)
-├── sync-agent/             # Background Synchronization Cron Worker
+│   └── player/             # React Digital Signage App (Native Node)
+├── sync/                   # Background Synchronization Cron Worker
 │   └── sync-agent.js       # Core Delta execution script
 ├── docker-compose.yml      # Cloud multi-container setup orchestration
 ├── ecosystem.config.js     # PM2 Bare-metal initialization profile for Client
@@ -224,19 +222,19 @@ church-signage/
 
 ```
 
-### 5.2 The Local Sync Agent Worker (`sync-agent.js`)
+### 5.2 The Local Sync Agent Worker (`sync/sync-agent.js`)
 
 - **Execution Strategy:** Runs as a continuous micro-service managed by PM2.
 - **Authentication:** Must include the device's uniquely generated API Key in the HTTP headers for all cloud communication.
 - **Sync Routine Logic:**
   1. Requests a delta payload from the server every X minutes using its unique API Key header.
   2. Parses the incoming schedules for the next rolling 24-hour cycle.
-  3. Compares cloud targets against assets physically present inside the client directory: `./apps/player/static/local-media`.
+  3. Compares cloud targets against assets physically present inside the client directory: `./apps/player/public/local-media`.
   4. Downloads missing items via authenticated streaming buffers; purges stale historical media items missing from the upcoming 24-hour window.
   5. Writes out an updated, flat manifest file locally (`schedule.json`).
 
 
-### 5.3 SvelteKit Frontend Media Renderer (`Player.svelte`)
+### 5.3 React Frontend Media Renderer (`SlideEngine.tsx`)
 
 * **Runtime Mode:** Operates on port `5000` via automated production preview execution mode, reading data directly from the local manifest file to maintain perfect offline operation.
 * **Layout Blueprint (The Blurred Backdrop UI):**
@@ -291,7 +289,7 @@ The system enforces a strict zero-public-access boundary using a hybrid authenti
   2. Payload auto-generates a unique, high-entropy API key bound strictly to that device ID.
   3. The Admin provisions the physical client by pasting this key into the local i5 `.env` file.
 - **Execution:** The local Sync Agent must append this key to the HTTP header of every delta sync pull:
-  `Authorization: PayloadAPIKey [DEVICE_API_KEY]`
+  `Authorization: devices API-Key [DEVICE_API_KEY]`
 - **Security Scope:** Requests using a Device API Key bypass human login prompts but are rigidly restricted by read-only access control filters mapped exclusively to the departments assigned to that specific device ID.
 
 ### 7.3 JWT Custom Claims & Multi-Tenant Token Enrichment

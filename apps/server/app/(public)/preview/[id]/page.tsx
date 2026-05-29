@@ -32,5 +32,5 @@ export default function ProgramPreview() {
     )
   }
 
-  return <SlideEngine program={program} />
+  return <SlideEngine program={program} onProgramEnd={() => {}} />
 }

@@ -24,5 +24,5 @@ We use PM2 to ensure the apps stay running. From the project root, run:
 3. Add this script to "Startup Applications" in Ubuntu settings.
 
 ## 5. Local Media Path
-The Sync Agent downloads files to: ./apps/player/static/local-media
-The SvelteKit player serves these as static assets at the /local-media/ URL path.
+The Sync Agent downloads files to: ./apps/player/public/local-media
+The Express server (embedded in sync-agent.js) serves these as static assets at the /local-media/ URL path.

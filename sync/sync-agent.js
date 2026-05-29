@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') })
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -13,7 +14,7 @@ if (!DEVICE_ID) throw new Error('Missing required env: DEVICE_ID');
 if (!API_KEY) throw new Error('Missing required env: DEVICE_API_KEY');
 if (!API_URL) throw new Error('Missing required env: API_URL');
 
-const LOCAL_DIR = path.join(__dirname, '..', 'apps', 'player', 'public', 'local-media');
+const LOCAL_DIR = process.env.LOCAL_DIR || path.join(__dirname, '..', 'apps', 'player', 'public', 'local-media');
 const SCHEDULE_PATH = path.join(__dirname, '..', 'apps', 'player', 'public', 'schedule.json');
 
 if (!fs.existsSync(LOCAL_DIR)) fs.mkdirSync(LOCAL_DIR, { recursive: true });
@@ -44,7 +45,7 @@ async function downloadFile(url, dest, updatedAt) {
       url,
       method: 'GET',
       responseType: 'stream',
-      headers: { Authorization: `PayloadAPIKey ${API_KEY}` },
+      headers: { Authorization: `devices API-Key ${API_KEY}` },
     });
     const writer = fs.createWriteStream(dest);
     response.data.pipe(writer);
@@ -149,7 +150,7 @@ function buildScheduleJson(activeItems) {
 async function resolveDeviceId() {
   const res = await fetchWithRetry(
     `${API_URL}/devices?where[deviceId][equals]=${DEVICE_ID}&depth=0&limit=1`,
-    { headers: { Authorization: `PayloadAPIKey ${API_KEY}` } }
+    { headers: { Authorization: `devices API-Key ${API_KEY}` } }
   );
   if (!res.data.docs || res.data.docs.length === 0) {
     throw new Error(`Device not found: ${DEVICE_ID}`);
@@ -163,7 +164,7 @@ async function sync() {
 
     const res = await fetchWithRetry(
       `${API_URL}/schedule?where[devices][contains]=${numericId}&where[program.status][equals]=approved&depth=2&sort=startTime`,
-      { headers: { Authorization: `PayloadAPIKey ${API_KEY}` } }
+      { headers: { Authorization: `devices API-Key ${API_KEY}` } }
     );
 
     const docs = res.data.docs || [];
@@ -202,11 +203,11 @@ async function sync() {
             if (media.sizes?.fullHD?.filename) requiredFilenames.add(sanitizeFilename(media.sizes.fullHD.filename));
             if (media.sizes?.thumbnail?.filename) requiredFilenames.add(sanitizeFilename(media.sizes.thumbnail.filename));
 
-            await downloadIfChanged(media, `${API_URL}/media`).catch(err =>
+            await downloadIfChanged(media, `${API_URL}/media/file`).catch(err =>
               console.error(`Download failed for ${media.filename}: ${err.message}`)
             );
             if (media.sizes) {
-              await downloadSizes(media, `${API_URL}/media`).catch(err =>
+              await downloadSizes(media, `${API_URL}/media/file`).catch(err =>
                 console.error(`Size download failed for ${media.filename}: ${err.message}`)
               );
             }
@@ -241,7 +242,7 @@ async function sync() {
       await axios.post(`${API_URL}/heartbeat`, {
         programId: activeProgramId,
       }, {
-        headers: { Authorization: `PayloadAPIKey ${API_KEY}` },
+        headers: { Authorization: `devices API-Key ${API_KEY}` },
       });
     } catch (err) {
       console.error('Heartbeat failed:', err.message);
@@ -256,11 +257,11 @@ setInterval(sync, 60000);
 
 sync().then(() => {
   const app = express();
-  app.use('/local-media', express.static(LOCAL_DIR));
-  app.use(express.static(path.join(__dirname, '..', 'apps', 'player', 'dist')));
   app.get('/schedule.json', (_, res) => {
     res.sendFile(SCHEDULE_PATH);
   });
+  app.use('/local-media', express.static(LOCAL_DIR));
+  app.use(express.static(path.join(__dirname, '..', 'apps', 'player', 'dist')));
   app.listen(5000, () => {
     console.log('Player server listening on http://localhost:5000');
   });

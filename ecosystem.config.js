@@ -10,6 +10,8 @@ module.exports = {
         API_URL: 'https://cms.yourchurch.org/api',
         DEVICE_ID: 'CLASSROOM-01',
         DEVICE_API_KEY: '',
+        PLUG_IP: '',
+        LOCAL_DIR: './apps/player/public/local-media',
       },
     },
   ],

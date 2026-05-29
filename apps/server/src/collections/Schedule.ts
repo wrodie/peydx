@@ -15,7 +15,7 @@ export const Schedule: CollectionConfig = {
       if (!user) return false
       if (user.role === 'admin') return true
       if (user.collection === 'devices') {
-        return { department: { in: user.departments } }
+        return true
       }
       return { department: { equals: user.department } }
     },

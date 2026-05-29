@@ -41,4 +41,5 @@ apps/server/media
 apps/server/node_modules
 apps/player/node_modules
 apps/player/public
-
+apps/player/dist
+apps/server/.next
