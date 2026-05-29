@@ -17,6 +17,7 @@ module.exports = {
       cwd: './',
       autorestart: true,
       max_memory_restart: '200M',
+      // ⚠ PLACEHOLDER VALUES below — replace before deploying
       env: {
         API_URL: 'https://cms.yourchurch.org/api',
         DEVICE_ID: 'CLASSROOM-01',

@@ -1,6 +1,7 @@
 interface ScheduleEntry {
   programId: number
   startTime: string
+  endTime?: string
   program: {
     id: number
     title: string
@@ -22,8 +23,11 @@ export function resolveActiveProgram(scheduleData: ResolvedSchedule): ScheduleEn
   for (const entry of entries) {
     const start = new Date(entry.startTime)
     if (start <= now) {
-      if (!activeEntry || new Date(entry.startTime) > new Date(activeEntry.startTime)) {
-        activeEntry = entry
+      const end = entry.endTime ? new Date(entry.endTime) : null
+      if (!end || now < end) {
+        if (!activeEntry || new Date(entry.startTime) > new Date(activeEntry.startTime)) {
+          activeEntry = entry
+        }
       }
     }
   }

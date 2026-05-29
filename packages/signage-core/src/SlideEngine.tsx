@@ -25,6 +25,7 @@ interface SlideEngineProps {
 export function SlideEngine({ program, onProgramEnd }: SlideEngineProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [videoError, setVideoError] = useState<string | null>(null)
+  const [isEnded, setIsEnded] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const playerRef = useRef<any>(null)
   const programRef = useRef(program.id)
@@ -34,6 +35,7 @@ export function SlideEngine({ program, onProgramEnd }: SlideEngineProps) {
       programRef.current = program.id
       setCurrentIndex(0)
       setVideoError(null)
+      setIsEnded(false)
       if (timerRef.current) clearTimeout(timerRef.current)
       try { playerRef.current?.destroy() } catch {}
       playerRef.current = null
@@ -43,23 +45,24 @@ export function SlideEngine({ program, onProgramEnd }: SlideEngineProps) {
   const slides = program.slides
 
   const nextSlide = useCallback(() => {
-    if (!slides?.length) return
+    if (isEnded || !slides?.length) return
     setCurrentIndex((i) => {
       if (i < slides.length - 1) return i + 1
       if (onProgramEnd) {
-        setTimeout(() => onProgramEnd(), 0)
+        setIsEnded(true)
+        setTimeout(() => onProgramEnd(), TRANSITION_DURATION)
         return i
       }
       return 0
     })
     setVideoError(null)
-  }, [slides, onProgramEnd])
+  }, [slides, onProgramEnd, isEnded])
 
   const prevSlide = useCallback(() => {
-    if (!slides?.length) return
+    if (isEnded || !slides?.length) return
     setCurrentIndex((i) => (i > 0 ? i - 1 : slides.length - 1))
     setVideoError(null)
-  }, [slides])
+  }, [slides, isEnded])
 
   const runSlideLogic = useCallback(
     (slide: Slide | undefined) => {
@@ -237,6 +240,21 @@ export function SlideEngine({ program, onProgramEnd }: SlideEngineProps) {
           </>
         )}
       </div>
+      {isEnded && (
+        <div
+          key="end-overlay"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 10,
+            background: 'black',
+            animation: `signageFadeIn ${TRANSITION_DURATION}ms ease both`,
+          }}
+        />
+      )}
       {slides && slides.length > 1 && (
         <div className="slide-slide-indicator">
           {currentIndex + 1} / {slides.length}

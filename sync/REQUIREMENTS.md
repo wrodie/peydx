@@ -22,14 +22,14 @@ The system natively supports two distinct tiers of venue hardware depending on t
 * **Use Case:** Mission-critical offline lessons and classroom instructional teaching.
 * **Hardware:** HP EliteDesk 800 G2 (or equivalent Intel Core i5 Mini PCs) with a 250GB SSD.
 * **OS Environment:** Ubuntu Server (Headless) + Openbox Window Manager running directly on the host operating system (Bare Metal) to support direct GPU execution for complex browser-rendered media pipelines.
-* **Frontend Execution:** SvelteKit App running locally inside a Chromium Kiosk instance.
+* **Frontend Execution:** React + Vite App running locally inside a Chromium Kiosk instance.
 * **Local Infrastructure:** A background Node.js "Sync Agent" worker managed via PM2 that pulls data from the cloud, manages the bare-metal storage array, and provides local asset availability.
 * **Power Management:** Target hardware BIOS configurations are modified to trigger **Auto-Power On** conditions upon intercepting AC power restoration. Software-based power control can also be triggered by the local sync agent via an **SLWF-08 WiFi Controller** to toggle TV power via software (e.g., On at 8:00 AM, Off at 5:00 PM).
 
 ### 2.2 Tier 2 Player: Google TV Streamer / Simple Browser (Signage Mode)
 * **Use Case:** Affordable digital signage in hallways, foyers, and public areas.
 * **Hardware:** Google TV Streamer devices or generic smart TV browsers.
-* **Client App:** Fully Kiosk Browser (Android App) pointed directly to the hosted SvelteKit player URL.
+* **Client App:** Fully Kiosk Browser (Android App) pointed directly to the hosted player URL.
 * **Caching Strategy:** Relies on service workers to handle on-the-fly client-side asset caching as content loops.
 * **Power Management:** Native HDMI-CEC commands executed through the Android OS layer (configured via Fully Kiosk Browser settings) to handle automated display sleeping/waking.
 
@@ -57,7 +57,7 @@ export const DEPARTMENT_VALUES = DEPARTMENTS.map(d => d.value);
 
 * **`admin`:** Global "God-View" access. Can create/delete users, overwrite schedules, view all media across all departments, and configure raw device profiles.
 * **`basic` / Departmental Volunteer (e.g., `Kids_Volunteer`, `Signage_Volunteer`):** Standard volunteer/staff access. Tied strictly to a single `department` attribute. They can only read, write, and manage content belonging to their assigned department.
-* **UI Customization:** When a user logs in, the Media and Programs views are automatically pre-filtered by their Department tag. The administration sidebar navigation layout is logically partitioned into **"Classroom Tools"** and **"Public Signage"** headers.
+* **UI Customization:** When a user logs in, the Media and Programs views are automatically pre-filtered by their Department tag. Ungrouped collections (Programs, Media, Schedule) appear under a "Menu" heading in the sidebar. Admin-only collections (Users, Devices) are grouped under an "Admin" heading visible only to admin users.
 
 ---
 
@@ -114,7 +114,7 @@ The centerpiece of user content workflows is the Program collection built using 
 | **Transition Types** | Fade, Cut, Slide, Zoom | Fade, Cut, Slide |
 
 * **Functional Advance Logic Definitions:**
-* `Manual (Click)`: The SvelteKit player pauses on this slide indefinitely. It listens for keyboard events (`Spacebar`, `Right Arrow`) or an external presenter remote click before animating to the next slide.
+* `Manual (Click)`: The player pauses on this slide indefinitely. It listens for keyboard events (`Spacebar`, `Right Arrow`) or an external presenter remote click before animating to the next slide.
 * `Timed`: A JavaScript `setTimeout` triggers the transition automatically after the specified seconds elapse.
 * `On End (Video Only)`: The player listens directly for the native HTML5 video `onEnded` event. This acts as a hands-free configuration for classroom presenters.
 
@@ -144,26 +144,37 @@ To optimize volunteer efficiency when dragging multiple images into a Program:
 
 
 
-#### D. Devices Collection (`Devices.ts`)
+#### D. Schedule Collection (`Schedule.ts`)
+
+* **Slug:** `schedule`
+* **Admin Group:** Standalone collection appearing under "Menu" in the sidebar (ungrouped).
+* **Fields:**
+* `program`: Relationship, required. Links to the `programs` collection. Filtered dynamically so basic users can only select programs matching their own department.
+* `devices`: Relationship to `devices` collection, `hasMany: true`, required. Allows a single schedule entry to target multiple displays simultaneously.
+* `startTime`: Date-time picker restricted to 15-minute intervals.
+* `endTime`: Date-time picker, auto-defaults to 1 hour after start time if left empty.
+* `department`: Hidden select, auto-populated from the creating user's department.
+* `createdBy`: Hidden relationship to `users`, auto-populated.
+
+* **Overlap Validation:**
+When saving, a `beforeChange` hook queries all existing schedule entries for each selected device and checks for time-range overlap. If any overlap is detected, the save is rejected with a descriptive error.
+
+* **Cross-Department Prevention:**
+Non-admin users are restricted to scheduling programs from their own department. The `beforeChange` hook fetches the selected program and validates department match.
+
+#### E. Devices Collection (`Devices.ts`)
 
 * **Slug:** `devices`
+* **Auth:** API Key authentication (`useAPIKey: true`, `disableLocalStrategy: true`).
 * **Fields:**
 * `name`: Text, required (e.g., "Fellowship Hall TV").
-* `deviceId`: Text, unique, required (Hardware serial key identifier utilized by the client Sync Agent).
+* `deviceId`: Text, unique, required. Auto-generated on creation as `DEV-XXXXXXXX` (random 8-char hex). Read-only after creation.
 * `departments`: Select mapped to `DEPARTMENTS` with `hasMany: true`, allowing cross-department shared ownership of physical displays.
-* `schedule`: Array of scheduled blocks containing:
-* `program`: Relationship linking to the `programs` collection. Filtered dynamically in the UI so basic users can only link programs matching their own department.
-* `startTime`: Date-time picker restricted to 15-minute intervals.
+* `lastHeartbeat`: Date, read-only, updated by the sync agent.
+* `currentProgram`: Relationship to `programs`, read-only.
+* `status`: Select, read-only (`online`, `offline`, `stale`).
 
-
-
-
-* **Array Validation Logic:**
-* The `schedule` field group contains a custom validation hook checking for duplicate `startTime` records. If an absolute schedule intersection or block collision is detected, saving throws a field-level UI blocker.
-
-
-* **Access Control:**
-* `read` / `update`: Granted if `user.role === 'admin'` OR if the authenticated user's department value is explicitly contained within the target device's `departments` array mapping (`device.departments.contains(user.department)`).
+*Note: The `schedule` array field previously embedded on devices has been replaced by the standalone `Schedule` collection.*
 
 
 
@@ -183,7 +194,7 @@ A dedicated operational view tracking connected device states. The server record
 |   |       PM2 Engine      |      |   Bare-Metal SSD      |   |
 |   |                       |      |                       |   |
 |   |  [Process 1]          |      |  /local-media/        |   |
-|   |  SvelteKit App        |      |  (Holds offline image/|   |
+|   |  React Player         |      |  (Holds offline image/|   |
 |   |  (Port 5000)          |<====>|   video files)        |   |
 |   |                       |      |           ^           |   |
 |   |  [Process 2]          |      |           |           |   |
@@ -191,11 +202,11 @@ A dedicated operational view tracking connected device states. The server record
 |   |  (Cron / Axios Fetch) |                              |   |
 |   +-----------------------+                              |   |
 +--------------------------------------------------------------+
-                               |
-                               v (Fetches Delta via JSON)
-               +-------------------------------+
-               |  Cloud Server (AWS Lightsail) |
-               +-------------------------------+
+                                |
+                                v (Fetches Delta via JSON)
+                +-------------------------------+
+                |  Cloud Server (AWS Lightsail) |
+                +-------------------------------+
 
 ```
 
@@ -215,8 +226,10 @@ To enforce the Zero-Public-Access rule without requiring volunteers to manage pa
 church-signage/
 ├── apps/
 │   ├── server/             # Payload CMS (Docker Container Context)
-│   └── player/             # SvelteKit Digital Signage App (Native Node)
-├── sync-agent/             # Background Synchronization Cron Worker
+│   └── player/             # React + Vite Signage Player (Native Node)
+├── packages/
+│   └── signage-core/       # Shared slide rendering engine (React)
+├── sync/                   # Background Synchronization Cron Worker
 │   └── sync-agent.js       # Core Delta execution script
 ├── docker-compose.yml      # Cloud multi-container setup orchestration
 ├── ecosystem.config.js     # PM2 Bare-metal initialization profile for Client
@@ -231,39 +244,35 @@ church-signage/
 - **Sync Routine Logic:**
   1. Requests a delta payload from the server every X minutes using its unique API Key header.
   2. Parses the incoming schedules for the next rolling 24-hour cycle.
-  3. Compares cloud targets against assets physically present inside the client directory: `./apps/player/static/local-media`.
+  3. Compares cloud targets against assets physically present inside the client directory: `./apps/player/public/local-media`.
   4. Downloads missing items via authenticated streaming buffers; purges stale historical media items missing from the upcoming 24-hour window.
   5. Writes out an updated, flat manifest file locally (`schedule.json`).
 
 
-### 5.3 SvelteKit Frontend Media Renderer (`Player.svelte`)
+### 5.3 React Player App
 
-* **Runtime Mode:** Operates on port `5000` via automated production preview execution mode, reading data directly from the local manifest file to maintain perfect offline operation.
+* **Runtime Mode:** Built with Vite, served statically from `dist/`, wrapped in an Express static file server embedded in `sync-agent.js` running on port `5000`. Reads `schedule.json` at runtime via `fetch()` every 60 seconds.
+* **Shared Rendering Engine:** Slide rendering, transitions, YouTube IFrame, and video error handling are implemented in a shared `signage-core` package (`packages/signage-core/`). Both the admin preview (`page.tsx`) and the device player import from this package, ensuring pixel-identical output.
+* **Schedule Resolution:** The `App.tsx` component fetches `/schedule.json` every 60s and resolves the active program by finding a schedule entry whose `startTime <= now < endTime`. If none matches, it shows a "No program scheduled" idle screen.
 * **Layout Blueprint (The Blurred Backdrop UI):**
-Images are styled utilizing twin layout stacks to perfectly fit arbitrary structural screen aspect ratios without hard cropping content:
-* *Layer 1 (Background):* Set to full bleed viewport coverage (`object-fit: cover`), scaled up slightly to avoid edge leaking, heavily blurred (`blur(30px)`), and darkened down (`brightness(0.5)`).
-* *Layer 2 (Foreground):* Layered over the background backdrop using a clear relative stack orientation, fitting its bounds safely inside the view window via containment configurations (`object-fit: contain`), layered safely with a soft contrast drop shadow.
+Images are styled utilizing twin layout stacks to fit arbitrary structural screen aspect ratios without hard cropping content:
+* *Layer 1 (Background):* Full bleed viewport coverage (`object-fit: cover`), scaled up slightly to avoid edge leaking, heavily blurred (`blur(30px)`), and darkened down (`brightness(0.5)`).
+* *Layer 2 (Foreground):* Layered over the background using a relative stack orientation, fitting bounds safely inside the view window (`object-fit: contain`) with a soft contrast drop shadow.
 
-
-
-```html
-{#if slide.blockType === 'imageBlock'}
-  {@const imageSrc = slide.image.sizes?.fullHD?.filename 
-    ? `/local-media/${slide.image.sizes.fullHD.filename}` 
-    : `/local-media/${slide.image.filename}`}
-
-  <img src={imageSrc} class="backdrop" alt="" aria-hidden="true" />
-
-  <img src={imageSrc} class="foreground" alt={slide.image.alt || 'Slide'} />
-{#endif}
-
+```tsx
+{currentSlide.blockType === 'imageBlock' && (
+  <>
+    <img src={mediaUrl} className="slide-backdrop" alt="" aria-hidden="true" />
+    <img src={mediaUrl} className="slide-foreground" alt={slideMedia?.alt || 'Slide'} />
+  </>
+)}
 ```
 
 ---
 
 ## 6. Client Deployment & Kiosk Wrapper Configuration
 
-* **Process Management:** Local client software initialization is managed entirely by PM2 using `ecosystem.config.js`.
+* **Process Management:** Local client software initialization is managed entirely by PM2 using `ecosystem.config.js`. The sync agent includes an embedded Express static server that serves the built player (`dist/`), `schedule.json`, and `/local-media/` assets on port 5000.
 * **Browser Isolation Setup:** Systems initiate a local Chromium instance launched natively in Kiosk execution mode via system startup scripts:
 ```bash
 chromium-browser --kiosk --incognito --noerrdialogs --disable-session-crashed-bubble http://localhost:5000

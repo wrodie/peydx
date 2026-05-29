@@ -23,6 +23,15 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
+  i18n: {
+    translations: {
+      en: {
+        general: {
+          collections: 'Menu',
+        },
+      },
+    },
+  },
   collections: [
     Programs,
     Devices,

@@ -304,7 +304,6 @@ export interface Device {
  */
 export interface Schedule {
   id: number;
-  title?: string | null;
   program: number | Program;
   devices: (number | Device)[];
   startTime: string;
@@ -484,7 +483,6 @@ export interface DevicesSelect<T extends boolean = true> {
  * via the `definition` "schedule_select".
  */
 export interface ScheduleSelect<T extends boolean = true> {
-  title?: T;
   program?: T;
   devices?: T;
   startTime?: T;
