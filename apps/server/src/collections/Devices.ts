@@ -59,7 +59,13 @@ export const Devices: CollectionConfig = {
     {
       name: 'lastHeartbeat',
       type: 'date',
-      admin: { readOnly: true, position: 'sidebar' },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        date: {
+          pickerAppearance: 'dayAndTime',
+        },
+      },
     },
     {
       name: 'currentProgram',

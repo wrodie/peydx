@@ -138,7 +138,6 @@ export const Schedule: CollectionConfig = {
     {
       name: 'endTime',
       type: 'date',
-      required: true,
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',

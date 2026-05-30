@@ -310,7 +310,7 @@ export interface Schedule {
   /**
    * Defaults to 1 hour after start time.
    */
-  endTime: string;
+  endTime?: string | null;
   department?: ('children' | 'signage' | 'youth') | null;
   createdBy?: (number | null) | User;
   updatedAt: string;
