@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { DEPARTMENTS } from '../constants/departments'
 import { cleanupMediaReferences } from '../hooks/cleanupMediaReferences'
+import { getIO } from '../websocket/io'
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -39,34 +40,86 @@ export const Media: CollectionConfig = {
         if (!data.name && req.file?.name) {
           data.name = req.file.name.replace(/\.[^.]+$/, '')
         }
-        if (req.user && req.user.role !== 'admin') {
-          data.department = req.user.department
+        if (req.user && (req.user as any).role !== 'admin') {
+          data.department = (req.user as any).department
         }
         return data
       },
     ],
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        if (operation === 'create') return
+
+        const io = getIO()
+        if (!io) return
+
+        // Find all programs that reference this media
+        const programs = await req.payload.find({
+          collection: 'programs',
+          depth: 0,
+          pagination: false,
+          where: {
+            or: [
+              { 'slides.image': { equals: doc.id } },
+              { 'slides.video': { equals: doc.id } },
+            ],
+          },
+        })
+
+        if (programs.docs.length === 0) return
+
+        // For each program, find devices and notify
+        for (const program of programs.docs) {
+          const schedules = await req.payload.find({
+            collection: 'schedule',
+            depth: 0,
+            pagination: false,
+            where: { program: { equals: program.id } },
+          })
+
+          const deviceIds = new Set<number>()
+          for (const s of schedules.docs) {
+            for (const dId of s.devices as number[]) {
+              deviceIds.add(typeof dId === 'object' ? (dId as any).id : dId)
+            }
+          }
+
+          for (const deviceId of deviceIds) {
+            io.to(`device:${deviceId}`).emit('media:update', {
+              mediaId: doc.id,
+              url: doc.url || '',
+              sizes: doc.sizes,
+            })
+          }
+        }
+      },
+    ],
   },
   access: {
-    read: ({ req: { user } }) => {
-      if (!user) return false;
+    read: ({ req: { user: u } }) => {
+      const user = u as any
+      if (!user) return true;
       if (user.role === 'admin') return true;
       if (user.role === 'basic') return { department: { equals: user.department } };
       if (user.collection === 'devices') return { department: { in: user.departments } };
-      return false;
+      return true;
     },
-    update: ({ req: { user } }) => {
+    update: ({ req: { user: u } }) => {
+      const user = u as any
       if (!user) return false;
       if (user.role === 'admin') return true;
       if (user.role === 'basic') return { department: { equals: user.department } };
       return false;
     },
-    delete: ({ req: { user } }) => {
+    delete: ({ req: { user: u } }) => {
+      const user = u as any
       if (!user) return false;
       if (user.role === 'admin') return true;
       if (user.role === 'basic') return { department: { equals: user.department } };
       return false;
     },
-    create: ({ req: { user } }) => {
+    create: ({ req: { user: u } }) => {
+      const user = u as any
       if (!user) return false;
       if (user.role === 'admin') return true;
       if (user.role === 'basic') return { department: { equals: user.department } };
@@ -87,9 +140,9 @@ export const Media: CollectionConfig = {
       name: 'department',
       type: 'select',
       required: true,
-      options: DEPARTMENTS,
+      options: DEPARTMENTS as any,
       admin: {
-        condition: (_, __, { user }) => user?.role === 'admin',
+        condition: (_, __, { user }) => (user as any)?.role === 'admin',
       },
     },
   ],

@@ -15,9 +15,10 @@ COPY package*.json ./
 RUN npm install --production
 
 # Copy built files from builder
-COPY --from=builder /home/node/app/dist ./dist
-COPY --from=builder /home/node/app/build ./build
-COPY --from=builder /home/node/app/next.config.mjs ./ # If using v3
+COPY --from=builder /home/node/app/.next ./.next
+COPY --from=builder /home/node/app/server.ts ./
+COPY --from=builder /home/node/app/next.config.ts ./
+COPY --from=builder /home/node/app/public ./public
 
 EXPOSE 3000
-CMD ["node", "dist/server.js"]
+CMD ["npx", "tsx", "server.ts"]

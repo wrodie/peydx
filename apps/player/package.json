@@ -8,9 +8,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "signage-core": "*",
     "react": "^19",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "signage-core": "*",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.0",

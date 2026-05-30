@@ -3,6 +3,9 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
+const { io: socketIOClient } = require('socket.io-client');
+const { Server: SocketIOServer } = require('socket.io');
+const http = require('http');
 
 // CONFIGURATION — all from environment variables
 const DEVICE_ID = process.env.DEVICE_ID;
@@ -18,6 +21,9 @@ const LOCAL_DIR = process.env.LOCAL_DIR || path.join(__dirname, '..', 'apps', 'p
 const SCHEDULE_PATH = path.join(__dirname, '..', 'apps', 'player', 'public', 'schedule.json');
 
 if (!fs.existsSync(LOCAL_DIR)) fs.mkdirSync(LOCAL_DIR, { recursive: true });
+
+let currentSlideIndex = 0;
+let activeProgramId = null;
 
 function sanitizeFilename(filename) {
   return filename
@@ -158,6 +164,15 @@ async function resolveDeviceId() {
   return res.data.docs[0].id;
 }
 
+async function downloadSpecificMedia(data) {
+  if (!data.url) return;
+  const sanitized = sanitizeFilename(data.url.split('/').pop() || `media-${data.mediaId}`);
+  const dest = path.join(LOCAL_DIR, sanitized);
+  await downloadFile(data.url, dest, new Date().toISOString()).catch(err =>
+    console.error(`Download failed for media ${data.mediaId}: ${err.message}`)
+  );
+}
+
 async function sync() {
   try {
     const numericId = await resolveDeviceId();
@@ -237,10 +252,23 @@ async function sync() {
     fs.writeFileSync(tmp, JSON.stringify(scheduleData, null, 2) + '\n');
     fs.renameSync(tmp, SCHEDULE_PATH);
 
-    const activeProgramId = activeItems[0]?.program?.id || null;
+    activeProgramId = activeItems[0]?.program?.id || null;
+
+    // Emit heartbeat via Socket.IO (will also fall back via the interval)
+    if (cmsSocket?.connected) {
+      cmsSocket.emit('device:heartbeat', {
+        programId: activeProgramId,
+        slideIndex: currentSlideIndex,
+      }, (ack) => {
+        if (!ack?.ok) console.error('Heartbeat via Socket.IO failed')
+      })
+    }
+
+    // HTTP heartbeat fallback
     try {
       await axios.post(`${API_URL}/heartbeat`, {
         programId: activeProgramId,
+        slideIndex: currentSlideIndex,
       }, {
         headers: { Authorization: `devices API-Key ${API_KEY}` },
       });
@@ -253,16 +281,104 @@ async function sync() {
   }
 }
 
-setInterval(sync, 60000);
+// ========================
+// Socket.IO: CMS Connection
+// ========================
+let cmsSocket = null;
+
+function connectToCMS() {
+  const wsUrl = API_URL.replace(/\/api$/, '');
+  const socket = socketIOClient(wsUrl, {
+    path: '/api/ws',
+    extraHeaders: { Authorization: `devices API-Key ${API_KEY}` },
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 30000,
+  });
+
+  socket.on('connect', () => {
+    console.log('Connected to CMS WebSocket');
+    sync();
+  });
+
+  socket.on('schedule:update', () => {
+    console.log('Received schedule update via WebSocket');
+    sync();
+  });
+
+  socket.on('program:update', () => {
+    console.log('Received program update via WebSocket');
+    sync();
+  });
+
+  socket.on('media:update', (data) => {
+    console.log('Received media update via WebSocket');
+    downloadSpecificMedia(data);
+  });
+
+  socket.on('remote:advance', () => {
+    localIO?.emit('remote:advance');
+  });
+
+  socket.on('remote:previous', () => {
+    localIO?.emit('remote:previous');
+  });
+
+  socket.on('remote:goto', (data) => {
+    localIO?.emit('remote:goto', data);
+  });
+
+  socket.on('remote:program', (data) => {
+    localIO?.emit('remote:program', data);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Disconnected from CMS WebSocket');
+  });
+
+  cmsSocket = socket;
+}
+
+// ========================
+// Express + Local Socket.IO
+// ========================
+let localIO = null;
 
 sync().then(() => {
   const app = express();
+
   app.get('/schedule.json', (_, res) => {
     res.sendFile(SCHEDULE_PATH);
   });
   app.use('/local-media', express.static(LOCAL_DIR));
   app.use(express.static(path.join(__dirname, '..', 'apps', 'player', 'dist')));
-  app.listen(5000, () => {
+
+  const httpServer = http.createServer(app);
+
+  localIO = new SocketIOServer(httpServer, {
+    path: '/ws',
+    cors: { origin: '*' },
+  });
+
+  localIO.on('connection', (localPlayerSocket) => {
+    console.log('Local player connected via WebSocket');
+
+    localPlayerSocket.on('device:slideChange', (data) => {
+      currentSlideIndex = data.slideIndex;
+      if (cmsSocket?.connected) {
+        cmsSocket.emit('device:slideChange', data);
+      }
+    });
+  });
+
+  httpServer.listen(5000, () => {
     console.log('Player server listening on http://localhost:5000');
+
+    // Connect to CMS after local server is up
+    connectToCMS();
   });
 });
+
+// HTTP polling as fallback
+setInterval(sync, 60000);

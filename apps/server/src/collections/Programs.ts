@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 import { ImageBlock, VideoBlock, YoutubeBlock } from '../blocks/SlideBlocks'
 import { autoCreateSlides } from '../hooks/autoCreateSlides'
 import { DEPARTMENTS } from '../constants/departments'
+import { getIO } from '../websocket/io'
 
 export const Programs: CollectionConfig = {
   slug: 'programs',
@@ -14,36 +15,90 @@ export const Programs: CollectionConfig = {
   
   // Logical Separation: Users only see programs matching their department
   access: {
-    read: ({ req: { user } }) => {
+    read: ({ req: { user: u } }) => {
+      const user = u as any
       if (!user) return false;
       if (user.role === 'admin') return true;
       if (user.role === 'basic') return { department: { equals: user.department } };
       if (user.collection === 'devices') return { department: { in: user.departments } };
       return false;
     },
-    update: ({ req: { user } }) => {
+    update: ({ req: { user: u } }) => {
+      const user = u as any
       if (!user) return false;
       if (user.role === 'admin') return true;
       return {
         department: { equals: user.department }
       }
     },
-    delete: ({ req: { user } }) => user?.role === 'admin', // Only admins can delete
+    delete: ({ req: { user: u } }) => (u as any)?.role === 'admin',
   },
 
   hooks: {
     beforeChange: [
       async (args) => {
         const { req, data } = args
+        const user = req.user as any
         if (args.context?.preventSync) return data
-        if (req.user && req.user.role !== 'admin') {
-          data.department = req.user.department
+        if (user && user.role !== 'admin') {
+          data.department = user.department
         }
         await autoCreateSlides(args)
-        if (req.user && !data.createdBy) {
-          data.createdBy = req.user.id
+        if (user && !data.createdBy) {
+          data.createdBy = user.id
         }
         return data
+      },
+    ],
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        if (operation === 'create') return
+
+        const io = getIO()
+        if (!io) return
+
+        // Find all devices currently running this program via schedule
+        const schedules = await req.payload.find({
+          collection: 'schedule',
+          depth: 0,
+          pagination: false,
+          where: {
+            program: { equals: doc.id },
+          },
+        })
+
+        const deviceIds = new Set<number>()
+        for (const schedule of schedules.docs) {
+          for (const deviceId of schedule.devices as number[]) {
+            deviceIds.add(typeof deviceId === 'object' ? (deviceId as any).id : deviceId)
+          }
+        }
+
+        // Also find devices where currentProgram === this program
+        const devices = await req.payload.find({
+          collection: 'devices',
+          depth: 0,
+          pagination: false,
+          where: {
+            currentProgram: { equals: doc.id },
+          },
+        })
+        for (const device of devices.docs) {
+          deviceIds.add(device.id)
+        }
+
+        if (deviceIds.size === 0) return
+
+        // Fetch full program with slides populated
+        const fullProgram = await req.payload.findByID({
+          collection: 'programs',
+          id: doc.id,
+          depth: 2,
+        })
+
+        for (const deviceId of deviceIds) {
+          io.to(`device:${deviceId}`).emit('program:update', { program: fullProgram })
+        }
       },
     ],
   },
@@ -70,10 +125,10 @@ export const Programs: CollectionConfig = {
       name: 'department',
       type: 'select',
       required: true,
-      options: DEPARTMENTS,
+      options: DEPARTMENTS as any,
       admin: {
         position: 'sidebar',
-        condition: (_, __, { user }) => user?.role === 'admin',
+        condition: (_, __, { user }) => (user as any)?.role === 'admin',
       },
     },
     {

@@ -287,10 +287,17 @@ export interface Device {
   id: number;
   name: string;
   deviceId: string;
+  deviceType: 'hardware' | 'browser';
   departments: ('children' | 'signage' | 'youth')[];
   lastHeartbeat?: string | null;
   currentProgram?: (number | null) | Program;
+  currentSlideIndex?: number | null;
   status?: ('online' | 'offline' | 'stale') | null;
+  /**
+   * When set, this device mirrors the controlling device's program and slide position.
+   */
+  controllingDevice?: (number | null) | Device;
+  browserToken?: string | null;
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -468,10 +475,14 @@ export interface ProgramsSelect<T extends boolean = true> {
 export interface DevicesSelect<T extends boolean = true> {
   name?: T;
   deviceId?: T;
+  deviceType?: T;
   departments?: T;
   lastHeartbeat?: T;
   currentProgram?: T;
+  currentSlideIndex?: T;
   status?: T;
+  controllingDevice?: T;
+  browserToken?: T;
   updatedAt?: T;
   createdAt?: T;
   enableAPIKey?: T;

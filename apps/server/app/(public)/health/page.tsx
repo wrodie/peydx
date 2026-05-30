@@ -6,10 +6,12 @@ interface Device {
   id: number
   name: string
   deviceId: string
+  deviceType?: 'hardware' | 'browser'
   departments: string[]
   status?: 'online' | 'offline' | 'stale' | null
   lastHeartbeat?: string | null
   currentProgram?: { id: number; title: string } | null
+  currentSlideIndex?: number | null
 }
 
 function computeStatus(lastHeartbeat: string | null | undefined): 'online' | 'stale' | 'offline' {
@@ -45,7 +47,7 @@ export default function HealthDashboard() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/devices?depth=1')
+    fetch('/api/devices?depth=2')
       .then((r) => {
         if (!r.ok) throw new Error('Failed to fetch devices')
         return r.json()
@@ -85,7 +87,7 @@ export default function HealthDashboard() {
   ).length
 
   return (
-    <div style={{ padding: 40, fontFamily: 'system-ui', maxWidth: 900 }}>
+    <div style={{ padding: 40, fontFamily: 'system-ui', maxWidth: 1000 }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: 8 }}>
         Device Health Dashboard
       </h1>
@@ -155,8 +157,10 @@ export default function HealthDashboard() {
             >
               <th style={{ padding: '10px 12px' }}>Status</th>
               <th style={{ padding: '10px 12px' }}>Device</th>
-              <th style={{ padding: '10px 12px' }}>Deparments</th>
+              <th style={{ padding: '10px 12px' }}>Type</th>
+              <th style={{ padding: '10px 12px' }}>Departments</th>
               <th style={{ padding: '10px 12px' }}>Current Program</th>
+              <th style={{ padding: '10px 12px' }}>Current Slide</th>
               <th style={{ padding: '10px 12px' }}>Last Heartbeat</th>
             </tr>
           </thead>
@@ -191,11 +195,44 @@ export default function HealthDashboard() {
                     </div>
                   </td>
                   <td style={{ padding: '10px 12px', fontSize: '0.85rem' }}>
+                    {device.deviceType === 'browser' ? 'Browser' : 'Hardware'}
+                  </td>
+                  <td style={{ padding: '10px 12px', fontSize: '0.85rem' }}>
                     {(device.departments || []).join(', ')}
                   </td>
                   <td style={{ padding: '10px 12px', fontSize: '0.85rem' }}>
                     {device.currentProgram
                       ? device.currentProgram.title
+                      : '—'}
+                  </td>
+                  <td style={{ padding: '10px 12px' }}>
+                    {device.currentProgram && device.currentSlideIndex != null
+                      ? (() => {
+                          const program = device.currentProgram as any
+                          if (!program.slides) return '—'
+                          const slide = program.slides[device.currentSlideIndex]
+                          if (!slide) return '—'
+                          if (slide.blockType === 'imageBlock' && slide.image) {
+                            const img = typeof slide.image === 'object' ? slide.image : null
+                            return img?.sizes?.thumbnail?.url ? (
+                              <img
+                                src={img.sizes.thumbnail.url}
+                                style={{ width: 60, height: 45, objectFit: 'cover', borderRadius: 4 }}
+                                alt=""
+                              />
+                            ) : '—'
+                          }
+                          if (slide.blockType === 'youtubeBlock' && slide.youtubeId) {
+                            return (
+                              <img
+                                src={`https://img.youtube.com/vi/${slide.youtubeId}/mqdefault.jpg`}
+                                style={{ width: 60, height: 45, objectFit: 'cover', borderRadius: 4 }}
+                                alt=""
+                              />
+                            )
+                          }
+                          return `Slide ${device.currentSlideIndex + 1}`
+                        })()
                       : '—'}
                   </td>
                   <td style={{ padding: '10px 12px', fontSize: '0.8rem', color: '#888' }}>

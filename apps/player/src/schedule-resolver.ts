@@ -33,3 +33,50 @@ export function resolveActiveProgram(scheduleData: ResolvedSchedule): ScheduleEn
   }
   return activeEntry?.program ?? null
 }
+
+function normalizeSlide(slide: any): any {
+  const result: any = {
+    blockType: slide.blockType,
+    advanceMode: slide.advanceMode,
+    duration: slide.duration,
+    transition: slide.transition,
+    id: slide.id,
+  }
+
+  if (slide.blockType === 'imageBlock' && slide.image) {
+    result.image = {
+      id: slide.image.id,
+      url: slide.image.sizes?.fullHD?.url || slide.image.url,
+      alt: slide.image.alt,
+    }
+  }
+  if (slide.blockType === 'videoBlock' && slide.video) {
+    result.video = {
+      id: slide.video.id,
+      url: slide.video.url,
+      alt: slide.video.alt,
+    }
+  }
+  if (slide.blockType === 'youtubeBlock') {
+    result.youtubeId = slide.youtubeId
+  }
+
+  return result
+}
+
+export function normalizeApiSchedule(apiData: any): ResolvedSchedule {
+  return {
+    deviceId: '',
+    lastUpdated: new Date().toISOString(),
+    schedule: (apiData.docs || []).map((entry: any) => ({
+      programId: entry.program?.id,
+      startTime: entry.startTime,
+      endTime: entry.endTime,
+      program: {
+        id: entry.program?.id,
+        title: entry.program?.title,
+        slides: (entry.program?.slides || []).map(normalizeSlide),
+      },
+    })),
+  }
+}

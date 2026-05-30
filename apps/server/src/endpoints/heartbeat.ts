@@ -19,6 +19,7 @@ export const heartbeat = {
       data: {
         lastHeartbeat: new Date().toISOString(),
         currentProgram: typeof body.programId === 'number' ? body.programId : body.currentProgram ?? undefined,
+        currentSlideIndex: typeof body.slideIndex === 'number' ? body.slideIndex : req.user.currentSlideIndex ?? undefined,
         status: 'online',
       },
     })

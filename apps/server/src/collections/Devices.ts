@@ -12,19 +12,36 @@ export const Devices: CollectionConfig = {
     useAPIKey: true,
     disableLocalStrategy: true,
   },
+  hooks: {
+    beforeChange: [
+      async ({ data, operation, req }) => {
+        if (data.controllingDevice) {
+          const controller = await req.payload.findByID({
+            collection: 'devices',
+            id: data.controllingDevice,
+            depth: 0,
+          })
+          if (controller.controllingDevice) {
+            throw new Error('Cannot set a controlling device that is itself controlled by another device. Only one level of mirroring is allowed.')
+          }
+        }
+        return data
+      },
+    ],
+  },
   access: {
     read: ({ req: { user } }) => {
       if (!user) return false;
-      if (user.role === 'admin') return true;
+      if ((user as any).role === 'admin') return true;
       return { id: { equals: user.id } }
     },
     update: ({ req: { user } }) => {
       if (!user) return false;
-      if (user.role === 'admin') return true;
-      return { departments: { contains: user.department } };
+      if ((user as any).role === 'admin') return true;
+      return { departments: { contains: (user as any).department } };
     },
-    create: ({ req: { user } }) => user?.role === 'admin',
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: ({ req: { user } }) => (user as any)?.role === 'admin',
+    delete: ({ req: { user } }) => (user as any)?.role === 'admin',
   },
   fields: [
     {
@@ -50,11 +67,21 @@ export const Devices: CollectionConfig = {
       },
     },
     {
+      name: 'deviceType',
+      type: 'select',
+      required: true,
+      defaultValue: 'hardware',
+      options: [
+        { label: 'Hardware (sync agent)', value: 'hardware' },
+        { label: 'Browser (direct URL)', value: 'browser' },
+      ],
+    },
+    {
       name: 'departments',
       type: 'select',
       hasMany: true,
       required: true,
-      options: DEPARTMENTS,
+      options: DEPARTMENTS as any,
     },
     {
       name: 'lastHeartbeat',
@@ -74,6 +101,15 @@ export const Devices: CollectionConfig = {
       admin: { readOnly: true, position: 'sidebar' },
     },
     {
+      name: 'currentSlideIndex',
+      type: 'number',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+      defaultValue: 0,
+    },
+    {
       name: 'status',
       type: 'select',
       defaultValue: 'offline',
@@ -83,6 +119,59 @@ export const Devices: CollectionConfig = {
         { label: 'Stale', value: 'stale' },
       ],
       admin: { readOnly: true, position: 'sidebar' },
+    },
+    {
+      name: 'controllingDevice',
+      type: 'relationship',
+      relationTo: 'devices',
+      hasMany: false,
+      admin: {
+        position: 'sidebar',
+        description: "When set, this device mirrors the controlling device's program and slide position.",
+      },
+      filterOptions: ({ id }) => ({
+        id: { not_equals: id },
+      }),
+    },
+    {
+      name: 'browserToken',
+      type: 'text',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        condition: (data) => data.deviceType === 'browser',
+      },
+      hooks: {
+        beforeValidate: [
+          ({ value }) => {
+            if (!value) {
+              return crypto.randomUUID()
+            }
+            return value
+          },
+        ],
+      },
+    },
+    {
+      name: 'browserUrl',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '/components/CopyDeviceUrl#CopyDeviceUrl',
+        },
+        condition: (data) => data.deviceType === 'browser',
+      },
+    },
+    {
+      name: 'slideStatus',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '/components/DeviceSlideStatus#DeviceSlideStatus',
+        },
+      },
     },
   ],
 }

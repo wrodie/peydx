@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import type { Program, Slide } from './types'
 import './transitions.css'
 
@@ -17,249 +17,282 @@ function parseYouTubeId(input: string): string | null {
   return match ? match[1] : null
 }
 
+export interface SlideEngineHandle {
+  nextSlide: () => void
+  prevSlide: () => void
+  gotoSlide: (index: number) => void
+  getCurrentIndex: () => number
+  getProgramId: () => number | undefined
+}
+
 interface SlideEngineProps {
   program: Program
   onProgramEnd?: () => void
+  onSlideChange?: (index: number) => void
+  initialSlideIndex?: number
 }
 
-export function SlideEngine({ program, onProgramEnd }: SlideEngineProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [videoError, setVideoError] = useState<string | null>(null)
-  const [isEnded, setIsEnded] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const playerRef = useRef<any>(null)
-  const programRef = useRef(program.id)
+export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
+  ({ program, onProgramEnd, onSlideChange, initialSlideIndex }, ref) => {
+    const [currentIndex, setCurrentIndex] = useState(initialSlideIndex ?? 0)
+    const [videoError, setVideoError] = useState<string | null>(null)
+    const [isEnded, setIsEnded] = useState(false)
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const playerRef = useRef<any>(null)
+    const programRef = useRef(program.id)
+    const prevProgramIdRef = useRef(program.id)
 
-  useEffect(() => {
-    if (program.id !== programRef.current) {
-      programRef.current = program.id
-      setCurrentIndex(0)
+    useEffect(() => {
+      if (program.id !== prevProgramIdRef.current) {
+        prevProgramIdRef.current = program.id
+        programRef.current = program.id
+        setCurrentIndex(initialSlideIndex ?? 0)
+        setVideoError(null)
+        setIsEnded(false)
+        if (timerRef.current) clearTimeout(timerRef.current)
+        try { playerRef.current?.destroy() } catch {}
+        playerRef.current = null
+      }
+    }, [program.id, initialSlideIndex])
+
+    const slides = program.slides
+
+    const doNextSlide = useCallback(() => {
+      if (isEnded || !slides?.length) return
+      setCurrentIndex((i) => {
+        if (i < slides.length - 1) return i + 1
+        if (onProgramEnd) {
+          setIsEnded(true)
+          setTimeout(() => onProgramEnd(), TRANSITION_DURATION)
+          return i
+        }
+        return 0
+      })
       setVideoError(null)
-      setIsEnded(false)
-      if (timerRef.current) clearTimeout(timerRef.current)
-      try { playerRef.current?.destroy() } catch {}
-      playerRef.current = null
-    }
-  }, [program.id])
+    }, [slides, onProgramEnd, isEnded])
 
-  const slides = program.slides
+    const doPrevSlide = useCallback(() => {
+      if (isEnded || !slides?.length) return
+      setCurrentIndex((i) => (i > 0 ? i - 1 : slides.length - 1))
+      setVideoError(null)
+    }, [slides, isEnded])
 
-  const nextSlide = useCallback(() => {
-    if (isEnded || !slides?.length) return
-    setCurrentIndex((i) => {
-      if (i < slides.length - 1) return i + 1
-      if (onProgramEnd) {
-        setIsEnded(true)
-        setTimeout(() => onProgramEnd(), TRANSITION_DURATION)
-        return i
+    const gotoSlide = useCallback((index: number) => {
+      if (slides && index >= 0 && index < slides.length) {
+        setCurrentIndex(index)
+        setVideoError(null)
       }
-      return 0
-    })
-    setVideoError(null)
-  }, [slides, onProgramEnd, isEnded])
+    }, [slides])
 
-  const prevSlide = useCallback(() => {
-    if (isEnded || !slides?.length) return
-    setCurrentIndex((i) => (i > 0 ? i - 1 : slides.length - 1))
-    setVideoError(null)
-  }, [slides, isEnded])
+    useImperativeHandle(ref, () => ({
+      nextSlide: doNextSlide,
+      prevSlide: doPrevSlide,
+      gotoSlide,
+      getCurrentIndex: () => currentIndex,
+      getProgramId: () => program.id,
+    }), [doNextSlide, doPrevSlide, gotoSlide, currentIndex, program.id])
 
-  const runSlideLogic = useCallback(
-    (slide: Slide | undefined) => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-      if (!slide || slide.advanceMode !== 'timed') return
-      timerRef.current = setTimeout(nextSlide, (slide.duration || 5) * 1000)
-    },
-    [nextSlide],
-  )
+    useEffect(() => {
+      onSlideChange?.(currentIndex)
+    }, [currentIndex, onSlideChange])
 
-  const currentSlide = slides?.[currentIndex]
+    const runSlideLogic = useCallback(
+      (slide: Slide | undefined) => {
+        if (timerRef.current) clearTimeout(timerRef.current)
+        if (!slide || slide.advanceMode !== 'timed') return
+        timerRef.current = setTimeout(doNextSlide, (slide.duration || 5) * 1000)
+      },
+      [doNextSlide],
+    )
 
-  useEffect(() => {
-    runSlideLogic(currentSlide)
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [currentSlide, runSlideLogic])
+    const currentSlide = slides?.[currentIndex]
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'ArrowRight') {
-        e.preventDefault()
-        nextSlide()
-      } else if (e.code === 'ArrowLeft') {
-        e.preventDefault()
-        prevSlide()
+    useEffect(() => {
+      runSlideLogic(currentSlide)
+      return () => {
+        if (timerRef.current) clearTimeout(timerRef.current)
       }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [nextSlide, prevSlide])
+    }, [currentSlide, runSlideLogic])
 
-  useEffect(() => {
-    if (!currentSlide || currentSlide.blockType !== 'youtubeBlock') return
+    useEffect(() => {
+      const handler = (e: KeyboardEvent) => {
+        if (e.code === 'Space' || e.code === 'ArrowRight') {
+          e.preventDefault()
+          doNextSlide()
+        } else if (e.code === 'ArrowLeft') {
+          e.preventDefault()
+          doPrevSlide()
+        }
+      }
+      window.addEventListener('keydown', handler)
+      return () => window.removeEventListener('keydown', handler)
+    }, [doNextSlide, doPrevSlide])
 
-    const ytId = parseYouTubeId(currentSlide.youtubeId || '')
-    if (!ytId) return
+    useEffect(() => {
+      if (!currentSlide || currentSlide.blockType !== 'youtubeBlock') return
 
-    const playerId = `yt-player-${currentIndex}`
-    let interval: ReturnType<typeof setInterval> | null = null
+      const ytId = parseYouTubeId(currentSlide.youtubeId || '')
+      if (!ytId) return
 
-    function initPlayer() {
-      if ((window as any).YT && (window as any).YT.Player) {
+      const playerId = `yt-player-${currentIndex}`
+      let interval: ReturnType<typeof setInterval> | null = null
+
+      function initPlayer() {
+        if ((window as any).YT && (window as any).YT.Player) {
+          if (interval) clearInterval(interval)
+          try { playerRef.current?.destroy() } catch {}
+          playerRef.current = new (window as any).YT.Player(playerId, {
+            videoId: ytId,
+            playerVars: {
+              autoplay: 1,
+              controls: 0,
+              modestbranding: 1,
+              rel: 0,
+              fs: 0,
+              playsinline: 1,
+            },
+            events: {
+              onReady: (event: any) => {
+                event.target.playVideo()
+              },
+              onStateChange: (event: any) => {
+                if (event.data === (window as any).YT.PlayerState.ENDED && currentSlide?.advanceMode === 'onEnd') {
+                  doNextSlide()
+                }
+              },
+            },
+          })
+        }
+      }
+
+      if (!(window as any).YT) {
+        const tag = document.createElement('script')
+        tag.src = 'https://www.youtube.com/iframe_api'
+        tag.onload = () => initPlayer()
+        document.head.appendChild(tag)
+        interval = setInterval(() => {
+          if ((window as any).YT && (window as any).YT.loaded) {
+            clearInterval(interval!)
+            initPlayer()
+          }
+        }, 200)
+      } else {
+        initPlayer()
+      }
+
+      return () => {
         if (interval) clearInterval(interval)
         try { playerRef.current?.destroy() } catch {}
-        playerRef.current = new (window as any).YT.Player(playerId, {
-          videoId: ytId,
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            modestbranding: 1,
-            rel: 0,
-            fs: 0,
-            playsinline: 1,
-          },
-          events: {
-            onReady: (event: any) => {
-              event.target.playVideo()
-            },
-            onStateChange: (event: any) => {
-              if (event.data === (window as any).YT.PlayerState.ENDED && currentSlide.advanceMode === 'onEnd') {
-                nextSlide()
-              }
-            },
-          },
-        })
+        playerRef.current = null
       }
-    }
+    }, [currentIndex, currentSlide, doNextSlide])
 
-    if (!(window as any).YT) {
-      const tag = document.createElement('script')
-      tag.src = 'https://www.youtube.com/iframe_api'
-      tag.onload = () => initPlayer()
-      document.head.appendChild(tag)
-      interval = setInterval(() => {
-        if ((window as any).YT && (window as any).YT.loaded) {
-          clearInterval(interval!)
-          initPlayer()
-        }
-      }, 200)
-    } else {
-      initPlayer()
-    }
+    if (!currentSlide) return null
 
-    return () => {
-      if (interval) clearInterval(interval)
-      try { playerRef.current?.destroy() } catch {}
-      playerRef.current = null
-    }
-  }, [currentIndex, currentSlide, nextSlide])
+    const transition = currentSlide.transition || 'fade'
+    const slideMedia =
+      currentSlide.blockType === 'videoBlock'
+        ? resolveMedia(currentSlide.video)
+        : resolveMedia(currentSlide.image)
+    const mediaUrl = slideMedia?.url ?? ''
+    const youtubeId = currentSlide.blockType === 'youtubeBlock' ? parseYouTubeId(currentSlide.youtubeId || '') : null
+    const youtubeBackdrop = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : null
 
-  if (!currentSlide) return null
-
-  const transition = currentSlide.transition || 'fade'
-  const slideMedia =
-    currentSlide.blockType === 'videoBlock'
-      ? resolveMedia(currentSlide.video)
-      : resolveMedia(currentSlide.image)
-  const mediaUrl = slideMedia?.url ?? ''
-  const youtubeId = currentSlide.blockType === 'youtubeBlock' ? parseYouTubeId(currentSlide.youtubeId || '') : null
-  const youtubeBackdrop = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : null
-
-  return (
-    <div className="slide-stage">
-      <div
-        key={currentIndex}
-        className="slide-slide-wrapper"
-        style={{
-          animation:
-            transition === 'fade'
-              ? `signageFadeIn ${TRANSITION_DURATION}ms ease both`
-              : transition === 'slide'
-                ? `signageSlideIn ${TRANSITION_DURATION}ms ease both`
-                : undefined,
-        }}
-      >
-        {currentSlide.blockType === 'imageBlock' && (
-          <>
-            <img
-              src={mediaUrl}
-              className="slide-backdrop"
-              alt=""
-              aria-hidden="true"
-            />
-            <img
-              src={mediaUrl}
-              className="slide-foreground"
-              alt={slideMedia?.alt || 'Slide'}
-            />
-          </>
-        )}
-        {currentSlide.blockType === 'videoBlock' && (
-          <>
-            <video
-              src={mediaUrl}
-              autoPlay
-              muted
-              playsInline
-              onError={() => {
-                setVideoError('unknown format')
-                if (currentSlide.advanceMode !== 'timed') {
-                  setTimeout(nextSlide, 3000)
-                }
-              }}
-              onEnded={() => {
-                if (currentSlide.advanceMode === 'onEnd') nextSlide()
-              }}
-              className="slide-foreground"
-              style={{ display: videoError ? 'none' : undefined }}
-            />
-            {videoError && (
-              <div className="slide-video-error">
-                <p>This video format is not supported in your browser.</p>
-                <p className="slide-video-error-detail">{videoError}</p>
-                <p className="slide-video-error-hint">Convert to MP4 (H.264) for best compatibility, or use a YouTube link.</p>
-              </div>
-            )}
-          </>
-        )}
-        {currentSlide.blockType === 'youtubeBlock' && youtubeId && (
-          <>
-            {youtubeBackdrop && (
+    return (
+      <div className="slide-stage">
+        <div
+          key={currentIndex}
+          className="slide-slide-wrapper"
+          style={{
+            animation:
+              transition === 'fade'
+                ? `signageFadeIn ${TRANSITION_DURATION}ms ease both`
+                : transition === 'slide'
+                  ? `signageSlideIn ${TRANSITION_DURATION}ms ease both`
+                  : undefined,
+          }}
+        >
+          {currentSlide.blockType === 'imageBlock' && (
+            <>
               <img
-                src={youtubeBackdrop}
+                src={mediaUrl}
                 className="slide-backdrop"
                 alt=""
                 aria-hidden="true"
               />
-            )}
-            <div
-              id={`yt-player-${currentIndex}`}
-              className="slide-youtube-embed"
-            />
-          </>
+              <img
+                src={mediaUrl}
+                className="slide-foreground"
+                alt={slideMedia?.alt || 'Slide'}
+              />
+            </>
+          )}
+          {currentSlide.blockType === 'videoBlock' && (
+            <>
+              <video
+                src={mediaUrl}
+                autoPlay
+                muted
+                playsInline
+                onError={() => {
+                  setVideoError('unknown format')
+                  if (currentSlide.advanceMode !== 'timed') {
+                    setTimeout(doNextSlide, 3000)
+                  }
+                }}
+                onEnded={() => {
+                  if (currentSlide.advanceMode === 'onEnd') doNextSlide()
+                }}
+                className="slide-foreground"
+                style={{ display: videoError ? 'none' : undefined }}
+              />
+              {videoError && (
+                <div className="slide-video-error">
+                  <p>This video format is not supported in your browser.</p>
+                  <p className="slide-video-error-detail">{videoError}</p>
+                  <p className="slide-video-error-hint">Convert to MP4 (H.264) for best compatibility, or use a YouTube link.</p>
+                </div>
+              )}
+            </>
+          )}
+          {currentSlide.blockType === 'youtubeBlock' && youtubeId && (
+            <>
+              {youtubeBackdrop && (
+                <img
+                  src={youtubeBackdrop}
+                  className="slide-backdrop"
+                  alt=""
+                  aria-hidden="true"
+                />
+              )}
+              <div
+                id={`yt-player-${currentIndex}`}
+                className="slide-youtube-embed"
+              />
+            </>
+          )}
+        </div>
+        {isEnded && (
+          <div
+            key="end-overlay"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 10,
+              background: 'black',
+              animation: `signageFadeIn ${TRANSITION_DURATION}ms ease both`,
+            }}
+          />
+        )}
+        {slides && slides.length > 1 && (
+          <div className="slide-slide-indicator">
+            {currentIndex + 1} / {slides.length}
+          </div>
         )}
       </div>
-      {isEnded && (
-        <div
-          key="end-overlay"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 10,
-            background: 'black',
-            animation: `signageFadeIn ${TRANSITION_DURATION}ms ease both`,
-          }}
-        />
-      )}
-      {slides && slides.length > 1 && (
-        <div className="slide-slide-indicator">
-          {currentIndex + 1} / {slides.length}
-        </div>
-      )}
-    </div>
-  )
-}
+    )
+  }
+)

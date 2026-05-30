@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "tsx watch server.ts",
     "build": "next build",
-    "start": "next start",
+    "start": "node --import tsx server.ts",
     "generate:types": "payload generate:types"
   },
   "dependencies": {
@@ -18,9 +18,12 @@
     "payload": "^3.84.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sharp": "^0.34.0"
+    "sharp": "^0.34.0",
+    "socket.io": "^4.8.0",
+    "socket.io-client": "^4.8.0"
   },
   "devDependencies": {
+    "tsx": "^4.22.3",
     "typescript": "6.0.3"
   }
 }

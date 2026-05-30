@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { DEPARTMENTS } from '../constants/departments'
+import { getIO } from '../websocket/io'
 
 const ONE_HOUR = 60 * 60 * 1000
 
@@ -11,7 +12,8 @@ export const Schedule: CollectionConfig = {
   },
   timestamps: true,
   access: {
-    read: ({ req: { user } }) => {
+    read: ({ req: { user: u } }) => {
+      const user = u as any
       if (!user) return false
       if (user.role === 'admin') return true
       if (user.collection === 'devices') {
@@ -19,26 +21,29 @@ export const Schedule: CollectionConfig = {
       }
       return { department: { equals: user.department } }
     },
-    create: ({ req: { user } }) => {
+    create: ({ req: { user: u } }) => {
+      const user = u as any
       if (!user) return false
       if (user.role === 'admin') return true
       return true
     },
-    update: ({ req: { user } }) => {
+    update: ({ req: { user: u } }) => {
+      const user = u as any
       if (!user) return false
       if (user.role === 'admin') return true
       return { department: { equals: user.department } }
     },
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    delete: ({ req: { user: u } }) => (u as any)?.role === 'admin',
   },
   hooks: {
     beforeChange: [
       async ({ data, req, originalDoc, operation }) => {
-        if (!data.department && req.user?.department) {
-          data.department = req.user.department
+        const user = req.user as any
+        if (!data.department && user?.department) {
+          data.department = user.department
         }
-        if (!data.createdBy && req.user?.id) {
-          data.createdBy = req.user.id
+        if (!data.createdBy && user?.id) {
+          data.createdBy = user.id
         }
 
         const startTime = data.startTime || originalDoc?.startTime
@@ -47,7 +52,7 @@ export const Schedule: CollectionConfig = {
           data.endTime = new Date(start.getTime() + ONE_HOUR).toISOString()
         }
 
-        if (req.user && req.user.role !== 'admin' && data.program) {
+        if (user && user.role !== 'admin' && data.program) {
           const programId = typeof data.program === 'object' && data.program !== null
             ? (data.program as any).id
             : data.program
@@ -57,7 +62,7 @@ export const Schedule: CollectionConfig = {
               id: programId,
               depth: 0,
             })
-            if (program.department !== req.user.department) {
+            if (program.department !== user.department) {
               throw new Error('You can only schedule programs from your own department.')
             }
           } catch (err: any) {
@@ -100,6 +105,61 @@ export const Schedule: CollectionConfig = {
         return data
       },
     ],
+    afterChange: [
+      async ({ doc, req }) => {
+        const io = getIO()
+        if (!io) return
+
+        const deviceIds: number[] = Array.isArray(doc.devices)
+          ? doc.devices.map((d: any) => typeof d === 'object' ? d.id : d)
+          : []
+
+        if (deviceIds.length === 0) return
+
+        // Build a schedule payload for each affected device
+        for (const deviceId of deviceIds) {
+          const scheduleForDevice = await req.payload.find({
+            collection: 'schedule',
+            depth: 2,
+            where: {
+              and: [
+                { devices: { contains: deviceId } },
+                { 'program.status': { equals: 'approved' } },
+              ],
+            },
+            sort: 'startTime',
+          })
+
+          io.to(`device:${deviceId}`).emit('schedule:update', { scheduleData: scheduleForDevice })
+        }
+      },
+    ],
+    afterDelete: [
+      async ({ doc, req }) => {
+        const io = getIO()
+        if (!io) return
+
+        const deviceIds: number[] = Array.isArray(doc.devices)
+          ? doc.devices.map((d: any) => typeof d === 'object' ? d.id : d)
+          : []
+
+        for (const deviceId of deviceIds) {
+          const scheduleForDevice = await req.payload.find({
+            collection: 'schedule',
+            depth: 2,
+            where: {
+              and: [
+                { devices: { contains: deviceId } },
+                { 'program.status': { equals: 'approved' } },
+              ],
+            },
+            sort: 'startTime',
+          })
+
+          io.to(`device:${deviceId}`).emit('schedule:update', { scheduleData: scheduleForDevice })
+        }
+      },
+    ],
   },
   fields: [
     {
@@ -107,7 +167,8 @@ export const Schedule: CollectionConfig = {
       type: 'relationship',
       relationTo: 'programs',
       required: true,
-      filterOptions: ({ user }) => {
+      filterOptions: ({ user: u }) => {
+        const user = u as any
         if (user?.role === 'admin') return true
         return { department: { equals: user?.department } }
       },
@@ -118,7 +179,8 @@ export const Schedule: CollectionConfig = {
       relationTo: 'devices',
       hasMany: true,
       required: true,
-      filterOptions: ({ user }) => {
+      filterOptions: ({ user: u }) => {
+        const user = u as any
         if (!user) return false
         if (user.role === 'admin') return true
         return { departments: { contains: user.department } }
@@ -149,7 +211,7 @@ export const Schedule: CollectionConfig = {
     {
       name: 'department',
       type: 'select',
-      options: DEPARTMENTS,
+      options: DEPARTMENTS as any,
       admin: { hidden: true },
     },
     {
