@@ -84,6 +84,18 @@ export const Devices: CollectionConfig = {
       options: DEPARTMENTS as any,
     },
     {
+      name: 'controllingDevice',
+      type: 'relationship',
+      relationTo: 'devices',
+      hasMany: false,
+      admin: {
+        description: "When set, this device mirrors the controlling device's program and slide position.",
+      },
+      filterOptions: ({ id }) => ({
+        id: { not_equals: id },
+      }),
+    },
+    {
       name: 'lastHeartbeat',
       type: 'date',
       admin: {
@@ -98,16 +110,11 @@ export const Devices: CollectionConfig = {
       name: 'currentProgram',
       type: 'relationship',
       relationTo: 'programs',
-      admin: { readOnly: true, position: 'sidebar' },
-    },
-    {
-      name: 'currentSlideIndex',
-      type: 'number',
       admin: {
         readOnly: true,
         position: 'sidebar',
+        condition: (data) => !!data.currentProgram,
       },
-      defaultValue: 0,
     },
     {
       name: 'status',
@@ -120,19 +127,7 @@ export const Devices: CollectionConfig = {
       ],
       admin: { readOnly: true, position: 'sidebar' },
     },
-    {
-      name: 'controllingDevice',
-      type: 'relationship',
-      relationTo: 'devices',
-      hasMany: false,
-      admin: {
-        position: 'sidebar',
-        description: "When set, this device mirrors the controlling device's program and slide position.",
-      },
-      filterOptions: ({ id }) => ({
-        id: { not_equals: id },
-      }),
-    },
+
     {
       name: 'browserToken',
       type: 'text',

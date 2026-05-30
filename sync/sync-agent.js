@@ -183,7 +183,10 @@ async function sync() {
     );
 
     const docs = res.data.docs || [];
-    if (docs.length === 0) return;
+    if (docs.length === 0) {
+      console.log(`No schedule entries found for device ${DEVICE_ID}`);
+      return;
+    }
 
     const now = new Date();
     const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
@@ -252,7 +255,17 @@ async function sync() {
     fs.writeFileSync(tmp, JSON.stringify(scheduleData, null, 2) + '\n');
     fs.renameSync(tmp, SCHEDULE_PATH);
 
-    activeProgramId = activeItems[0]?.program?.id || null;
+    // Determine the currently-active program (strict time check matching player's resolveActiveProgram)
+    const checkNow = new Date();
+    const nowPlaying = activeItems.reduce((best, item) => {
+      const start = new Date(item.startTime);
+      if (start > checkNow) return best;
+      const end = item.endTime ? new Date(item.endTime) : null;
+      if (end && checkNow >= end) return best;
+      if (!best || new Date(item.startTime) > new Date(best.startTime)) return item;
+      return best;
+    }, null);
+    activeProgramId = nowPlaying?.program?.id || null;
 
     // Emit heartbeat via Socket.IO (will also fall back via the interval)
     if (cmsSocket?.connected) {

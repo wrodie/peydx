@@ -33,7 +33,6 @@ export function App() {
   const scheduleRef = useRef<any>(null)
   const socketRef = useRef<TypedSocket | null>(null)
   const mode = detectMode()
-  const modeRef = useRef(mode)
 
   // Browser mode: connect to CMS Socket.IO
   useEffect(() => {
@@ -141,6 +140,8 @@ export function App() {
   useEffect(() => {
     if (mode !== 'hardware') return
 
+    loadSchedule()
+
     const hardwareSocket = createHardwareSocket(window.location.origin, '')
     socketRef.current = hardwareSocket
 
@@ -199,9 +200,7 @@ export function App() {
   }, [loadSchedule])
 
   const handleSlideChange = useCallback((index: number) => {
-    if (modeRef.current === 'browser' && socketRef.current) {
-      socketRef.current.emit('device:slideChange', { slideIndex: index })
-    }
+    socketRef.current?.emit('device:slideChange', { slideIndex: index })
   }, [])
 
   if (!activeProgram) {

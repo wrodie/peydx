@@ -260,6 +260,31 @@ app.prepare().then(() => {
         }
       }
 
+      // Try user JWT cookie auth (admin UI)
+      const cookie = socket.handshake.headers.cookie || ''
+      if (cookie) {
+        try {
+          const meRes = await fetch(`${API_URL}/users/me`, {
+            headers: { Cookie: cookie },
+          })
+          if (meRes.ok) {
+            const me = await meRes.json()
+            if (me.user) {
+              socket.data = {
+                type: 'user',
+                id: me.user.id,
+                role: me.user.role,
+                department: me.user.department,
+              }
+              next()
+              return
+            }
+          }
+        } catch {
+          // Fall through
+        }
+      }
+
       next(new Error('Authentication required'))
     } catch (err) {
       next(new Error('Authentication failed'))

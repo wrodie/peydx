@@ -18,7 +18,7 @@ export const heartbeat = {
       id: req.user.id,
       data: {
         lastHeartbeat: new Date().toISOString(),
-        currentProgram: typeof body.programId === 'number' ? body.programId : body.currentProgram ?? undefined,
+        currentProgram: typeof body.programId === 'number' ? body.programId : null,
         currentSlideIndex: typeof body.slideIndex === 'number' ? body.slideIndex : req.user.currentSlideIndex ?? undefined,
         status: 'online',
       },
