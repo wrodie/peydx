@@ -19,6 +19,9 @@ export default buildConfig({
   secret: process.env.PAYLOAD_SECRET || '',
   admin: {
     user: Users.slug,
+    components: {
+      afterNavLinks: ['/components/RemoteNavLink#RemoteNavLink'],
+    },
     importMap: {
       baseDir: path.resolve(dirname),
     },
