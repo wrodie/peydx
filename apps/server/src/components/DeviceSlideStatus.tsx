@@ -22,6 +22,7 @@ function getBlockIcon(slide: any): string | null {
   if (!slide) return null
   if (slide.blockType === 'videoBlock') return '🎬'
   if (slide.blockType === 'youtubeBlock') return '▶️'
+  if (slide.blockType === 'blackScreenBlock') return '◼'
   return null
 }
 

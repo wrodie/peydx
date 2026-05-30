@@ -231,6 +231,13 @@ export default function HealthDashboard() {
                               />
                             )
                           }
+                          if (slide.blockType === 'blackScreenBlock') {
+                            return (
+                              <div style={{ width: 60, height: 45, background: '#111', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ color: '#666', fontSize: '0.65rem' }}>◼</span>
+                              </div>
+                            )
+                          }
                           return `Slide ${device.currentSlideIndex + 1}`
                         })()
                       : '—'}

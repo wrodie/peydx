@@ -21,6 +21,7 @@ function getBlockIcon(slide: any): string | null {
   if (!slide) return null
   if (slide.blockType === 'videoBlock') return '🎬'
   if (slide.blockType === 'youtubeBlock') return '▶️'
+  if (slide.blockType === 'blackScreenBlock') return '◼'
   return null
 }
 
@@ -175,7 +176,9 @@ export default function RemoteControlPage() {
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              {thumbnailUrl ? (
+              {currentSlide?.blockType === 'blackScreenBlock' ? (
+                <div style={{ width: '100%', height: 300, background: '#000' }} />
+              ) : thumbnailUrl ? (
                 <img
                   src={thumbnailUrl}
                   alt={`Slide ${currentSlideIndex + 1}`}
@@ -262,7 +265,11 @@ export default function RemoteControlPage() {
                       position: 'relative',
                     }}
                   >
-                    {url ? (
+                    {slide.blockType === 'blackScreenBlock' ? (
+                    <div style={{ width: '100%', height: '100%', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: '#666', fontSize: '0.65rem' }}>◼</span>
+                    </div>
+                  ) : url ? (
                       <img src={url} alt={`Slide ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : icon ? (
                       <span style={{ fontSize: '1.2rem' }}>{icon}</span>

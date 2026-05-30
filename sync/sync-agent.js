@@ -114,6 +114,7 @@ function buildScheduleJson(activeItems) {
     program: {
       id: item.program?.id,
       title: item.program?.title,
+      loop: item.program?.loop,
       slides: (item.program?.slides || []).map(slide => {
         const resolved = { ...slide };
         if (slide.blockType === 'imageBlock' && slide.image) {

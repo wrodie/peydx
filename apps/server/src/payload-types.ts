@@ -194,6 +194,17 @@ export interface Program {
             blockName?: string | null;
             blockType: 'youtubeBlock';
           }
+        | {
+            transition?: ('fade' | 'cut' | 'slide') | null;
+            /**
+             * How should the player move to the next slide?
+             */
+            advanceMode: 'timed' | 'manual';
+            duration?: number | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'blackScreenBlock';
+          }
       )[]
     | null;
   department?: ('children' | 'signage' | 'youth') | null;
@@ -207,6 +218,14 @@ export interface Program {
    * Estimated runtime in minutes. Used for schedule conflict detection.
    */
   durationMinutes: number;
+  /**
+   * When enabled, program loops continuously. When disabled, a black end slide is appended.
+   */
+  loop?: boolean | null;
+  /**
+   * Automatically adds a black screen at the end of the program.
+   */
+  autoBlackEndSlide?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -458,12 +477,23 @@ export interface ProgramsSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        blackScreenBlock?:
+          | T
+          | {
+              transition?: T;
+              advanceMode?: T;
+              duration?: T;
+              id?: T;
+              blockName?: T;
+            };
       };
   department?: T;
   status?: T;
   createdBy?: T;
   bulkMedia?: T;
   durationMinutes?: T;
+  loop?: T;
+  autoBlackEndSlide?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { ImageBlock, VideoBlock, YoutubeBlock } from '../blocks/SlideBlocks'
+import { BlackScreenBlock } from '../blocks/BlackScreenBlock'
 import { autoCreateSlides } from '../hooks/autoCreateSlides'
 import { DEPARTMENTS } from '../constants/departments'
 import { getIO } from '../websocket/io'
@@ -101,6 +102,27 @@ export const Programs: CollectionConfig = {
         }
       },
     ],
+    afterRead: [
+      ({ doc }) => {
+        if (
+          (doc as any).autoBlackEndSlide
+          && !(doc as any).loop
+          && doc.slides
+          && Array.isArray(doc.slides)
+          && doc.slides.length > 0
+          && doc.slides[doc.slides.length - 1]?.blockType !== 'blackScreenBlock'
+        ) {
+          doc.slides = [...doc.slides, {
+            id: 'auto-end',
+            blockType: 'blackScreenBlock',
+            advanceMode: 'manual',
+            transition: 'fade',
+            duration: null,
+          }]
+        }
+        return doc
+      },
+    ],
   },
 
   fields: [
@@ -119,7 +141,7 @@ export const Programs: CollectionConfig = {
     {
       name: 'slides',
       type: 'blocks',
-      blocks: [ImageBlock, VideoBlock, YoutubeBlock],
+      blocks: [ImageBlock, VideoBlock, YoutubeBlock, BlackScreenBlock],
     },
     {
       name: 'department',
@@ -172,6 +194,24 @@ export const Programs: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Estimated runtime in minutes. Used for schedule conflict detection.',
+      },
+    },
+    {
+      name: 'loop',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: 'When enabled, program loops continuously. When disabled, a black end slide is appended.',
+      },
+    },
+    {
+      name: 'autoBlackEndSlide',
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        position: 'sidebar',
+        description: 'Automatically adds a black screen at the end of the program.',
       },
     },
     {

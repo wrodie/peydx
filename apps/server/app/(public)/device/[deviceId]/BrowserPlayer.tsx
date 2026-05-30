@@ -47,6 +47,7 @@ function normalizeApiSchedule(apiData: any) {
       program: {
         id: entry.program?.id,
         title: entry.program?.title,
+        loop: entry.program?.loop,
         slides: (entry.program?.slides || []).map(normalizeSlide),
       },
     })),

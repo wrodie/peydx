@@ -271,6 +271,9 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
               />
             </>
           )}
+          {currentSlide.blockType === 'blackScreenBlock' && (
+            <div className="slide-stage" style={{ background: '#000' }} />
+          )}
         </div>
         {isEnded && (
           <div

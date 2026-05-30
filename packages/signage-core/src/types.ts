@@ -6,7 +6,7 @@ export interface Media {
 }
 
 export interface Slide {
-  blockType: 'imageBlock' | 'videoBlock' | 'youtubeBlock'
+  blockType: 'imageBlock' | 'videoBlock' | 'youtubeBlock' | 'blackScreenBlock'
   image?: Media | number
   video?: Media | number
   youtubeId?: string | null
@@ -20,4 +20,6 @@ export interface Program {
   id: number
   title: string
   slides?: Slide[] | null
+  loop?: boolean | null
+  autoBlackEndSlide?: boolean | null
 }

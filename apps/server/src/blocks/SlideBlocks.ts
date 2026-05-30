@@ -5,7 +5,7 @@ import type { Block, Field } from 'payload'
  * We use a function to return the fields so we can customize the 
  * options (like excluding 'onEnd' for images).
  */
-const getAdvanceSettings = (isVideoButton: boolean): Field[] => {
+export const getAdvanceSettings = (isVideoButton: boolean): Field[] => {
   const options = [
     { label: 'Timed (Automatic)', value: 'timed' },
     { label: 'Manual (Wait for Click)', value: 'manual' },
