@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { SlideEngine } from 'signage-core'
-import type { Program, SlideEngineHandle } from 'signage-core'
-import { resolveActiveProgram, normalizeApiSchedule } from './schedule-resolver'
+import { useEffect, useRef, useCallback, useState } from 'react'
+import { PlayerController } from 'signage-core'
+import type { PlayerControllerHandle, PlayerState } from 'signage-core'
+import { normalizeApiSchedule } from './schedule-resolver'
 import { createBrowserSocket, createHardwareSocket } from './socket'
 import type { Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
@@ -26,13 +26,32 @@ function getDeviceConfig() {
 }
 
 export function App() {
-  const [activeProgram, setActiveProgram] = useState<Program | null>(null)
-  const [programKey, setProgramKey] = useState(0)
-  const [pendingSlideIndex, setPendingSlideIndex] = useState<number | undefined>(undefined)
-  const engineRef = useRef<SlideEngineHandle>(null)
-  const scheduleRef = useRef<any>(null)
+  const controllerRef = useRef<PlayerControllerHandle>(null)
+  const [scheduleData, setScheduleData] = useState<any>(null)
   const socketRef = useRef<TypedSocket | null>(null)
   const mode = detectMode()
+
+  const loadSchedule = useCallback(async () => {
+    try {
+      const res = await fetch(MANIFEST_URL)
+      if (!res.ok) return
+      const data = await res.json()
+      setScheduleData(data)
+    } catch (err) {
+      console.error('Failed to load schedule:', err)
+    }
+  }, [])
+
+  const handleSlideChange = useCallback((index: number) => {
+    socketRef.current?.emit('device:slideChange', { slideIndex: index })
+  }, [])
+
+  const handleStateChange = useCallback(
+    (state: PlayerState, programId?: number, menuIndex?: number) => {
+      socketRef.current?.emit('device:stateChange', { state, programId, menuIndex })
+    },
+    [],
+  )
 
   // Browser mode: connect to CMS Socket.IO
   useEffect(() => {
@@ -46,89 +65,62 @@ export function App() {
     socketRef.current = socket
 
     socket.on('connect', () => {
-      // Fetch initial schedule
       fetch(`/api/schedule?where[devices][contains]=${config.deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`)
-        .then(r => r.json())
-        .then(data => {
-          const normalized = normalizeApiSchedule(data)
-          scheduleRef.current = normalized
-          const program = resolveActiveProgram(normalized)
-          setActiveProgram(prev => {
-            if (prev && program && prev.id === program.id) return program
-            if (program) {
-              setProgramKey(k => k + 1)
-              setPendingSlideIndex(0)
-            } else {
-              setActiveProgram(null)
-            }
-            return program
-          })
+        .then((r) => r.json())
+        .then((data) => {
+          setScheduleData(normalizeApiSchedule(data))
         })
         .catch(console.error)
     })
 
     socket.on('schedule:update', (data) => {
-      const normalized = normalizeApiSchedule(data.scheduleData)
-      scheduleRef.current = normalized
-      const program = resolveActiveProgram(normalized)
-      setActiveProgram(prev => {
-        if (prev && program && prev.id === program.id) return program
-        if (program) {
-          setProgramKey(k => k + 1)
-          setPendingSlideIndex(0)
-        } else {
-          return null
-        }
-        return program
-      })
+      setScheduleData(normalizeApiSchedule(data.scheduleData))
     })
 
-    socket.on('program:update', (data) => {
-      const updated = data.program as Program
-      setActiveProgram(prev => {
-        if (prev && prev.id === updated.id) return updated
-        setProgramKey(k => k + 1)
-        return updated
-      })
-    })
-
-    socket.on('media:update', (_data) => {
-      // Re-fetch schedule to get updated media URLs
+    socket.on('program:update', () => {
       fetch(`/api/schedule?where[devices][contains]=${config.deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`)
-        .then(r => r.json())
-        .then(data => {
-          const normalized = normalizeApiSchedule(data)
-          scheduleRef.current = normalized
-          const program = resolveActiveProgram(normalized)
-          setActiveProgram(prev => {
-            if (prev && program && prev.id === program.id) return program
-            if (program) {
-              setProgramKey(k => k + 1)
-              setPendingSlideIndex(0)
-            }
-            return program
-          })
+        .then((r) => r.json())
+        .then((data) => {
+          setScheduleData(normalizeApiSchedule(data))
+        })
+        .catch(console.error)
+    })
+
+    socket.on('media:update', () => {
+      fetch(`/api/schedule?where[devices][contains]=${config.deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`)
+        .then((r) => r.json())
+        .then((data) => {
+          setScheduleData(normalizeApiSchedule(data))
         })
         .catch(console.error)
     })
 
     socket.on('remote:advance', () => {
-      engineRef.current?.nextSlide()
+      controllerRef.current?.nextSlide()
     })
 
     socket.on('remote:previous', () => {
-      engineRef.current?.prevSlide()
+      controllerRef.current?.prevSlide()
     })
 
     socket.on('remote:goto', (data) => {
-      engineRef.current?.gotoSlide(data.slideIndex)
+      controllerRef.current?.gotoSlide(data.slideIndex)
     })
 
     socket.on('remote:program', (data) => {
-      const prog = data.program as Program
-      setProgramKey(k => k + 1)
-      setActiveProgram(prog)
-      setPendingSlideIndex(data.slideIndex)
+      controllerRef.current?.selectProgram(data.program?.id)
+    })
+
+    socket.on('remote:menu', () => {
+      controllerRef.current?.openMenu()
+    })
+
+    socket.on('remote:back', () => {
+      controllerRef.current?.exitProgram()
+    })
+
+    socket.on('remote:select', () => {
+      controllerRef.current?.selectItem()
     })
 
     return () => {
@@ -150,48 +142,37 @@ export function App() {
     })
 
     hardwareSocket.on('remote:advance', () => {
-      engineRef.current?.nextSlide()
+      controllerRef.current?.nextSlide()
     })
 
     hardwareSocket.on('remote:previous', () => {
-      engineRef.current?.prevSlide()
+      controllerRef.current?.prevSlide()
     })
 
     hardwareSocket.on('remote:goto', (data) => {
-      engineRef.current?.gotoSlide(data.slideIndex)
+      controllerRef.current?.gotoSlide(data.slideIndex)
     })
 
     hardwareSocket.on('remote:program', (data) => {
-      const prog = data.program as Program
-      setProgramKey(k => k + 1)
-      setActiveProgram(prog)
-      setPendingSlideIndex(data.slideIndex)
+      controllerRef.current?.selectProgram(data.program?.id)
+    })
+
+    hardwareSocket.on('remote:menu', () => {
+      controllerRef.current?.openMenu()
+    })
+
+    hardwareSocket.on('remote:back', () => {
+      controllerRef.current?.exitProgram()
+    })
+
+    hardwareSocket.on('remote:select', () => {
+      controllerRef.current?.selectItem()
     })
 
     return () => {
       hardwareSocket.disconnect()
     }
-  }, [mode])
-
-  const loadSchedule = useCallback(async () => {
-    try {
-      const res = await fetch(MANIFEST_URL)
-      if (!res.ok) return
-      const data = await res.json()
-      scheduleRef.current = data
-      const program = resolveActiveProgram(data)
-      setActiveProgram(prev => {
-        if (prev && program && prev.id === program.id) return program
-        if (program) {
-          setProgramKey(k => k + 1)
-          setPendingSlideIndex(0)
-        }
-        return program
-      })
-    } catch (err) {
-      console.error('Failed to load schedule:', err)
-    }
-  }, [])
+  }, [mode, loadSchedule])
 
   // Poll as fallback
   useEffect(() => {
@@ -199,26 +180,12 @@ export function App() {
     return () => clearInterval(interval)
   }, [loadSchedule])
 
-  const handleSlideChange = useCallback((index: number) => {
-    socketRef.current?.emit('device:slideChange', { slideIndex: index })
-  }, [])
-
-  if (!activeProgram) {
-    return (
-      <div className="slide-stage">
-        <div className="slide-status-text">No program scheduled</div>
-      </div>
-    )
-  }
-
   return (
-    <SlideEngine
-      ref={engineRef}
-      key={programKey}
-      program={activeProgram}
-      onProgramEnd={() => loadSchedule()}
+    <PlayerController
+      ref={controllerRef}
+      scheduleData={scheduleData}
       onSlideChange={handleSlideChange}
-      initialSlideIndex={pendingSlideIndex}
+      onStateChange={handleStateChange}
     />
   )
 }

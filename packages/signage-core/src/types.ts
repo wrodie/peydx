@@ -23,3 +23,37 @@ export interface Program {
   loop?: boolean | null
   autoBlackEndSlide?: boolean | null
 }
+
+export type ScheduleType = 'autoplay' | 'availability'
+
+export type PlayerState = 'idle' | 'menu' | 'playing'
+
+export interface ScheduleEntry {
+  programId: number
+  scheduleType: ScheduleType
+  startTime: string
+  endTime?: string
+  program: Program
+}
+
+export interface ResolvedSchedule {
+  deviceId: string
+  lastUpdated: string
+  schedule: ScheduleEntry[]
+}
+
+export interface KeyConfig {
+  menu: string
+  up: string
+  down: string
+  enter: string
+  exit: string
+}
+
+export const DEFAULT_KEY_CONFIG: KeyConfig = {
+  menu: 'KeyM',
+  up: 'ArrowUp',
+  down: 'ArrowDown',
+  enter: 'Enter',
+  exit: 'Escape',
+}

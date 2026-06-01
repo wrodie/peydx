@@ -24,6 +24,7 @@ if (!fs.existsSync(LOCAL_DIR)) fs.mkdirSync(LOCAL_DIR, { recursive: true });
 
 let currentSlideIndex = 0;
 let activeProgramId = null;
+let userSelectedProgramId = null;
 
 function sanitizeFilename(filename) {
   return filename
@@ -109,6 +110,7 @@ async function downloadSizes(media, mediaBaseUrl) {
 function buildScheduleJson(activeItems) {
   const schedule = activeItems.map(item => ({
     programId: item.program?.id,
+    scheduleType: item.scheduleType || 'autoplay',
     startTime: item.startTime,
     endTime: item.endTime,
     program: {
@@ -192,8 +194,17 @@ async function sync() {
     const now = new Date();
     const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
     const graceStart = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
 
     const activeItems = docs.filter(item => {
+      const scheduleType = item.scheduleType || 'autoplay';
+
+      if (scheduleType === 'availability') {
+        const dateStr = item.startTime ? String(item.startTime).slice(0, 10) : '';
+        return dateStr === todayStr || dateStr === tomorrowStr;
+      }
+
       const start = new Date(item.startTime);
       const end = item.endTime ? new Date(item.endTime) : null;
       if (start > tomorrow) return false;
@@ -256,9 +267,9 @@ async function sync() {
     fs.writeFileSync(tmp, JSON.stringify(scheduleData, null, 2) + '\n');
     fs.renameSync(tmp, SCHEDULE_PATH);
 
-    // Determine the currently-active program (strict time check matching player's resolveActiveProgram)
+    // Determine the currently-active program
     const checkNow = new Date();
-    const nowPlaying = activeItems.reduce((best, item) => {
+    const nowPlaying = activeItems.filter(i => (i.scheduleType || 'autoplay') === 'autoplay').reduce((best, item) => {
       const start = new Date(item.startTime);
       if (start > checkNow) return best;
       const end = item.endTime ? new Date(item.endTime) : null;
@@ -266,7 +277,7 @@ async function sync() {
       if (!best || new Date(item.startTime) > new Date(best.startTime)) return item;
       return best;
     }, null);
-    activeProgramId = nowPlaying?.program?.id || null;
+    activeProgramId = userSelectedProgramId || nowPlaying?.program?.id || null;
 
     // Emit heartbeat via Socket.IO (will also fall back via the interval)
     if (cmsSocket?.connected) {
@@ -305,6 +316,7 @@ function connectToCMS() {
   const socket = socketIOClient(wsUrl, {
     path: '/api/ws',
     extraHeaders: { Authorization: `devices API-Key ${API_KEY}` },
+    auth: { apiKey: API_KEY },
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 1000,
@@ -347,6 +359,18 @@ function connectToCMS() {
     localIO?.emit('remote:program', data);
   });
 
+  socket.on('remote:menu', () => {
+    localIO?.emit('remote:menu');
+  });
+
+  socket.on('remote:back', () => {
+    localIO?.emit('remote:back');
+  });
+
+  socket.on('remote:select', () => {
+    localIO?.emit('remote:select');
+  });
+
   socket.on('disconnect', () => {
     console.log('Disconnected from CMS WebSocket');
   });
@@ -365,6 +389,25 @@ sync().then(() => {
   app.get('/schedule.json', (_, res) => {
     res.sendFile(SCHEDULE_PATH);
   });
+
+  app.get('/config.json', (_, res) => {
+    const configPath = path.join(__dirname, 'key-config.json');
+    try {
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        return res.json(config);
+      }
+    } catch {}
+    res.json({
+      keys: {
+        menu: 'KeyM',
+        up: 'ArrowUp',
+        down: 'ArrowDown',
+        enter: 'Enter',
+        exit: 'Escape',
+      },
+    });
+  });
   app.use('/local-media', express.static(LOCAL_DIR));
   app.use(express.static(path.join(__dirname, '..', 'apps', 'player', 'dist')));
 
@@ -382,6 +425,17 @@ sync().then(() => {
       currentSlideIndex = data.slideIndex;
       if (cmsSocket?.connected) {
         cmsSocket.emit('device:slideChange', data);
+      }
+    });
+
+    localPlayerSocket.on('device:stateChange', (data) => {
+      if (data.state === 'playing' && data.programId) {
+        userSelectedProgramId = data.programId;
+      } else if (data.state !== 'playing') {
+        userSelectedProgramId = null;
+      }
+      if (cmsSocket?.connected) {
+        cmsSocket.emit('device:stateChange', data);
       }
     });
   });

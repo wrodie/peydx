@@ -1,38 +1,4 @@
-interface ScheduleEntry {
-  programId: number
-  startTime: string
-  endTime?: string
-  program: {
-    id: number
-    title: string
-    slides: any[]
-  }
-}
-
-interface ResolvedSchedule {
-  deviceId: string
-  lastUpdated: string
-  schedule: ScheduleEntry[]
-}
-
-export function resolveActiveProgram(scheduleData: ResolvedSchedule): ScheduleEntry['program'] | null {
-  const now = new Date()
-  const entries = scheduleData.schedule
-
-  let activeEntry: ScheduleEntry | null = null
-  for (const entry of entries) {
-    const start = new Date(entry.startTime)
-    if (start <= now) {
-      const end = entry.endTime ? new Date(entry.endTime) : null
-      if (!end || now < end) {
-        if (!activeEntry || new Date(entry.startTime) > new Date(activeEntry.startTime)) {
-          activeEntry = entry
-        }
-      }
-    }
-  }
-  return activeEntry?.program ?? null
-}
+import type { ScheduleEntry, ResolvedSchedule, Program } from 'signage-core'
 
 function normalizeSlide(slide: any): any {
   const result: any = {
@@ -70,6 +36,7 @@ export function normalizeApiSchedule(apiData: any): ResolvedSchedule {
     lastUpdated: new Date().toISOString(),
     schedule: (apiData.docs || []).map((entry: any) => ({
       programId: entry.program?.id,
+      scheduleType: entry.scheduleType || 'autoplay',
       startTime: entry.startTime,
       endTime: entry.endTime,
       program: {
@@ -80,4 +47,43 @@ export function normalizeApiSchedule(apiData: any): ResolvedSchedule {
       },
     })),
   }
+}
+
+export interface ResolvedScheduleState {
+  activeAutoPlay: ScheduleEntry | null
+  availablePrograms: ScheduleEntry[]
+}
+
+function getTodayStr(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+export function resolveScheduleState(scheduleData: ResolvedSchedule): ResolvedScheduleState {
+  const now = new Date()
+  const today = getTodayStr()
+  const schedule = scheduleData.schedule
+
+  const todayAvailability = schedule.filter(
+    (e) => e.scheduleType === 'availability' && e.startTime.startsWith(today),
+  )
+
+  let activeAutoPlay: ScheduleEntry | null = null
+  for (const entry of schedule) {
+    if (entry.scheduleType !== 'autoplay') continue
+    const start = new Date(entry.startTime)
+    const end = entry.endTime ? new Date(entry.endTime) : null
+    if (start <= now && (!end || now < end)) {
+      if (!activeAutoPlay || new Date(entry.startTime) > new Date(activeAutoPlay.startTime)) {
+        activeAutoPlay = entry
+      }
+    }
+  }
+
+  return { activeAutoPlay, availablePrograms: todayAvailability }
+}
+
+export function resolveActiveProgram(scheduleData: ResolvedSchedule): Program | null {
+  const { activeAutoPlay } = resolveScheduleState(scheduleData)
+  return activeAutoPlay?.program ?? null
 }

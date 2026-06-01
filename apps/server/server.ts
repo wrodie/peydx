@@ -65,7 +65,7 @@ async function handleDeviceHeartbeat(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `devices API-Key ${socket.handshake.auth?.apiKey || ''}`,
+        Authorization: `devices API-Key ${socket.data.apiKey || ''}`,
       },
       body: JSON.stringify({
         programId: data.programId,
@@ -103,7 +103,7 @@ async function handleDeviceSlideChange(
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `devices API-Key ${socket.handshake.auth?.apiKey || ''}`,
+        Authorization: `devices API-Key ${socket.data.apiKey || ''}`,
       },
       body: JSON.stringify({
         currentSlideIndex: data.slideIndex,
@@ -129,7 +129,7 @@ async function handleDeviceSlideChange(
 
     // Mirror forwarding
     const res = await fetch(`${API_URL}/devices?where[controllingDevice][equals]=${device.id}&depth=0`, {
-      headers: { Authorization: `devices API-Key ${socket.handshake.auth?.apiKey || ''}` },
+      headers: { Authorization: `devices API-Key ${socket.data.apiKey || ''}` },
     })
     if (res.ok) {
       const result = await res.json()
@@ -173,7 +173,7 @@ async function handleRemoteProgram(
 ) {
   try {
     const res = await fetch(`${API_URL}/programs/${data.programId}?depth=2`, {
-      headers: { Authorization: `devices API-Key ${socket.handshake.auth?.apiKey || ''}` },
+      headers: { Authorization: `devices API-Key ${socket.data.apiKey || ''}` },
     })
     if (!res.ok) return
     const program = await res.json()
@@ -195,7 +195,7 @@ async function handleMirrorInitialState(
 
   try {
     const res = await fetch(`${API_URL}/devices/${device.controllingDevice}?depth=1`, {
-      headers: { Authorization: `devices API-Key ${socket.handshake.auth?.apiKey || ''}` },
+      headers: { Authorization: `devices API-Key ${socket.data.apiKey || ''}` },
     })
     if (!res.ok) return
     const controller = await res.json()
@@ -206,7 +206,7 @@ async function handleMirrorInitialState(
         : controller.currentProgram
 
       const progRes = await fetch(`${API_URL}/programs/${programId}?depth=2`, {
-        headers: { Authorization: `devices API-Key ${socket.handshake.auth?.apiKey || ''}` },
+        headers: { Authorization: `devices API-Key ${socket.data.apiKey || ''}` },
       })
       if (!progRes.ok) return
       const program = await progRes.json()
@@ -219,6 +219,78 @@ async function handleMirrorInitialState(
   } catch (err) {
     console.error('Mirror initial state handler error:', err)
   }
+}
+
+async function handleDeviceStateChange(
+  io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
+  socket: any,
+  data: { state: 'idle' | 'menu' | 'playing'; programId?: number; menuIndex?: number }
+) {
+  const device = socket.data
+  try {
+    await fetch(`${API_URL}/heartbeat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `devices API-Key ${socket.data.apiKey || ''}`,
+      },
+      body: JSON.stringify({
+        programId: data.programId ?? null,
+        slideIndex: data.menuIndex ?? 0,
+      }),
+    })
+
+    for (const dep of device.departments) {
+      io.to(`department:${dep}`).emit('device:status', {
+        deviceId: device.deviceId,
+        slideIndex: data.menuIndex ?? 0,
+        programId: data.programId ?? null,
+        status: 'online',
+      })
+      io.to(`department:${dep}`).emit('device:stateChange', {
+        deviceId: device.deviceId,
+        state: data.state,
+        programId: data.programId,
+      })
+    }
+    io.to('admin').emit('device:status', {
+      deviceId: device.deviceId,
+      slideIndex: data.menuIndex ?? 0,
+      programId: data.programId ?? null,
+      status: 'online',
+    })
+    io.to('admin').emit('device:stateChange', {
+      deviceId: device.deviceId,
+      state: data.state,
+      programId: data.programId,
+    })
+  } catch (err) {
+    console.error('State change handler error:', err)
+  }
+}
+
+function handleRemoteMenu(
+  io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
+  _socket: any,
+  data: { deviceId: string }
+) {
+  io.to(`device:${data.deviceId}`).emit('remote:menu')
+}
+
+function handleRemoteBack(
+  io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
+  _socket: any,
+  data: { deviceId: string }
+) {
+  io.to(`device:${data.deviceId}`).emit('remote:back')
+}
+
+function handleRemoteSelect(
+  io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
+  _socket: any,
+  data: { deviceId: string }
+) {
+  io.to(`device:${data.deviceId}`).emit('remote:select')
 }
 
 app.prepare().then(() => {
@@ -240,11 +312,15 @@ app.prepare().then(() => {
       const token = socket.handshake.auth?.token || socket.handshake.query?.token as string | undefined
 
       // Device API key auth
-      if (authHeader && authHeader.startsWith('devices API-Key ')) {
-        const apiKey = authHeader.slice('devices API-Key '.length)
-        const device = await verifyDeviceApiKey(apiKey)
+      const authApiKey =
+        (authHeader && authHeader.startsWith('devices API-Key ')
+          ? authHeader.slice('devices API-Key '.length)
+          : null) || socket.handshake.auth?.apiKey
+
+      if (authApiKey) {
+        const device = await verifyDeviceApiKey(authApiKey)
         if (device) {
-          socket.data = { type: 'device', ...device }
+          socket.data = { type: 'device', apiKey: authApiKey, ...device }
           next()
           return
         }
@@ -313,6 +389,10 @@ app.prepare().then(() => {
       handleDeviceSlideChange(io, socket, data)
     })
 
+    socket.on('device:stateChange', (data: any) => {
+      handleDeviceStateChange(io, socket, data)
+    })
+
     socket.on('remote:advance', (data: any) => {
       handleRemoteAdvance(io, socket, data)
     })
@@ -327,6 +407,18 @@ app.prepare().then(() => {
 
     socket.on('remote:program', (data: any) => {
       handleRemoteProgram(io, socket, data)
+    })
+
+    socket.on('remote:menu', (data: any) => {
+      handleRemoteMenu(io, socket, data)
+    })
+
+    socket.on('remote:back', (data: any) => {
+      handleRemoteBack(io, socket, data)
+    })
+
+    socket.on('remote:select', (data: any) => {
+      handleRemoteSelect(io, socket, data)
     })
 
     if (type === 'device' && controllingDevice) {

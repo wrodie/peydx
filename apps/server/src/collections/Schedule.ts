@@ -70,6 +70,16 @@ export const Schedule: CollectionConfig = {
           }
         }
 
+        const scheduleType = data.scheduleType || 'autoplay'
+
+        if (scheduleType === 'availability') {
+          if (data.startTime) {
+            const d = new Date(data.startTime)
+            data.startTime = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString()
+          }
+          return data
+        }
+
         const startA = new Date(data.startTime).getTime()
         if (isNaN(startA)) return data
         const endA = new Date(data.endTime || data.startTime).getTime()
@@ -88,6 +98,7 @@ export const Schedule: CollectionConfig = {
             where: {
               and: [
                 { devices: { contains: deviceId } },
+                { scheduleType: { equals: 'autoplay' } },
                 ...(currentId ? [{ id: { not_equals: currentId } }] : []),
               ],
             },
@@ -187,6 +198,19 @@ export const Schedule: CollectionConfig = {
       },
     },
     {
+      name: 'scheduleType',
+      type: 'select',
+      required: true,
+      defaultValue: 'autoplay',
+      options: [
+        { label: 'Auto-Play', value: 'autoplay' },
+        { label: 'Availability', value: 'availability' },
+      ],
+      admin: {
+        description: 'Auto-Play starts automatically at the scheduled time. Availability makes the program selectable on the device for that date.',
+      },
+    },
+    {
       name: 'startTime',
       type: 'date',
       required: true,
@@ -195,6 +219,7 @@ export const Schedule: CollectionConfig = {
           pickerAppearance: 'dayAndTime',
           timeIntervals: 15,
         },
+        description: 'For Auto-Play, select date and time. For Availability, select the date (time is ignored — sets to midnight UTC).',
       },
     },
     {
@@ -205,7 +230,9 @@ export const Schedule: CollectionConfig = {
           pickerAppearance: 'dayAndTime',
           timeIntervals: 15,
         },
-        description: 'Defaults to 1 hour after start time.',
+        description: 'Defaults to 1 hour after start time. Required for Auto-Play, optional for Availability.',
+        condition: ({ siblingData }: { siblingData?: { scheduleType?: string } }) =>
+          siblingData?.scheduleType !== 'availability',
       },
     },
     {

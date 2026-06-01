@@ -1,0 +1,58 @@
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.menu-title {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.2rem;
+  margin-bottom: 48px;
+  font-weight: 400;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0 32px;
+  scrollbar-width: none;
+}
+
+.menu-list::-webkit-scrollbar {
+  display: none;
+}
+
+.menu-item {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 2rem;
+  font-weight: 600;
+  padding: 12px 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+  text-align: center;
+}
+
+.menu-item-selected {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-hint {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.85rem;
+  margin-top: 48px;
+}

@@ -331,9 +331,16 @@ export interface Schedule {
   id: number;
   program: number | Program;
   devices: (number | Device)[];
+  /**
+   * Auto-Play starts automatically at the scheduled time. Availability makes the program selectable on the device for that date.
+   */
+  scheduleType: 'autoplay' | 'availability';
+  /**
+   * For Auto-Play, select date and time. For Availability, select the date (time is ignored — sets to midnight UTC).
+   */
   startTime: string;
   /**
-   * Defaults to 1 hour after start time.
+   * Defaults to 1 hour after start time. Required for Auto-Play, optional for Availability.
    */
   endTime?: string | null;
   department?: ('children' | 'signage' | 'youth') | null;
@@ -524,6 +531,7 @@ export interface DevicesSelect<T extends boolean = true> {
 export interface ScheduleSelect<T extends boolean = true> {
   program?: T;
   devices?: T;
+  scheduleType?: T;
   startTime?: T;
   endTime?: T;
   department?: T;
