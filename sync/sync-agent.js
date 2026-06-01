@@ -191,7 +191,7 @@ async function sync() {
 
     const now = new Date();
     const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
-    const graceStart = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+    const graceStart = new Date(now.getTime() - (6 * 60 * 60 * 1000));
 
     const activeItems = docs.filter(item => {
       const start = new Date(item.startTime);
