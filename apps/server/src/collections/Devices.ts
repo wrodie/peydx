@@ -1,5 +1,4 @@
 import type { CollectionConfig } from 'payload'
-import { DEPARTMENTS } from '../constants/departments'
 
 export const Devices: CollectionConfig = {
   slug: 'devices',
@@ -61,10 +60,10 @@ export const Devices: CollectionConfig = {
     },
     {
       name: 'departments',
-      type: 'select',
+      type: 'relationship',
+      relationTo: 'departments',
       hasMany: true,
       required: true,
-      options: DEPARTMENTS as any,
     },
     {
       name: 'controllingDevice',

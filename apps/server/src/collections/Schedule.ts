@@ -1,5 +1,4 @@
 import type { CollectionConfig } from 'payload'
-import { DEPARTMENTS } from '../constants/departments'
 import { getIO } from '../websocket/io'
 
 const ONE_HOUR = 60 * 60 * 1000
@@ -237,8 +236,8 @@ export const Schedule: CollectionConfig = {
     },
     {
       name: 'department',
-      type: 'select',
-      options: DEPARTMENTS as any,
+      type: 'relationship',
+      relationTo: 'departments',
       admin: { hidden: true },
     },
     {

@@ -1,5 +1,4 @@
 import type { CollectionConfig } from 'payload'
-import { DEPARTMENTS } from '../constants/departments'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -32,15 +31,6 @@ export const Users: CollectionConfig = {
       required: true,
     },
     {
-      name: 'email',
-      type: 'email',
-      required: true,
-      unique: true,
-        access: {
-          read: ({ req: { user: u } }) => (u as any)?.role === 'admin',
-        },
-    },
-    {
       name: 'role',
       type: 'select',
       required: true,
@@ -52,13 +42,11 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'department',
-      type: 'select',
+      type: 'relationship',
+      relationTo: 'departments',
       required: true,
-      options: DEPARTMENTS as any,
       admin: {
-        // Keeps the layout clean by putting assignment fields on the right-hand panel
         position: 'sidebar',
-        // Visually blocks non-admins from changing their own department privileges
         condition: (data, siblingData, { user }) => (user as any)?.role === 'admin',
       },
     },

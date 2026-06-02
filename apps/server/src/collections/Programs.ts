@@ -2,7 +2,6 @@ import type { CollectionConfig } from 'payload'
 import { ImageBlock, VideoBlock, YoutubeBlock } from '../blocks/SlideBlocks'
 import { BlackScreenBlock } from '../blocks/BlackScreenBlock'
 import { autoCreateSlides } from '../hooks/autoCreateSlides'
-import { DEPARTMENTS } from '../constants/departments'
 import { getIO } from '../websocket/io'
 
 export const Programs: CollectionConfig = {
@@ -145,9 +144,9 @@ export const Programs: CollectionConfig = {
     },
     {
       name: 'department',
-      type: 'select',
+      type: 'relationship',
+      relationTo: 'departments',
       required: true,
-      options: DEPARTMENTS as any,
       admin: {
         position: 'sidebar',
         condition: (_, __, { user }) => (user as any)?.role === 'admin',

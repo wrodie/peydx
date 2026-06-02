@@ -1,5 +1,4 @@
 import type { CollectionConfig } from 'payload'
-import { DEPARTMENTS } from '../constants/departments'
 import { cleanupMediaReferences } from '../hooks/cleanupMediaReferences'
 import { getIO } from '../websocket/io'
 
@@ -139,9 +138,9 @@ export const Media: CollectionConfig = {
     },
     {
       name: 'department',
-      type: 'select',
+      type: 'relationship',
+      relationTo: 'departments',
       required: true,
-      options: DEPARTMENTS as any,
       admin: {
         condition: (_, __, { user }) => (user as any)?.role === 'admin',
       },

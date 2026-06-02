@@ -10,6 +10,7 @@ import { Media } from './collections/Media'
 import { Programs } from './collections/Programs'
 import { Devices } from './collections/Devices'
 import { Schedule } from './collections/Schedule'
+import { Departments } from './collections/Departments'
 import { heartbeat } from './endpoints/heartbeat'
 
 const filename = fileURLToPath(import.meta.url)
@@ -41,6 +42,7 @@ export default buildConfig({
     Schedule,
     Media,
     Users,
+    Departments,
   ],
   endpoints: [heartbeat],
   editor: lexicalEditor({}),

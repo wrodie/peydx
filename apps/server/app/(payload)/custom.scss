@@ -3,6 +3,12 @@
   --color: #fff;
   --hover-bg: #1d4ed8;
   --hover-color: #fff;
+
+  &:disabled,
+  &.btn--disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
 }
 
 .list-selection {

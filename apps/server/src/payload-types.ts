@@ -73,6 +73,7 @@ export interface Config {
     schedule: Schedule;
     media: Media;
     users: User;
+    departments: Department;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -85,6 +86,7 @@ export interface Config {
     schedule: ScheduleSelect<false> | ScheduleSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    departments: DepartmentsSelect<false> | DepartmentsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -207,7 +209,7 @@ export interface Program {
           }
       )[]
     | null;
-  department?: ('children' | 'signage' | 'youth') | null;
+  department?: (number | null) | Department;
   status?: ('draft' | 'approved') | null;
   createdBy?: (number | null) | User;
   /**
@@ -239,7 +241,7 @@ export interface Media {
    * Name shown on screens for this media item.
    */
   name?: string | null;
-  department?: ('children' | 'signage' | 'youth') | null;
+  department?: (number | null) | Department;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -272,13 +274,23 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "departments".
+ */
+export interface Department {
+  id: number;
+  name: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
   id: number;
   name: string;
   role: 'admin' | 'basic';
-  department?: ('children' | 'signage' | 'youth') | null;
+  department?: (number | null) | Department;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -306,7 +318,7 @@ export interface Device {
   id: number;
   name: string;
   deviceType: 'hardware' | 'browser';
-  departments: ('children' | 'signage' | 'youth')[];
+  departments: (number | Department)[];
   /**
    * When set, this device mirrors the controlling device's program and slide position.
    */
@@ -342,7 +354,7 @@ export interface Schedule {
    * Defaults to 1 hour after start time. Required for Auto-Play, optional for Availability.
    */
   endTime?: string | null;
-  department?: ('children' | 'signage' | 'youth') | null;
+  department?: (number | null) | Department;
   createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -390,6 +402,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'departments';
+        value: number | Department;
       } | null);
   globalSlug?: string | null;
   user:
@@ -604,6 +620,15 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "departments_select".
+ */
+export interface DepartmentsSelect<T extends boolean = true> {
+  name?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
