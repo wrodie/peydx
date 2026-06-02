@@ -15,12 +15,11 @@ const buttonStyle: React.CSSProperties = {
 export function CopyDeviceUrl() {
   const { id } = useDocumentInfo()
   const { value: deviceType } = useField<string>({ path: 'deviceType' })
-  const { value: deviceId } = useField<string>({ path: 'deviceId' })
   const { value: browserToken } = useField<string>({ path: 'browserToken' })
 
   if (deviceType !== 'browser' || !id) return null
 
-  const url = `${window.location.origin}/device/${deviceId}?token=${browserToken}`
+  const url = `${window.location.origin}/device/${id}?token=${browserToken}`
 
   const copyToClipboard = useCallback(() => {
     navigator.clipboard.writeText(url)

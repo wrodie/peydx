@@ -31,7 +31,6 @@ Docker Compose additionally requires: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POS
 
 Sync agent requires:
 - `API_URL` — Payload CMS API base URL (e.g. `http://localhost:3000/api`)
-- `DEVICE_ID` — Human-readable device identifier (matches `deviceId` field in CMS)
 - `DEVICE_API_KEY` — API key generated for the device in CMS
 - `PLUG_IP` (optional) — Smart plug IP for TV power management
 
@@ -55,5 +54,5 @@ The old Payload v2 format (`Authorization: PayloadAPIKey ...`) no longer works.
 3. **Media name auto-fill**: `beforeChange` hook sets `name` from `req.file.name` (ext-stripped) if left blank. Field is not required — UX is "type a name or leave blank to use filename".
 4. **No migration strategy**: Dev database is dropped & recreated for schema changes. No production data exists yet.
 5. **Schedule access for devices**: Device-authenticated requests bypass department filtering on the Schedule collection — the query's `where[devices][contains]` filter already restricts results to the device's own schedules.
-6. **Devices access for self-read**: Device-authenticated requests can read their own record via `{ id: { equals: user.id } }` to resolve the numeric Payload ID from the human-readable `deviceId`.
+6. **Devices access for self-read**: Device-authenticated requests can read their own record via `{ id: { equals: user.id } }`. The `deviceId` field was removed — the numeric Payload `id` is the sole identifier.
 7. **Media download URLs**: Payload v3 serves files at `/api/media/file/<filename>` (not `/api/media/<filename>`).

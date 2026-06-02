@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 interface Device {
   id: number
   name: string
-  deviceId: string
   deviceType?: 'hardware' | 'browser'
   departments: string[]
   status?: 'online' | 'offline' | 'stale' | null
@@ -190,9 +189,6 @@ export default function HealthDashboard() {
                   </td>
                   <td style={{ padding: '10px 12px' }}>
                     <div style={{ fontWeight: 500 }}>{device.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#888' }}>
-                      {device.deviceId}
-                    </div>
                   </td>
                   <td style={{ padding: '10px 12px', fontSize: '0.85rem' }}>
                     {device.deviceType === 'browser' ? 'Browser' : 'Hardware'}

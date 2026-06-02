@@ -38,7 +38,6 @@ function normalizeSlide(slide: any): any {
 
 function normalizeApiSchedule(apiData: any) {
   return {
-    deviceId: '',
     lastUpdated: new Date().toISOString(),
     schedule: (apiData.docs || []).map((entry: any) => ({
       programId: entry.program?.id,
@@ -56,11 +55,11 @@ function normalizeApiSchedule(apiData: any) {
 }
 
 interface Props {
-  deviceId: string
+  id: string
   token: string
 }
 
-export function BrowserPlayer({ deviceId, token }: Props) {
+export function BrowserPlayer({ id, token }: Props) {
   const controllerRef = useRef<PlayerControllerHandle>(null)
   const [scheduleData, setScheduleData] = useState<any>(null)
   const socketRef = useRef<TypedSocket | null>(null)
@@ -78,7 +77,7 @@ export function BrowserPlayer({ deviceId, token }: Props) {
     socketRef.current = socket
 
     socket.on('connect', () => {
-      fetch(`/api/schedule?where[devices][deviceId][equals]=${deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`)
+      fetch(`/api/schedule?where[devices][contains]=${id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleData(normalizeApiSchedule(data))
@@ -91,7 +90,7 @@ export function BrowserPlayer({ deviceId, token }: Props) {
     })
 
     socket.on('program:update', () => {
-      fetch(`/api/schedule?where[devices][deviceId][equals]=${deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`)
+      fetch(`/api/schedule?where[devices][contains]=${id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleData(normalizeApiSchedule(data))
@@ -100,7 +99,7 @@ export function BrowserPlayer({ deviceId, token }: Props) {
     })
 
     socket.on('media:update', () => {
-      fetch(`/api/schedule?where[devices][deviceId][equals]=${deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`)
+      fetch(`/api/schedule?where[devices][contains]=${id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleData(normalizeApiSchedule(data))
@@ -139,7 +138,7 @@ export function BrowserPlayer({ deviceId, token }: Props) {
     return () => {
       socket.disconnect()
     }
-  }, [deviceId, token])
+  }, [id, token])
 
   const handleSlideChange = useCallback((index: number) => {
     socketRef.current?.emit('device:slideChange', { slideIndex: index })

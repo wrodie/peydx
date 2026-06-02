@@ -7,17 +7,17 @@ export default async function DevicePlayerPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ deviceId: string }>
+  params: Promise<{ id: string }>
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const { deviceId } = await params
+  const { id } = await params
   const { token } = await searchParams
 
   const payload = await getPayload({ config, importMap })
 
   const result = await payload.find({
     collection: 'devices',
-    where: { deviceId: { equals: deviceId } },
+    where: { id: { equals: parseInt(id) } },
     depth: 0,
     limit: 1,
   })
@@ -55,7 +55,7 @@ export default async function DevicePlayerPage({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
       <body style={{ margin: 0, background: 'black', overflow: 'hidden' }}>
-        <BrowserPlayer deviceId={deviceId} token={token as string} />
+        <BrowserPlayer id={id} token={token as string} />
       </body>
     </html>
   )

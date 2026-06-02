@@ -8,12 +8,10 @@ const { Server: SocketIOServer } = require('socket.io');
 const http = require('http');
 
 // CONFIGURATION — all from environment variables
-const DEVICE_ID = process.env.DEVICE_ID;
 const API_KEY = process.env.DEVICE_API_KEY;
 const API_URL = process.env.API_URL;
 const PLUG_IP = process.env.PLUG_IP;
 
-if (!DEVICE_ID) throw new Error('Missing required env: DEVICE_ID');
 if (!API_KEY) throw new Error('Missing required env: DEVICE_API_KEY');
 if (!API_URL) throw new Error('Missing required env: API_URL');
 
@@ -150,7 +148,6 @@ function buildScheduleJson(activeItems) {
   }));
 
   return {
-    deviceId: DEVICE_ID,
     lastUpdated: new Date().toISOString(),
     schedule,
   };
@@ -158,11 +155,11 @@ function buildScheduleJson(activeItems) {
 
 async function resolveDeviceId() {
   const res = await fetchWithRetry(
-    `${API_URL}/devices?where[deviceId][equals]=${DEVICE_ID}&depth=0&limit=1`,
+    `${API_URL}/devices?depth=0&limit=1`,
     { headers: { Authorization: `devices API-Key ${API_KEY}` } }
   );
   if (!res.data.docs || res.data.docs.length === 0) {
-    throw new Error(`Device not found: ${DEVICE_ID}`);
+    throw new Error('Device not found — check DEVICE_API_KEY');
   }
   return res.data.docs[0].id;
 }
@@ -187,7 +184,7 @@ async function sync() {
 
     const docs = res.data.docs || [];
     if (docs.length === 0) {
-      console.log(`No schedule entries found for device ${DEVICE_ID}`);
+      console.log(`No schedule entries found for device ${numericId}`);
       return;
     }
 

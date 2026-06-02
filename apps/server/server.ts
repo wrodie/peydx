@@ -16,7 +16,7 @@ const handle = app.getRequestHandler()
 
 const API_URL = process.env.API_URL || `http://localhost:${port}/api`
 
-async function verifyDeviceApiKey(apiKey: string): Promise<{ id: number; deviceId: string; departments: string[]; controllingDevice: number | null } | null> {
+async function verifyDeviceApiKey(apiKey: string): Promise<{ id: number; departments: string[]; controllingDevice: number | null } | null> {
   try {
     const res = await fetch(`${API_URL}/devices?depth=0&limit=1`, {
       headers: { Authorization: `devices API-Key ${apiKey}` },
@@ -27,7 +27,6 @@ async function verifyDeviceApiKey(apiKey: string): Promise<{ id: number; deviceI
     if (!device) return null
     return {
       id: device.id,
-      deviceId: device.deviceId,
       departments: device.departments || [],
       controllingDevice: device.controllingDevice || null,
     }
@@ -36,7 +35,7 @@ async function verifyDeviceApiKey(apiKey: string): Promise<{ id: number; deviceI
   }
 }
 
-async function verifyBrowserToken(token: string): Promise<{ id: number; deviceId: string; departments: string[]; controllingDevice: number | null } | null> {
+async function verifyBrowserToken(token: string): Promise<{ id: number; departments: string[]; controllingDevice: number | null } | null> {
   try {
     const res = await fetch(`${API_URL}/devices?where[browserToken][equals]=${token}&depth=0&limit=1`)
     if (!res.ok) return null
@@ -45,7 +44,6 @@ async function verifyBrowserToken(token: string): Promise<{ id: number; deviceId
     if (!device || device.deviceType !== 'browser') return null
     return {
       id: device.id,
-      deviceId: device.deviceId,
       departments: device.departments || [],
       controllingDevice: device.controllingDevice || null,
     }
@@ -75,14 +73,14 @@ async function handleDeviceHeartbeat(
 
     for (const dep of device.departments) {
       io.to(`department:${dep}`).emit('device:status', {
-        deviceId: device.deviceId,
+        id: device.id,
         slideIndex: data.slideIndex,
         programId: data.programId,
         status: 'online',
       })
     }
     io.to('admin').emit('device:status', {
-      deviceId: device.deviceId,
+      id: device.id,
       slideIndex: data.slideIndex,
       programId: data.programId,
       status: 'online',
@@ -114,14 +112,14 @@ async function handleDeviceSlideChange(
 
     for (const dep of device.departments) {
       io.to(`department:${dep}`).emit('device:status', {
-        deviceId: device.deviceId,
+        id: device.id,
         slideIndex: data.slideIndex,
         programId: null,
         status: 'online',
       })
     }
     io.to('admin').emit('device:status', {
-      deviceId: device.deviceId,
+      id: device.id,
       slideIndex: data.slideIndex,
       programId: null,
       status: 'online',
@@ -145,31 +143,31 @@ async function handleDeviceSlideChange(
 function handleRemoteAdvance(
   io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
   _socket: any,
-  data: { deviceId: string }
+  data: { id: number }
 ) {
-  io.to(`device:${data.deviceId}`).emit('remote:advance')
+  io.to(`device:${data.id}`).emit('remote:advance')
 }
 
 function handleRemotePrevious(
   io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
   _socket: any,
-  data: { deviceId: string }
+  data: { id: number }
 ) {
-  io.to(`device:${data.deviceId}`).emit('remote:previous')
+  io.to(`device:${data.id}`).emit('remote:previous')
 }
 
 function handleRemoteGoto(
   io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
   _socket: any,
-  data: { deviceId: string; slideIndex: number }
+  data: { id: number; slideIndex: number }
 ) {
-  io.to(`device:${data.deviceId}`).emit('remote:goto', { slideIndex: data.slideIndex })
+  io.to(`device:${data.id}`).emit('remote:goto', { slideIndex: data.slideIndex })
 }
 
 async function handleRemoteProgram(
   io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
   socket: any,
-  data: { deviceId: string; programId: number }
+  data: { id: number; programId: number }
 ) {
   try {
     const res = await fetch(`${API_URL}/programs/${data.programId}?depth=2`, {
@@ -177,7 +175,7 @@ async function handleRemoteProgram(
     })
     if (!res.ok) return
     const program = await res.json()
-    io.to(`device:${data.deviceId}`).emit('remote:program', {
+    io.to(`device:${data.id}`).emit('remote:program', {
       program,
       slideIndex: 0,
     })
@@ -242,25 +240,25 @@ async function handleDeviceStateChange(
 
     for (const dep of device.departments) {
       io.to(`department:${dep}`).emit('device:status', {
-        deviceId: device.deviceId,
+        id: device.id,
         slideIndex: data.menuIndex ?? 0,
         programId: data.programId ?? null,
         status: 'online',
       })
       io.to(`department:${dep}`).emit('device:stateChange', {
-        deviceId: device.deviceId,
+        id: device.id,
         state: data.state,
         programId: data.programId,
       })
     }
     io.to('admin').emit('device:status', {
-      deviceId: device.deviceId,
+      id: device.id,
       slideIndex: data.menuIndex ?? 0,
       programId: data.programId ?? null,
       status: 'online',
     })
     io.to('admin').emit('device:stateChange', {
-      deviceId: device.deviceId,
+      id: device.id,
       state: data.state,
       programId: data.programId,
     })
@@ -272,25 +270,25 @@ async function handleDeviceStateChange(
 function handleRemoteMenu(
   io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
   _socket: any,
-  data: { deviceId: string }
+  data: { id: number }
 ) {
-  io.to(`device:${data.deviceId}`).emit('remote:menu')
+  io.to(`device:${data.id}`).emit('remote:menu')
 }
 
 function handleRemoteBack(
   io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
   _socket: any,
-  data: { deviceId: string }
+  data: { id: number }
 ) {
-  io.to(`device:${data.deviceId}`).emit('remote:back')
+  io.to(`device:${data.id}`).emit('remote:back')
 }
 
 function handleRemoteSelect(
   io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
   _socket: any,
-  data: { deviceId: string }
+  data: { id: number }
 ) {
-  io.to(`device:${data.deviceId}`).emit('remote:select')
+  io.to(`device:${data.id}`).emit('remote:select')
 }
 
 app.prepare().then(() => {

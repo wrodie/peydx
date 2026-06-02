@@ -37,7 +37,6 @@ export interface ScheduleEntry {
 }
 
 export interface ResolvedSchedule {
-  deviceId: string
   lastUpdated: string
   schedule: ScheduleEntry[]
 }

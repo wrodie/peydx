@@ -147,7 +147,7 @@ To optimize volunteer efficiency when dragging multiple images into a Program:
 * **Slug:** `devices`
 * **Fields:**
 * `name`: Text, required (e.g., "Fellowship Hall TV").
-* `deviceId`: Text, unique, required (Hardware serial key identifier utilized by the client Sync Agent).
+ * *(Removed: `deviceId` field was a string unique identifier, deprecated in favor of numeric Payload `id` and API key auth.)*
 * `departments`: Select mapped to `DEPARTMENTS` with `hasMany: true`, allowing cross-department shared ownership of physical displays.
 * `schedule`: Array of scheduled blocks containing:
 * `program`: Relationship linking to the `programs` collection. Filtered dynamically in the UI so basic users can only link programs matching their own department.

@@ -3,13 +3,13 @@ export interface ClientToServerEvents {
   'device:heartbeat': (data: { programId: number | null; slideIndex: number }, callback?: (ack: { ok: boolean }) => void) => void
   'device:slideChange': (data: { slideIndex: number }) => void
   'device:stateChange': (data: { state: 'idle' | 'menu' | 'playing'; programId?: number; menuIndex?: number }) => void
-  'remote:advance': (data: { deviceId: string }) => void
-  'remote:previous': (data: { deviceId: string }) => void
-  'remote:goto': (data: { deviceId: string; slideIndex: number }) => void
-  'remote:program': (data: { deviceId: string; programId: number }) => void
-  'remote:menu': (data: { deviceId: string }) => void
-  'remote:back': (data: { deviceId: string }) => void
-  'remote:select': (data: { deviceId: string }) => void
+  'remote:advance': (data: { id: number }) => void
+  'remote:previous': (data: { id: number }) => void
+  'remote:goto': (data: { id: number; slideIndex: number }) => void
+  'remote:program': (data: { id: number; programId: number }) => void
+  'remote:menu': (data: { id: number }) => void
+  'remote:back': (data: { id: number }) => void
+  'remote:select': (data: { id: number }) => void
 }
 
 // Server → Client events (to devices and admin UI)
@@ -24,8 +24,8 @@ export interface ServerToClientEvents {
   'remote:menu': () => void
   'remote:back': () => void
   'remote:select': () => void
-  'device:status': (data: { deviceId: string; slideIndex: number; programId: number | null; status: string }) => void
-  'device:stateChange': (data: { deviceId: string; state: 'idle' | 'menu' | 'playing'; programId?: number }) => void
+  'device:status': (data: { id: number; slideIndex: number; programId: number | null; status: string }) => void
+  'device:stateChange': (data: { id: number; state: 'idle' | 'menu' | 'playing'; programId?: number }) => void
 }
 
 // Inter-server events (for emitting from hooks)
@@ -33,7 +33,7 @@ export interface SocketEventData {
   'schedule:update': { targetDeviceIds: number[]; scheduleData: unknown }
   'program:update': { targetDeviceIds: number[]; program: unknown }
   'media:update': { targetDeviceIds: number[]; mediaId: number; url: string; sizes?: unknown }
-  'device:status': { deviceId: string; slideIndex: number; programId: number | null; status: string }
+  'device:status': { id: number; slideIndex: number; programId: number | null; status: string }
   'remote:menu': { targetDeviceIds: number[] }
   'remote:back': { targetDeviceIds: number[] }
   'remote:select': { targetDeviceIds: number[] }

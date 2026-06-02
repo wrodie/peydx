@@ -166,7 +166,7 @@ Non-admin users are restricted to scheduling programs from their own department.
 * **Auth:** API Key authentication (`useAPIKey: true`, `disableLocalStrategy: true`).
 * **Fields:**
 * `name`: Text, required (e.g., "Fellowship Hall TV").
-* `deviceId`: Text, unique, required. Auto-generated on creation as `DEV-XXXXXXXX` (random 8-char hex). Read-only after creation.
+ * *(Removed: `deviceId` field was a string unique identifier, deprecated in favor of numeric Payload `id` and API key auth.)*
 * `departments`: Select mapped to `DEPARTMENTS` with `hasMany: true`, allowing cross-department shared ownership of physical displays.
 * `lastHeartbeat`: Date, read-only, updated by the sync agent.
 * `currentProgram`: Relationship to `programs`, read-only.

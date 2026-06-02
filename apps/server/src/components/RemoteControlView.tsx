@@ -49,7 +49,7 @@ export function RemoteControlView() {
     socketRef.current = socket
 
     socket.on('device:status', (data: any) => {
-      if (selectedDeviceRef.current && data.deviceId === selectedDeviceRef.current.deviceId) {
+      if (selectedDeviceRef.current && data.id === selectedDeviceRef.current.id) {
         setCurrentSlideIndex(data.slideIndex)
         if (data.programId) {
           fetch(`/api/programs/${data.programId}?depth=2`)
@@ -71,9 +71,8 @@ export function RemoteControlView() {
 
   useEffect(() => {
     if (!selectedDeviceId) return
-    const device =
-      devices.find((d) => d.deviceId === selectedDeviceId) ||
-      devices.find((d) => d.id?.toString() === selectedDeviceId)
+    const id = parseInt(selectedDeviceId, 10)
+    const device = devices.find((d) => d.id === id)
     if (!device) return
     selectedDeviceRef.current = device
 
@@ -100,27 +99,27 @@ export function RemoteControlView() {
 
   const handleAdvance = () => {
     if (isLastSlide) setCurrentProgram(null)
-    socketRef.current?.emit('remote:advance', { deviceId: selectedDeviceId! })
+    socketRef.current?.emit('remote:advance', { id: parseInt(selectedDeviceId!, 10) })
   }
 
   const handlePrevious = () => {
-    socketRef.current?.emit('remote:previous', { deviceId: selectedDeviceId! })
+    socketRef.current?.emit('remote:previous', { id: parseInt(selectedDeviceId!, 10) })
   }
 
   const handleGotoSlide = (slideIndex: number) => {
-    socketRef.current?.emit('remote:goto', { deviceId: selectedDeviceId!, slideIndex })
+    socketRef.current?.emit('remote:goto', { id: parseInt(selectedDeviceId!, 10), slideIndex })
   }
 
   const handleMenu = () => {
-    socketRef.current?.emit('remote:menu', { deviceId: selectedDeviceId! })
+    socketRef.current?.emit('remote:menu', { id: parseInt(selectedDeviceId!, 10) })
   }
 
   const handleBack = () => {
-    socketRef.current?.emit('remote:back', { deviceId: selectedDeviceId! })
+    socketRef.current?.emit('remote:back', { id: parseInt(selectedDeviceId!, 10) })
   }
 
   const handleSelect = () => {
-    socketRef.current?.emit('remote:select', { deviceId: selectedDeviceId! })
+    socketRef.current?.emit('remote:select', { id: parseInt(selectedDeviceId!, 10) })
   }
 
   return (
@@ -141,8 +140,8 @@ export function RemoteControlView() {
         >
           <option value="">Select a device...</option>
           {devices.map((d) => (
-            <option key={d.id} value={d.deviceId}>
-              {d.name} ({d.deviceId})
+            <option key={d.id} value={d.id}>
+              {d.name}
             </option>
           ))}
         </select>

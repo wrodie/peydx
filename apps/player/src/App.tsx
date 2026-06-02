@@ -13,14 +13,14 @@ type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
 function detectMode(): 'browser' | 'hardware' {
   const params = new URLSearchParams(window.location.search)
-  if (params.has('deviceId') && params.has('token')) return 'browser'
+  if (params.has('id') && params.has('token')) return 'browser'
   return 'hardware'
 }
 
 function getDeviceConfig() {
   const params = new URLSearchParams(window.location.search)
   return {
-    deviceId: params.get('deviceId') || undefined,
+    id: params.get('id') || undefined,
     token: params.get('token') || undefined,
   }
 }
@@ -58,14 +58,14 @@ export function App() {
     if (mode !== 'browser') return
 
     const config = getDeviceConfig()
-    if (!config.deviceId || !config.token) return
+    if (!config.id || !config.token) return
 
     const origin = window.location.origin
     const socket = createBrowserSocket(origin, config.token)
     socketRef.current = socket
 
     socket.on('connect', () => {
-      fetch(`/api/schedule?where[devices][contains]=${config.deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`)
+      fetch(`/api/schedule?where[devices][contains]=${config.id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleData(normalizeApiSchedule(data))
@@ -78,7 +78,7 @@ export function App() {
     })
 
     socket.on('program:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${config.deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`)
+      fetch(`/api/schedule?where[devices][contains]=${config.id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleData(normalizeApiSchedule(data))
@@ -87,7 +87,7 @@ export function App() {
     })
 
     socket.on('media:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${config.deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`)
+      fetch(`/api/schedule?where[devices][contains]=${config.id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleData(normalizeApiSchedule(data))

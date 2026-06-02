@@ -32,7 +32,6 @@ function normalizeSlide(slide: any): any {
 
 export function normalizeApiSchedule(apiData: any): ResolvedSchedule {
   return {
-    deviceId: '',
     lastUpdated: new Date().toISOString(),
     schedule: (apiData.docs || []).map((entry: any) => ({
       programId: entry.program?.id,

@@ -50,23 +50,6 @@ export const Devices: CollectionConfig = {
       required: true,
     },
     {
-      name: 'deviceId',
-      type: 'text',
-      required: true,
-      unique: true,
-      admin: { readOnly: true },
-      hooks: {
-        beforeValidate: [
-          ({ value, operation }) => {
-            if (operation === 'create' && !value) {
-              return 'DEV-' + crypto.randomUUID().slice(0, 8).toUpperCase()
-            }
-            return value
-          },
-        ],
-      },
-    },
-    {
       name: 'deviceType',
       type: 'select',
       required: true,

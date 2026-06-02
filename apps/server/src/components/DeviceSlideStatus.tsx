@@ -28,12 +28,10 @@ function getBlockIcon(slide: any): string | null {
 
 export function DeviceSlideStatus() {
   const { id } = useDocumentInfo()
-  const { value: deviceId } = useField<string>({ path: 'deviceId' })
   const { value: currentProgram } = useField({ path: 'currentProgram' })
   const [slideData, setSlideData] = useState<any>(null)
   const [displaySlideIndex, setDisplaySlideIndex] = useState(0)
   const slideDataRef = useRef<any>(null)
-  const deviceIdRef = useRef<string | number | undefined>(deviceId || id)
 
   // Fetch program data when currentProgram changes
   useEffect(() => {
@@ -53,12 +51,10 @@ export function DeviceSlideStatus() {
 
   // Socket.IO for real-time updates
   useEffect(() => {
-    deviceIdRef.current = deviceId || id
-
     const socket = io(window.location.origin, { path: '/api/ws' }) as Socket<ServerToClientEvents, ClientToServerEvents>
 
     socket.on('device:status', (data: any) => {
-      if (data.deviceId !== deviceIdRef.current) return
+      if (data.id !== id) return
 
       setDisplaySlideIndex(data.slideIndex)
 
@@ -76,7 +72,7 @@ export function DeviceSlideStatus() {
     return () => {
       socket.disconnect()
     }
-  }, [id, deviceId])
+  }, [id])
 
   if (!slideData || !slideData.slides?.length) {
     return (
