@@ -113,6 +113,7 @@ export const Programs: CollectionConfig = {
           && Array.isArray(doc.slides)
           && doc.slides.length > 0
           && doc.slides[doc.slides.length - 1]?.blockType !== 'blackScreenBlock'
+          && !doc.slides.some((s: any) => s.id === 'auto-end')
         ) {
           doc.slides = [...doc.slides, {
             id: 'auto-end',

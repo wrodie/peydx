@@ -12,6 +12,10 @@ function getMediaUrl(slide: any): string | null {
     if (!img) return null
     return img.sizes?.thumbnail?.url || img.url || null
   }
+  if (slide.blockType === 'videoBlock' && slide.video) {
+    const vid = typeof slide.video === 'object' ? slide.video : null
+    return vid?.sizes?.thumbnail?.url || null
+  }
   if (slide.blockType === 'youtubeBlock' && slide.youtubeId) {
     return `https://img.youtube.com/vi/${slide.youtubeId}/mqdefault.jpg`
   }

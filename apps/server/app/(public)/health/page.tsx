@@ -218,6 +218,18 @@ export default function HealthDashboard() {
                               />
                             ) : '—'
                           }
+                          if (slide.blockType === 'videoBlock' && slide.video) {
+                            const vid = typeof slide.video === 'object' ? slide.video : null
+                            if (vid?.sizes?.thumbnail?.url) {
+                              return (
+                                <img
+                                  src={vid.sizes.thumbnail.url}
+                                  style={{ width: 60, height: 45, objectFit: 'cover', borderRadius: 4 }}
+                                  alt=""
+                                />
+                              )
+                            }
+                          }
                           if (slide.blockType === 'youtubeBlock' && slide.youtubeId) {
                             return (
                               <img

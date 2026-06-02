@@ -1,6 +1,12 @@
 import type { CollectionConfig } from 'payload'
 import { cleanupMediaReferences } from '../hooks/cleanupMediaReferences'
 import { getIO } from '../websocket/io'
+import path from 'path'
+import fs from 'fs'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+
+const execAsync = promisify(exec)
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -34,7 +40,9 @@ export const Media: CollectionConfig = {
     adminThumbnail: 'thumbnail',
   },
   hooks: {
-    beforeDelete: [cleanupMediaReferences],
+    beforeDelete: [
+      cleanupMediaReferences,
+    ],
     beforeChange: [
       ({ data, req }) => {
         if (!data.name && req.file?.name) {
@@ -47,6 +55,21 @@ export const Media: CollectionConfig = {
       },
     ],
     afterChange: [
+      async ({ doc, operation, req }) => {
+        if (operation !== 'create') return
+        if (!doc.mimeType?.startsWith('video/')) return
+        if (!doc.filename) return
+
+        const thumbFilename = doc.filename.replace(/\.[^.]+$/, '_thumb.webp')
+        const inputPath = path.resolve(process.cwd(), 'media', doc.filename)
+        const outputPath = path.resolve(process.cwd(), 'media', thumbFilename)
+
+        try {
+          await execAsync(`ffmpeg -ss 2 -i "${inputPath}" -vframes 1 -vf "scale=400:300" "${outputPath}"`)
+        } catch (err) {
+          console.error(`Failed to generate video thumbnail for ${doc.filename}:`, err)
+        }
+      },
       async ({ doc, operation, req }) => {
         if (operation === 'create') return
 
@@ -92,6 +115,30 @@ export const Media: CollectionConfig = {
             })
           }
         }
+      },
+    ],
+    afterRead: [
+      ({ doc }) => {
+        if (doc.mimeType?.startsWith('video/') && doc.filename) {
+          const thumbFilename = doc.filename.replace(/\.[^.]+$/, '_thumb.webp')
+          const thumbPath = path.resolve(process.cwd(), 'media', thumbFilename)
+          if (fs.existsSync(thumbPath)) {
+            const thumbUrl = `/api/media/file/${encodeURIComponent(thumbFilename)}`
+            doc.thumbnailURL = thumbUrl
+            doc.sizes = {
+              ...doc.sizes,
+              thumbnail: {
+                url: thumbUrl,
+                width: 400,
+                height: 300,
+                mimeType: 'image/webp',
+                filesize: null,
+                filename: thumbFilename,
+              },
+            }
+          }
+        }
+        return doc
       },
     ],
   },

@@ -12,6 +12,7 @@ export const cleanupMediaReferences: CollectionBeforeDeleteHook = async ({ req, 
     let slides = program.slides ? [...program.slides] : []
 
     slides = slides.filter((slide: any) => {
+      if (slide.id === 'auto-end') return false
       if (slide.blockType === 'imageBlock' && (slide.image === id || slide.image?.id === id)) {
         changed = true
         return false
