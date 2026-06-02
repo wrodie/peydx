@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5000,
+    watch: {
+      ignored: ['!../../packages/signage-core/**'],
+    },
   },
   build: {
     outDir: 'dist',

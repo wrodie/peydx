@@ -15,7 +15,7 @@
 
 .menu-title {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 1.2rem;
+  font-size: 2.5rem;
   margin-bottom: 48px;
   font-weight: 400;
 }
@@ -37,7 +37,7 @@
 
 .menu-item {
   color: rgba(255, 255, 255, 0.4);
-  font-size: 2rem;
+  font-size: 4.5rem;
   font-weight: 600;
   padding: 12px 32px;
   border-radius: 8px;
@@ -53,6 +53,6 @@
 
 .menu-hint {
   color: rgba(255, 255, 255, 0.25);
-  font-size: 0.85rem;
+  font-size: 1.5rem;
   margin-top: 48px;
 }

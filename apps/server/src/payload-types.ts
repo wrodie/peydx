@@ -305,7 +305,6 @@ export interface User {
 export interface Device {
   id: number;
   name: string;
-  deviceId: string;
   deviceType: 'hardware' | 'browser';
   departments: ('children' | 'signage' | 'youth')[];
   /**
@@ -510,7 +509,6 @@ export interface ProgramsSelect<T extends boolean = true> {
  */
 export interface DevicesSelect<T extends boolean = true> {
   name?: T;
-  deviceId?: T;
   deviceType?: T;
   departments?: T;
   controllingDevice?: T;
