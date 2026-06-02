@@ -20,7 +20,10 @@ export const Programs: CollectionConfig = {
       if (!user) return false;
       if (user.role === 'admin') return true;
       if (user.role === 'basic') return { department: { equals: user.department } };
-      if (user.collection === 'devices') return { department: { in: user.departments } };
+      if (user.collection === 'devices') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { department: { in: deptIds } }
+      }
       return false;
     },
     update: ({ req: { user: u } }) => {
