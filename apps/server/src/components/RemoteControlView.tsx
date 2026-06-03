@@ -35,6 +35,8 @@ export function RemoteControlView() {
   const [currentProgram, setCurrentProgram] = useState<any>(null)
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
   const [playerState, setPlayerState] = useState<string>('unknown')
+  const [availableSchedules, setAvailableSchedules] = useState<any[]>([])
+  const [selectedProgramId, setSelectedProgramId] = useState<string>('')
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null)
   const selectedDeviceRef = useRef<any>(null)
 
@@ -64,8 +66,14 @@ export function RemoteControlView() {
       }
     })
 
-    socket.on('device:stateChange', (data: { state: string }) => {
-      if (data.state) setPlayerState(data.state)
+    socket.on('device:stateChange', (data: any) => {
+      if (selectedDeviceRef.current && data.id === selectedDeviceRef.current.id) {
+        if (data.state) setPlayerState(data.state)
+        if (data.state !== 'playing') {
+          setCurrentProgram(null)
+          setCurrentSlideIndex(0)
+        }
+      }
     })
 
     return () => {
@@ -79,6 +87,7 @@ export function RemoteControlView() {
     const device = devices.find((d) => d.id === id)
     if (!device) return
     selectedDeviceRef.current = device
+    setSelectedProgramId('')
 
     if (device.currentProgram) {
       const programId =
@@ -87,9 +96,17 @@ export function RemoteControlView() {
         .then((r) => r.json())
         .then(setCurrentProgram)
         .catch(console.error)
+      setPlayerState('playing')
     } else {
       setCurrentProgram(null)
+      setCurrentSlideIndex(0)
+      setPlayerState('idle')
     }
+
+    fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime`)
+      .then((r) => r.json())
+      .then((data) => setAvailableSchedules(data.docs || []))
+      .catch(console.error)
   }, [selectedDeviceId, devices])
 
   const slides = currentProgram?.slides || []
@@ -102,7 +119,10 @@ export function RemoteControlView() {
     playerState === 'playing' ? '#22c55e' : playerState === 'menu' ? '#f59e0b' : '#6b7280'
 
   const handleAdvance = () => {
-    if (isLastSlide) setCurrentProgram(null)
+    if (isLastSlide) {
+      handleEnd()
+      return
+    }
     socketRef.current?.emit('remote:advance', { id: parseInt(selectedDeviceId!, 10) })
   }
 
@@ -114,17 +134,23 @@ export function RemoteControlView() {
     socketRef.current?.emit('remote:goto', { id: parseInt(selectedDeviceId!, 10), slideIndex })
   }
 
-  const handleMenu = () => {
-    socketRef.current?.emit('remote:menu', { id: parseInt(selectedDeviceId!, 10) })
-  }
-
-  const handleBack = () => {
+  const handleEnd = () => {
+    if (!confirm('Are you sure you want to end the current program?')) return
     socketRef.current?.emit('remote:back', { id: parseInt(selectedDeviceId!, 10) })
+    setPlayerState('idle')
+    setCurrentProgram(null)
+    setCurrentSlideIndex(0)
   }
 
-  const handleSelect = () => {
-    socketRef.current?.emit('remote:select', { id: parseInt(selectedDeviceId!, 10) })
+  const handleLoadProgram = () => {
+    if (!selectedProgramId) return
+    socketRef.current?.emit('remote:program', {
+      id: parseInt(selectedDeviceId!, 10),
+      programId: parseInt(selectedProgramId, 10),
+    })
   }
+
+  const isPlaying = playerState === 'playing' && currentProgram
 
   return (
     <div style={{ fontFamily: 'system-ui' }}>
@@ -176,69 +202,67 @@ export function RemoteControlView() {
           </div>
         )}
 
-        {selectedDeviceId && (
+        {/* Control buttons — different per state */}
+        {isPlaying ? (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             <button
-              onClick={handleMenu}
+              onClick={handleEnd}
               style={{
                 flex: 1,
                 minHeight: 40,
                 fontSize: '0.9rem',
                 borderRadius: 6,
-                border: '1px solid var(--theme-elevation-200, #ccc)',
-                background: 'var(--theme-input-bg, #fff)',
-                cursor: 'pointer',
-                color: 'var(--theme-text, #333)',
-              }}
-            >
-              Menu
-            </button>
-            <button
-              onClick={handleSelect}
-              style={{
-                flex: 1,
-                minHeight: 40,
-                fontSize: '0.9rem',
-                borderRadius: 6,
-                border: '1px solid var(--theme-elevation-200, #ccc)',
-                background: 'var(--theme-primary-500, #3b82f6)',
+                border: '1px solid var(--theme-elevation-300, #ccc)',
+                background: '#ef4444',
                 color: '#fff',
                 cursor: 'pointer',
                 fontWeight: 600,
               }}
             >
-              Select
+              End Program
             </button>
-            <button
-              onClick={handleBack}
+          </div>
+        ) : selectedDeviceId ? (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+            <select
+              value={selectedProgramId}
+              onChange={(e) => setSelectedProgramId(e.target.value)}
               style={{
                 flex: 1,
-                minHeight: 40,
+                padding: '8px 10px',
                 fontSize: '0.9rem',
                 borderRadius: 6,
                 border: '1px solid var(--theme-elevation-200, #ccc)',
-                background: 'var(--theme-elevation-200, #e5e7eb)',
-                cursor: 'pointer',
-                color: 'var(--theme-text, #333)',
               }}
             >
-              Back/Exit
+              <option value="">Select a program...</option>
+              {availableSchedules.map((s: any) => (
+                <option key={s.id} value={s.program?.id}>
+                  {s.program?.title || `Program ${s.program?.id}`}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleLoadProgram}
+              style={{
+                minHeight: 40,
+                padding: '0 16px',
+                fontSize: '0.9rem',
+                borderRadius: 6,
+                border: '1px solid var(--theme-elevation-200, #ccc)',
+                background: 'var(--theme-primary-500, #2563eb)',
+                color: '#fff',
+                cursor: 'pointer',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Load Program
             </button>
           </div>
-        )}
+        ) : null}
 
-        {selectedDeviceId && !currentProgram && (
-          <p
-            style={{
-              color: 'var(--theme-elevation-500, #888)',
-              textAlign: 'center',
-              padding: 40,
-            }}
-          >
-            No program currently active on this device.
-          </p>
-        )}
-
+        {/* Slide content */}
         {currentProgram && (
           <>
             <div
@@ -407,6 +431,18 @@ export function RemoteControlView() {
               })}
             </div>
           </>
+        )}
+
+        {selectedDeviceId && !currentProgram && !isPlaying && (
+          <p
+            style={{
+              color: 'var(--theme-elevation-500, #888)',
+              textAlign: 'center',
+              padding: 40,
+            }}
+          >
+            No program currently active on this device.
+          </p>
         )}
       </div>
     </div>

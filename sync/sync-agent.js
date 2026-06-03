@@ -298,6 +298,9 @@ async function sync() {
       console.error('Heartbeat failed:', err.message);
     }
 
+    // Notify local player that schedule has been updated
+    localIO?.emit('schedule:update');
+
   } catch (err) {
     console.error('Sync error:', err.message);
   }

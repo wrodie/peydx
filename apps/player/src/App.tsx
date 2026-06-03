@@ -169,6 +169,10 @@ export function App() {
       controllerRef.current?.selectItem()
     })
 
+    hardwareSocket.on('schedule:update', () => {
+      loadSchedule()
+    })
+
     return () => {
       hardwareSocket.disconnect()
     }

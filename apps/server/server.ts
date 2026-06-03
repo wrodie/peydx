@@ -170,9 +170,13 @@ async function handleRemoteProgram(
   data: { id: number; programId: number }
 ) {
   try {
-    const res = await fetch(`${API_URL}/programs/${data.programId}?depth=2`, {
-      headers: { Authorization: `devices API-Key ${socket.data.apiKey || ''}` },
-    })
+    const headers: Record<string, string> = {}
+    if (socket.data.apiKey) {
+      headers.Authorization = `devices API-Key ${socket.data.apiKey}`
+    } else if (socket.handshake.headers.cookie) {
+      headers.Cookie = socket.handshake.headers.cookie as string
+    }
+    const res = await fetch(`${API_URL}/programs/${data.programId}?depth=2`, { headers })
     if (!res.ok) return
     const program = await res.json()
     io.to(`device:${data.id}`).emit('remote:program', {

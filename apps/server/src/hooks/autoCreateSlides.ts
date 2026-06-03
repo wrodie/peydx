@@ -36,6 +36,7 @@ export const autoCreateSlides: CollectionBeforeChangeHook = async ({
 
       return {
         blockType: isVideo ? 'videoBlock' : 'imageBlock',
+        blockName: null,
         [isVideo ? 'video' : 'image']: id,
         advanceMode: isVideo ? 'onEnd' : 'timed',
         duration: isVideo ? null : 5,
