@@ -151,11 +151,6 @@ export const Media: CollectionConfig = {
               ...doc.sizes,
               thumbnail: {
                 url: thumbUrl,
-                width: 400,
-                height: 300,
-                mimeType: 'image/webp',
-                filesize: null,
-                filename: thumbFilename,
               },
             }
           }

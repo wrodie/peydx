@@ -233,6 +233,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
                 src={mediaUrl}
                 autoPlay
                 muted
+                disableRemotePlayback
                 playsInline
                 onError={() => {
                   setVideoError('unknown format')
@@ -242,6 +243,9 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
                 }}
                 onEnded={() => {
                   if (currentSlide.advanceMode === 'onEnd') doNextSlide()
+                }}
+                onPlaying={(e) => {
+                  e.currentTarget.muted = false
                 }}
                 className="slide-foreground"
                 style={{ display: videoError ? 'none' : undefined }}
