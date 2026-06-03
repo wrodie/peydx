@@ -92,6 +92,7 @@
 }
 
 .slide-slide-indicator {
+  display: none;
   position: fixed;
   bottom: 20px;
   left: 50%;

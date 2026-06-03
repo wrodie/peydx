@@ -15,9 +15,27 @@ export const Programs: CollectionConfig = {
   
   // Logical Separation: Users only see programs matching their department
   access: {
-    read: ({ req: { user: u } }) => {
+    read: async ({ req: { user: u, query, payload } }) => {
       const user = u as any
-      if (!user) return false;
+      if (!user) {
+        if (query?.token) {
+          try {
+            const device = await payload.find({
+              collection: 'devices',
+              where: { browserToken: { equals: query.token } },
+              depth: 0,
+              limit: 1,
+            })
+            if (device.docs?.[0]?.deviceType === 'browser') {
+              const deptIds = (device.docs[0].departments || []).map((d: any) =>
+                typeof d === 'object' ? d.id : d
+              )
+              return { department: { in: deptIds } }
+            }
+          } catch { return false }
+        }
+        return false
+      }
       if (user.role === 'admin') return true;
       if (user.role === 'basic') return { department: { equals: user.department } };
       if (user.collection === 'devices') {

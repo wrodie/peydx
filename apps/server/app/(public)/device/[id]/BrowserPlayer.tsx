@@ -39,7 +39,9 @@ function normalizeSlide(slide: any): any {
 function normalizeApiSchedule(apiData: any) {
   return {
     lastUpdated: new Date().toISOString(),
-    schedule: (apiData.docs || []).map((entry: any) => ({
+    schedule: (apiData.docs || [])
+      .filter((entry: any) => entry.program?.status === 'approved')
+      .map((entry: any) => ({
       programId: entry.program?.id,
       scheduleType: entry.scheduleType || 'autoplay',
       startTime: entry.startTime,
@@ -77,7 +79,7 @@ export function BrowserPlayer({ id, token }: Props) {
     socketRef.current = socket
 
     socket.on('connect', () => {
-      fetch(`/api/schedule?where[devices][contains]=${id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
+      fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleData(normalizeApiSchedule(data))
@@ -90,7 +92,7 @@ export function BrowserPlayer({ id, token }: Props) {
     })
 
     socket.on('program:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
+      fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleData(normalizeApiSchedule(data))
@@ -99,7 +101,7 @@ export function BrowserPlayer({ id, token }: Props) {
     })
 
     socket.on('media:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
+      fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleData(normalizeApiSchedule(data))

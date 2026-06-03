@@ -11,9 +11,23 @@ export const Schedule: CollectionConfig = {
   },
   timestamps: true,
   access: {
-    read: ({ req: { user: u } }) => {
+    read: async ({ req: { user: u, query, payload } }) => {
       const user = u as any
-      if (!user) return false
+      if (!user) {
+        if (query?.token && query?.where?.devices?.contains) {
+          try {
+            const device = await payload.findByID({
+              collection: 'devices',
+              id: parseInt(query.where.devices.contains as string, 10),
+              depth: 0,
+            })
+            if (device?.browserToken === query.token && device?.deviceType === 'browser') {
+              return { devices: { contains: query.where.devices.contains } }
+            }
+          } catch { return false }
+        }
+        return false
+      }
       if (user.role === 'admin') return true
       if (user.collection === 'devices') {
         return true

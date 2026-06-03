@@ -29,8 +29,11 @@ export const Devices: CollectionConfig = {
     ],
   },
   access: {
-    read: ({ req: { user } }) => {
-      if (!user) return false;
+    read: ({ req: { user, query } }) => {
+      if (!user) {
+        if ((query as any)?.where?.browserToken?.equals) return true;
+        return false;
+      }
       if ((user as any).role === 'admin') return true;
       return { id: { equals: user.id } }
     },

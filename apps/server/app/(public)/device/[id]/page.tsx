@@ -2,6 +2,31 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { importMap } from '../../../(payload)/admin/importMap'
 import { BrowserPlayer } from './BrowserPlayer'
+import type { Metadata, Viewport } from 'next'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const payload = await getPayload({ config, importMap })
+  const result = await payload.find({
+    collection: 'devices',
+    where: { id: { equals: parseInt(id) } },
+    depth: 0,
+    limit: 1,
+  })
+  const device = result.docs[0]
+  return {
+    title: device?.name ? `Signage - ${device.name}` : 'Signage',
+  }
+}
 
 export default async function DevicePlayerPage({
   params,
@@ -26,37 +51,21 @@ export default async function DevicePlayerPage({
 
   if (!device || device.deviceType !== 'browser') {
     return (
-      <html>
-        <head><title>Device Not Found</title></head>
-        <body style={{ fontFamily: 'system-ui', padding: 40, background: '#111', color: '#eee' }}>
-          <h1>Device Not Found</h1>
-          <p>The requested device does not exist or is not a browser device.</p>
-        </body>
-      </html>
+      <div style={{ fontFamily: 'system-ui', padding: 40, background: '#111', color: '#eee', minHeight: '100vh' }}>
+        <h1>Device Not Found</h1>
+        <p>The requested device does not exist or is not a browser device.</p>
+      </div>
     )
   }
 
   if (!token || device.browserToken !== token) {
     return (
-      <html>
-        <head><title>Invalid Token</title></head>
-        <body style={{ fontFamily: 'system-ui', padding: 40, background: '#111', color: '#eee' }}>
-          <h1>Invalid Token</h1>
-          <p>The provided token is invalid. Please use the correct URL from the admin panel.</p>
-        </body>
-      </html>
+      <div style={{ fontFamily: 'system-ui', padding: 40, background: '#111', color: '#eee', minHeight: '100vh' }}>
+        <h1>Invalid Token</h1>
+        <p>The provided token is invalid. Please use the correct URL from the admin panel.</p>
+      </div>
     )
   }
 
-  return (
-    <html>
-      <head>
-        <title>Signage - {device.name}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      </head>
-      <body style={{ margin: 0, background: 'black', overflow: 'hidden' }}>
-        <BrowserPlayer id={id} token={token as string} />
-      </body>
-    </html>
-  )
+  return <BrowserPlayer id={id} token={token as string} />
 }
