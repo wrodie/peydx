@@ -14,6 +14,9 @@ export const Media: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['filename', 'name', 'department', 'filesize', 'updatedAt'],
     listSearchableFields: ['name', 'filename'],
+    components: {
+      beforeListTable: ['/components/MediaDepartmentDefault#MediaDepartmentDefault'],
+    },
   },
   upload: {
     staticDir: 'media',
@@ -44,12 +47,31 @@ export const Media: CollectionConfig = {
       cleanupMediaReferences,
     ],
     beforeChange: [
-      ({ data, req }) => {
+      async ({ data, req }) => {
         if (!data.name && req.file?.name) {
           data.name = req.file.name.replace(/\.[^.]+$/, '')
         }
-        if (req.user && (req.user as any).role !== 'admin') {
-          data.department = (req.user as any).department
+        if (!data.department && req.user) {
+          const userDept = (req.user as any).department
+          if (userDept) {
+            data.department = typeof userDept === 'object' ? userDept.id : userDept
+          } else {
+            const prefs = await req.payload.find({
+              collection: 'payload-preferences',
+              depth: 0,
+              pagination: false,
+              where: {
+                and: [
+                  { key: { equals: 'media-default-department' } },
+                  { 'user.value': { equals: req.user.id } },
+                ],
+              },
+            })
+            const prefValue = prefs.docs?.[0]?.value?.value as number | undefined
+            if (prefValue) {
+              data.department = prefValue
+            }
+          }
         }
         return data
       },
