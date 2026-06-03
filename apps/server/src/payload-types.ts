@@ -63,17 +63,17 @@ export type SupportedTimezones =
 
 export interface Config {
   auth: {
-    devices: DeviceAuthOperations;
     users: UserAuthOperations;
+    devices: DeviceAuthOperations;
   };
   blocks: {};
   collections: {
-    programs: Program;
-    devices: Device;
-    schedule: Schedule;
     media: Media;
-    users: User;
+    programs: Program;
+    schedule: Schedule;
     departments: Department;
+    users: User;
+    devices: Device;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -81,12 +81,12 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    programs: ProgramsSelect<false> | ProgramsSelect<true>;
-    devices: DevicesSelect<false> | DevicesSelect<true>;
-    schedule: ScheduleSelect<false> | ScheduleSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    users: UsersSelect<false> | UsersSelect<true>;
+    programs: ProgramsSelect<false> | ProgramsSelect<true>;
+    schedule: ScheduleSelect<false> | ScheduleSelect<true>;
     departments: DepartmentsSelect<false> | DepartmentsSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
+    devices: DevicesSelect<false> | DevicesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -102,10 +102,28 @@ export interface Config {
   widgets: {
     collections: CollectionsWidget;
   };
-  user: Device | User;
+  user: User | Device;
   jobs: {
     tasks: unknown;
     workflows: unknown;
+  };
+}
+export interface UserAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
   };
 }
 export interface DeviceAuthOperations {
@@ -126,23 +144,56 @@ export interface DeviceAuthOperations {
     password: string;
   };
 }
-export interface UserAuthOperations {
-  forgotPassword: {
-    email: string;
-    password: string;
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  /**
+   * Name shown on screens for this media item.
+   */
+  name?: string | null;
+  department?: (number | null) | Department;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    fullHD?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
   };
-  login: {
-    email: string;
-    password: string;
-  };
-  registerFirstUser: {
-    email: string;
-    password: string;
-  };
-  unlock: {
-    email: string;
-    password: string;
-  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "departments".
+ */
+export interface Department {
+  id: number;
+  name: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -233,57 +284,6 @@ export interface Program {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: number;
-  /**
-   * Name shown on screens for this media item.
-   */
-  name?: string | null;
-  department?: (number | null) | Department;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-  sizes?: {
-    fullHD?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    thumbnail?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "departments".
- */
-export interface Department {
-  id: number;
-  name: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
@@ -312,30 +312,6 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "devices".
- */
-export interface Device {
-  id: number;
-  name: string;
-  deviceType: 'hardware' | 'browser';
-  departments: (number | Department)[];
-  /**
-   * When set, this device mirrors the controlling device's program and slide position.
-   */
-  controllingDevice?: (number | null) | Device;
-  lastHeartbeat?: string | null;
-  currentProgram?: (number | null) | Program;
-  status?: ('online' | 'offline' | 'stale') | null;
-  browserToken?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  enableAPIKey?: boolean | null;
-  apiKey?: string | null;
-  apiKeyIndex?: string | null;
-  collection: 'devices';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "schedule".
  */
 export interface Schedule {
@@ -358,6 +334,30 @@ export interface Schedule {
   createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "devices".
+ */
+export interface Device {
+  id: number;
+  name: string;
+  deviceType: 'hardware' | 'browser';
+  departments: (number | Department)[];
+  /**
+   * When set, this device mirrors the controlling device's program and slide position.
+   */
+  controllingDevice?: (number | null) | Device;
+  lastHeartbeat?: string | null;
+  currentProgram?: (number | null) | Program;
+  status?: ('online' | 'offline' | 'stale') | null;
+  browserToken?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
+  collection: 'devices';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -384,38 +384,38 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'programs';
-        value: number | Program;
+        relationTo: 'media';
+        value: number | Media;
       } | null)
     | ({
-        relationTo: 'devices';
-        value: number | Device;
+        relationTo: 'programs';
+        value: number | Program;
       } | null)
     | ({
         relationTo: 'schedule';
         value: number | Schedule;
       } | null)
     | ({
-        relationTo: 'media';
-        value: number | Media;
+        relationTo: 'departments';
+        value: number | Department;
       } | null)
     | ({
         relationTo: 'users';
         value: number | User;
       } | null)
     | ({
-        relationTo: 'departments';
-        value: number | Department;
+        relationTo: 'devices';
+        value: number | Device;
       } | null);
   globalSlug?: string | null;
   user:
     | {
-        relationTo: 'devices';
-        value: number | Device;
-      }
-    | {
         relationTo: 'users';
         value: number | User;
+      }
+    | {
+        relationTo: 'devices';
+        value: number | Device;
       };
   updatedAt: string;
   createdAt: string;
@@ -428,12 +428,12 @@ export interface PayloadPreference {
   id: number;
   user:
     | {
-        relationTo: 'devices';
-        value: number | Device;
-      }
-    | {
         relationTo: 'users';
         value: number | User;
+      }
+    | {
+        relationTo: 'devices';
+        value: number | Device;
       };
   key?: string | null;
   value?:
@@ -458,6 +458,49 @@ export interface PayloadMigration {
   batch?: number | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  name?: T;
+  department?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        fullHD?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -521,25 +564,6 @@ export interface ProgramsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "devices_select".
- */
-export interface DevicesSelect<T extends boolean = true> {
-  name?: T;
-  deviceType?: T;
-  departments?: T;
-  controllingDevice?: T;
-  lastHeartbeat?: T;
-  currentProgram?: T;
-  status?: T;
-  browserToken?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  enableAPIKey?: T;
-  apiKey?: T;
-  apiKeyIndex?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "schedule_select".
  */
 export interface ScheduleSelect<T extends boolean = true> {
@@ -555,46 +579,12 @@ export interface ScheduleSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
+ * via the `definition` "departments_select".
  */
-export interface MediaSelect<T extends boolean = true> {
+export interface DepartmentsSelect<T extends boolean = true> {
   name?: T;
-  department?: T;
   updatedAt?: T;
   createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-  sizes?:
-    | T
-    | {
-        fullHD?:
-          | T
-          | {
-              url?: T;
-              width?: T;
-              height?: T;
-              mimeType?: T;
-              filesize?: T;
-              filename?: T;
-            };
-        thumbnail?:
-          | T
-          | {
-              url?: T;
-              width?: T;
-              height?: T;
-              mimeType?: T;
-              filesize?: T;
-              filename?: T;
-            };
-      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -623,12 +613,22 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "departments_select".
+ * via the `definition` "devices_select".
  */
-export interface DepartmentsSelect<T extends boolean = true> {
+export interface DevicesSelect<T extends boolean = true> {
   name?: T;
+  deviceType?: T;
+  departments?: T;
+  controllingDevice?: T;
+  lastHeartbeat?: T;
+  currentProgram?: T;
+  status?: T;
+  browserToken?: T;
   updatedAt?: T;
   createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

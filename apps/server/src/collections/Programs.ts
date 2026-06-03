@@ -113,9 +113,8 @@ export const Programs: CollectionConfig = {
       },
     ],
     afterRead: [
-      ({ doc }) => {
-        if (
-          (doc as any).autoBlackEndSlide
+      ({ doc, req }) => {
+        if ((doc as any).autoBlackEndSlide
           && !(doc as any).loop
           && doc.slides
           && Array.isArray(doc.slides)
@@ -123,6 +122,8 @@ export const Programs: CollectionConfig = {
           && doc.slides[doc.slides.length - 1]?.blockType !== 'blackScreenBlock'
           && !doc.slides.some((s: any) => s.id === 'auto-end')
         ) {
+          // Suppress auto-end in admin edit view so it doesn't clutter the slides list
+          if (req?.url?.includes('/admin/')) return doc
           doc.slides = [...doc.slides, {
             id: 'auto-end',
             blockType: 'blackScreenBlock',
