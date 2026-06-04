@@ -10,7 +10,8 @@
     "dev:server": "npm run dev -w apps/server",
     "dev:player": "npm run dev -w apps/player",
     "sync": "node sync/sync-agent.js",
-    "build:all": "npm run build -w apps/server && npm run build -w apps/player"
+    "build:all": "npm run build -w apps/server && npm run build -w apps/player",
+    "server": "NODE_ENV=production npm run start -w apps/server"
   },
   "dependencies": {
     "axios": "^1.6.0",

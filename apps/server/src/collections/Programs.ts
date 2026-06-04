@@ -58,7 +58,7 @@ export const Programs: CollectionConfig = {
   hooks: {
     beforeValidate: [
       ({ data }) => {
-        if (data.slides && Array.isArray(data.slides)) {
+        if (data?.slides && Array.isArray(data.slides)) {
           data.slides = data.slides.filter((s: any) => s.id !== 'auto-end')
         }
         return data

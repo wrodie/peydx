@@ -40,7 +40,7 @@ export const Devices: CollectionConfig = {
     update: ({ req: { user } }) => {
       if (!user) return false;
       if ((user as any).role === 'admin') return true;
-      if ((user as any).collection === 'devices') return { id: { equals: user.id } };
+      if ((user as any).collection === 'devices') return { id: { equals: user.id } } as any;
       return { departments: { contains: (user as any).department } };
     },
     create: ({ req: { user } }) => (user as any)?.role === 'admin',

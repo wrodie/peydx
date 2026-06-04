@@ -5,13 +5,13 @@ export const Departments: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     group: 'Admin',
-    hidden: ({ user }) => user?.role !== 'admin',
+    hidden: ({ user }) => (user as any)?.role !== 'admin',
   },
   access: {
     read: () => true,
-    create: ({ req: { user } }) => user?.role === 'admin',
-    update: ({ req: { user } }) => user?.role === 'admin',
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: ({ req: { user } }) => (user as any)?.role === 'admin',
+    update: ({ req: { user } }) => (user as any)?.role === 'admin',
+    delete: ({ req: { user } }) => (user as any)?.role === 'admin',
   },
   fields: [
     {

@@ -14,15 +14,15 @@ export const Schedule: CollectionConfig = {
     read: async ({ req: { user: u, query, payload } }) => {
       const user = u as any
       if (!user) {
-        if (query?.token && query?.where?.devices?.contains) {
+        if ((query as any)?.token && (query as any)?.where?.devices?.contains) {
           try {
             const device = await payload.findByID({
               collection: 'devices',
-              id: parseInt(query.where.devices.contains as string, 10),
+              id: parseInt((query as any).where.devices.contains as string, 10),
               depth: 0,
             })
-            if (device?.browserToken === query.token && device?.deviceType === 'browser') {
-              return { devices: { contains: query.where.devices.contains } }
+            if (device?.browserToken === (query as any).token && device?.deviceType === 'browser') {
+              return { devices: { contains: (query as any).where.devices.contains } } as any
             }
           } catch { return false }
         }

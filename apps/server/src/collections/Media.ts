@@ -67,7 +67,7 @@ export const Media: CollectionConfig = {
                 ],
               },
             })
-            const prefValue = prefs.docs?.[0]?.value?.value as number | undefined
+            const prefValue = (prefs.docs?.[0]?.value as any)?.value as number | undefined
             if (prefValue) {
               data.department = prefValue
             }
