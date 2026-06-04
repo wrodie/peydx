@@ -72,6 +72,7 @@ export interface Config {
     programs: Program;
     schedule: Schedule;
     departments: Department;
+    folders: Folder;
     users: User;
     devices: Device;
     'payload-kv': PayloadKv;
@@ -85,6 +86,7 @@ export interface Config {
     programs: ProgramsSelect<false> | ProgramsSelect<true>;
     schedule: ScheduleSelect<false> | ScheduleSelect<true>;
     departments: DepartmentsSelect<false> | DepartmentsSelect<true>;
+    folders: FoldersSelect<false> | FoldersSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     devices: DevicesSelect<false> | DevicesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -154,7 +156,7 @@ export interface Media {
    * Name shown on screens for this media item.
    */
   name?: string | null;
-  department?: (number | null) | Department;
+  folder?: (number | null) | Folder;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -184,6 +186,29 @@ export interface Media {
       filename?: string | null;
     };
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "folders".
+ */
+export interface Folder {
+  id: number;
+  name: string;
+  /**
+   * Parent folder. Leave empty to create a top-level folder.
+   */
+  parent?: (number | null) | Folder;
+  /**
+   * Which collection this folder belongs to.
+   */
+  type: 'media' | 'programs';
+  department?: (number | null) | Department;
+  /**
+   * Sort order within sibling folders (lower = first).
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -260,7 +285,6 @@ export interface Program {
           }
       )[]
     | null;
-  department?: (number | null) | Department;
   status?: ('draft' | 'approved') | null;
   createdBy?: (number | null) | User;
   /**
@@ -279,6 +303,7 @@ export interface Program {
    * Automatically adds a black screen at the end of the program.
    */
   autoBlackEndSlide?: boolean | null;
+  folder?: (number | null) | Folder;
   updatedAt: string;
   createdAt: string;
 }
@@ -400,6 +425,10 @@ export interface PayloadLockedDocument {
         value: number | Department;
       } | null)
     | ({
+        relationTo: 'folders';
+        value: number | Folder;
+      } | null)
+    | ({
         relationTo: 'users';
         value: number | User;
       } | null)
@@ -465,7 +494,7 @@ export interface PayloadMigration {
  */
 export interface MediaSelect<T extends boolean = true> {
   name?: T;
-  department?: T;
+  folder?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -552,13 +581,13 @@ export interface ProgramsSelect<T extends boolean = true> {
               blockName?: T;
             };
       };
-  department?: T;
   status?: T;
   createdBy?: T;
   bulkMedia?: T;
   durationMinutes?: T;
   loop?: T;
   autoBlackEndSlide?: T;
+  folder?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -583,6 +612,19 @@ export interface ScheduleSelect<T extends boolean = true> {
  */
 export interface DepartmentsSelect<T extends boolean = true> {
   name?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "folders_select".
+ */
+export interface FoldersSelect<T extends boolean = true> {
+  name?: T;
+  parent?: T;
+  type?: T;
+  department?: T;
+  order?: T;
   updatedAt?: T;
   createdAt?: T;
 }

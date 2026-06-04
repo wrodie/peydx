@@ -11,6 +11,7 @@ import { Programs } from './collections/Programs'
 import { Devices } from './collections/Devices'
 import { Schedule } from './collections/Schedule'
 import { Departments } from './collections/Departments'
+import { Folders } from './collections/Folders'
 import { heartbeat } from './endpoints/heartbeat'
 
 const filename = fileURLToPath(import.meta.url)
@@ -41,6 +42,7 @@ export default buildConfig({
     Programs,
     Schedule,
     Departments,
+    Folders,
     Users,
     Devices,
   ],

@@ -8,7 +8,10 @@ export const Programs: CollectionConfig = {
   slug: 'programs',
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'department', 'updatedAt', 'createdBy'],
+    defaultColumns: ['title', 'updatedAt', 'createdBy'],
+    components: {
+      beforeListTable: ['/components/FolderTree#FolderTree'],
+    },
   },
   // Automatically manages 'createdAt' and 'updatedAt' fields
   timestamps: true,
@@ -30,17 +33,17 @@ export const Programs: CollectionConfig = {
               const deptIds = (device.docs[0].departments || []).map((d: any) =>
                 typeof d === 'object' ? d.id : d
               )
-              return { department: { in: deptIds } }
+              return { 'folder.department': { in: deptIds } }
             }
           } catch { return false }
         }
         return false
       }
       if (user.role === 'admin') return true;
-      if (user.role === 'basic') return { department: { equals: user.department } };
+      if (user.role === 'basic') return { 'folder.department': { equals: user.department } };
       if (user.collection === 'devices') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
-        return { department: { in: deptIds } }
+        return { 'folder.department': { in: deptIds } }
       }
       return false;
     },
@@ -49,7 +52,7 @@ export const Programs: CollectionConfig = {
       if (!user) return false;
       if (user.role === 'admin') return true;
       return {
-        department: { equals: user.department }
+        'folder.department': { equals: user.department }
       }
     },
     delete: ({ req: { user: u } }) => (u as any)?.role === 'admin',
@@ -69,8 +72,42 @@ export const Programs: CollectionConfig = {
         const { req, data } = args
         const user = req.user as any
         if (args.context?.preventSync) return data
-        if (user && user.role !== 'admin') {
-          data.department = user.department
+        if (!data.folder && req.user) {
+          // 1. Try current-folder preference
+          const prefs = await req.payload.find({
+            collection: 'payload-preferences',
+            depth: 0,
+            pagination: false,
+            where: {
+              and: [
+                { key: { equals: 'current-folder' } },
+                { 'user.value': { equals: req.user.id } },
+              ],
+            },
+          })
+          const prefValue = (prefs.docs?.[0]?.value as any)?.value as number | null
+          if (prefValue) {
+            data.folder = prefValue
+          } else if (user && user.role !== 'admin' && user.department) {
+            // 2. Fall back to department's root folder
+            const deptId =
+              typeof user.department === 'object'
+                ? user.department.id
+                : user.department
+            const rootFolder = await req.payload.find({
+              collection: 'folders',
+              depth: 0,
+              limit: 1,
+              pagination: false,
+              where: {
+                department: { equals: deptId },
+                parent: { exists: false },
+              },
+            })
+            if (rootFolder.docs?.[0]) {
+              data.folder = rootFolder.docs[0].id
+            }
+          }
         }
         await autoCreateSlides(args)
         if (user && !data.createdBy) {
@@ -174,16 +211,6 @@ export const Programs: CollectionConfig = {
       blocks: [ImageBlock, VideoBlock, YoutubeBlock, BlackScreenBlock],
     },
     {
-      name: 'department',
-      type: 'relationship',
-      relationTo: 'departments',
-      required: true,
-      admin: {
-        position: 'sidebar',
-        condition: (_, __, { user }) => (user as any)?.role === 'admin',
-      },
-    },
-    {
       name: 'status',
       type: 'select',
       defaultValue: 'draft',
@@ -242,6 +269,19 @@ export const Programs: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Automatically adds a black screen at the end of the program.',
+      },
+    },
+    {
+      name: 'folder',
+      type: 'relationship',
+      relationTo: 'folders',
+      required: false,
+      filterOptions: {
+        type: { equals: 'programs' },
+      },
+      admin: {
+        position: 'sidebar',
+        condition: (data) => !!data?.id,
       },
     },
     {

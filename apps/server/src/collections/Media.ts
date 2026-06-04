@@ -12,10 +12,10 @@ export const Media: CollectionConfig = {
   slug: 'media',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['filename', 'name', 'department', 'filesize', 'updatedAt'],
+    defaultColumns: ['filename', 'name', 'filesize', 'updatedAt'],
     listSearchableFields: ['name', 'filename'],
     components: {
-      beforeListTable: ['/components/MediaDepartmentDefault#MediaDepartmentDefault'],
+      beforeListTable: ['/components/FolderTree#FolderTree'],
     },
   },
   upload: {
@@ -51,25 +51,41 @@ export const Media: CollectionConfig = {
         if (!data.name && req.file?.name) {
           data.name = req.file.name.replace(/\.[^.]+$/, '')
         }
-        if (!data.department && req.user) {
-          const userDept = (req.user as any).department
-          if (userDept) {
-            data.department = typeof userDept === 'object' ? userDept.id : userDept
-          } else {
-            const prefs = await req.payload.find({
-              collection: 'payload-preferences',
+        if (!data.folder && req.user) {
+          const user = req.user as any
+          // 1. Try current-folder preference
+          const prefs = await req.payload.find({
+            collection: 'payload-preferences',
+            depth: 0,
+            pagination: false,
+            where: {
+              and: [
+                { key: { equals: 'current-folder' } },
+                { 'user.value': { equals: req.user.id } },
+              ],
+            },
+          })
+          const prefValue = (prefs.docs?.[0]?.value as any)?.value as number | null
+          if (prefValue) {
+            data.folder = prefValue
+          } else if (user.role !== 'admin' && user.department) {
+            // 2. Fall back to department's root folder for non-admin users
+            const deptId =
+              typeof user.department === 'object'
+                ? user.department.id
+                : user.department
+            const rootFolder = await req.payload.find({
+              collection: 'folders',
               depth: 0,
+              limit: 1,
               pagination: false,
               where: {
-                and: [
-                  { key: { equals: 'media-default-department' } },
-                  { 'user.value': { equals: req.user.id } },
-                ],
+                department: { equals: deptId },
+                parent: { exists: false },
               },
             })
-            const prefValue = (prefs.docs?.[0]?.value as any)?.value as number | undefined
-            if (prefValue) {
-              data.department = prefValue
+            if (rootFolder.docs?.[0]) {
+              data.folder = rootFolder.docs[0].id
             }
           }
         }
@@ -164,10 +180,10 @@ export const Media: CollectionConfig = {
       const user = u as any
       if (!user) return true;
       if (user.role === 'admin') return true;
-      if (user.role === 'basic') return { department: { equals: user.department } };
+      if (user.role === 'basic') return { 'folder.department': { equals: user.department } };
       if (user.collection === 'devices') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
-        return { department: { in: deptIds } }
+        return { 'folder.department': { in: deptIds } }
       }
       return true;
     },
@@ -175,21 +191,21 @@ export const Media: CollectionConfig = {
       const user = u as any
       if (!user) return false;
       if (user.role === 'admin') return true;
-      if (user.role === 'basic') return { department: { equals: user.department } };
+      if (user.role === 'basic') return { 'folder.department': { equals: user.department } };
       return false;
     },
     delete: ({ req: { user: u } }) => {
       const user = u as any
       if (!user) return false;
       if (user.role === 'admin') return true;
-      if (user.role === 'basic') return { department: { equals: user.department } };
+      if (user.role === 'basic') return { 'folder.department': { equals: user.department } };
       return false;
     },
     create: ({ req: { user: u } }) => {
       const user = u as any
       if (!user) return false;
       if (user.role === 'admin') return true;
-      if (user.role === 'basic') return { department: { equals: user.department } };
+      if (user.role === 'basic') return true;
       return false;
     },
   },
@@ -204,12 +220,16 @@ export const Media: CollectionConfig = {
       },
     },
     {
-      name: 'department',
+      name: 'folder',
       type: 'relationship',
-      relationTo: 'departments',
-      required: true,
+      relationTo: 'folders',
+      required: false,
+      filterOptions: {
+        type: { equals: 'media' },
+      },
       admin: {
-        condition: (_, __, { user }) => (user as any)?.role === 'admin',
+        position: 'sidebar',
+        condition: (data) => !!data?.id,
       },
     },
   ],

@@ -73,9 +73,15 @@ export const Schedule: CollectionConfig = {
             const program = await req.payload.findByID({
               collection: 'programs',
               id: programId,
-              depth: 0,
+              depth: 1,
             })
-            if (program.department !== user.department) {
+            const programDept =
+              (program as any).folder
+                ? typeof (program as any).folder.department === 'object'
+                  ? (program as any).folder.department.id
+                  : (program as any).folder.department
+                : undefined
+            if (programDept !== (typeof user.department === 'object' ? user.department.id : user.department)) {
               throw new Error('You can only schedule programs from your own department.')
             }
           } catch (err: any) {
