@@ -56,7 +56,7 @@ const s = {
     lineHeight: '24px',
   }),
   guideCol: {
-    width: 16,
+    width: 12,
     flexShrink: 0,
     position: 'relative',
     alignSelf: 'stretch',
@@ -64,23 +64,9 @@ const s = {
   } as React.CSSProperties,
   guideLine: {
     position: 'absolute',
-    left: '50%',
+    left: '5px',
     width: 1,
     background: 'var(--theme-elevation-300, #d1d5db)',
-  } as React.CSSProperties,
-  chevron: {
-    width: 24,
-    flexShrink: 0,
-    textAlign: 'center',
-    cursor: 'pointer',
-    userSelect: 'none',
-    fontSize: '1.2rem',
-    color: 'var(--theme-elevation-500, #9ca3af)',
-    lineHeight: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'stretch',
   } as React.CSSProperties,
   label: (active: boolean): React.CSSProperties => ({
     flex: 1,
@@ -282,7 +268,7 @@ export function FolderTree() {
   }
 
   const renderInlineForm = (parentId: number | null, depth: number) => (
-    <div style={{ ...s.inlineForm, paddingLeft: (depth + 1) * 16 + 20 }}>
+    <div style={{ ...s.inlineForm, paddingLeft: (depth + 1) * 12 + 12 }}>
       <input
         autoFocus
         value={newName}
@@ -305,28 +291,35 @@ export function FolderTree() {
     const hasChildren = folder.children.length > 0
     const depth = ancestors.length
 
-    const handleToggle = (e: React.MouseEvent) => {
-      e.stopPropagation()
-      if (hasChildren) toggleExpand(folder.id)
-    }
-
     return (
       <div key={folder.id}>
         <div style={s.row(isActive)}>
           {ancestors.map((a, i) => (
             <span key={i} style={s.guideCol}>
-              {!a && <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />}
+              <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
             </span>
           ))}
           <span style={s.guideCol}>
             <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
           </span>
-          {hasChildren && (
-            <span style={s.chevron} onClick={handleToggle}>
-              {isExpanded ? '▾' : '▸'}
-            </span>
-          )}
-          {!hasChildren && <span style={{ ...s.chevron, color: 'transparent', cursor: 'default' }} />}
+          <span
+            onClick={(e) => {
+              e.stopPropagation()
+              if (hasChildren) toggleExpand(folder.id)
+            }}
+            style={{
+              cursor: hasChildren ? 'pointer' : 'default',
+              userSelect: 'none',
+              fontSize: '0.8rem',
+              color: 'var(--theme-elevation-500, #9ca3af)',
+              width: 12,
+              flexShrink: 0,
+              textAlign: 'center',
+              lineHeight: '24px',
+            }}
+          >
+            {hasChildren ? (isExpanded ? '▾' : '▸') : ' '}
+          </span>
           <span onClick={() => navigateToFolder(folder.id)} style={s.label(isActive)}>
             {folder.name}
           </span>
@@ -357,7 +350,7 @@ export function FolderTree() {
         <span style={s.guideCol}>
           <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
         </span>
-        <span style={{ ...s.chevron, color: 'transparent', cursor: 'default' }} />
+        <span style={{ width: 12, flexShrink: 0 }} />
         <span style={s.label(activeFolder === null)}>
           All {collectionSlug === 'media' ? 'Media' : 'Programs'}
         </span>
@@ -367,7 +360,7 @@ export function FolderTree() {
         <span style={s.guideCol}>
           <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
         </span>
-        <span style={{ ...s.chevron, color: 'transparent', cursor: 'default' }} />
+        <span style={{ width: 12, flexShrink: 0 }} />
         <span style={s.label(activeFolder === 'unfiled')}>Unfiled</span>
       </div>
 
