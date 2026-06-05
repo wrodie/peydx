@@ -32,7 +32,11 @@ export const Schedule: CollectionConfig = {
       if (user.collection === 'devices') {
         return true
       }
-      return { department: { equals: user.department } }
+      if (user.role === 'basic') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { department: { in: deptIds } }
+      }
+      return false
     },
     create: ({ req: { user: u } }) => {
       const user = u as any
@@ -44,7 +48,11 @@ export const Schedule: CollectionConfig = {
       const user = u as any
       if (!user) return false
       if (user.role === 'admin') return true
-      return { department: { equals: user.department } }
+      if (user.role === 'basic') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { department: { in: deptIds } }
+      }
+      return false
     },
     delete: ({ req: { user: u } }) => (u as any)?.role === 'admin',
   },
@@ -52,8 +60,22 @@ export const Schedule: CollectionConfig = {
     beforeChange: [
       async ({ data, req, originalDoc, operation }) => {
         const user = req.user as any
-        if (!data.department && user?.department) {
-          data.department = user.department
+        if (!data.department && data.program) {
+          // Infer department from the selected program's folder department
+          const programId = typeof data.program === 'object' && data.program !== null
+            ? (data.program as any).id
+            : data.program
+          try {
+            const program = await req.payload.findByID({
+              collection: 'programs',
+              id: programId,
+              depth: 1,
+            })
+            const programDept = (program as any).folder?.department
+            if (programDept) {
+              data.department = typeof programDept === 'object' ? programDept.id : programDept
+            }
+          } catch {}
         }
         if (!data.createdBy && user?.id) {
           data.createdBy = user.id
@@ -81,7 +103,10 @@ export const Schedule: CollectionConfig = {
                   ? (program as any).folder.department.id
                   : (program as any).folder.department
                 : undefined
-            if (programDept !== (typeof user.department === 'object' ? user.department.id : user.department)) {
+            const userDeptIds = (user.departments || []).map((d: any) =>
+              typeof d === 'object' ? d.id : d
+            )
+            if (!userDeptIds.includes(programDept)) {
               throw new Error('You can only schedule programs from your own department.')
             }
           } catch (err: any) {
@@ -200,7 +225,8 @@ export const Schedule: CollectionConfig = {
       filterOptions: ({ user: u }) => {
         const user = u as any
         if (user?.role === 'admin') return true
-        return { department: { equals: user?.department } }
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { 'folder.department': { in: deptIds } }
       },
     },
     {
@@ -213,7 +239,8 @@ export const Schedule: CollectionConfig = {
         const user = u as any
         if (!user) return false
         if (user.role === 'admin') return true
-        return { departments: { contains: user.department } }
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { departments: { in: deptIds } }
       },
     },
     {

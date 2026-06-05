@@ -44,7 +44,10 @@ export const Programs: CollectionConfig = {
         return false
       }
       if (user.role === 'admin') return true;
-      if (user.role === 'basic') return { 'folder.department': { equals: user.department } };
+      if (user.role === 'basic') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { 'folder.department': { in: deptIds } }
+      }
       if (user.collection === 'devices') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
         return { 'folder.department': { in: deptIds } }
@@ -56,7 +59,7 @@ export const Programs: CollectionConfig = {
       if (!user) return false;
       if (user.role === 'admin') return true;
       return {
-        'folder.department': { equals: user.department }
+        'folder.department': { in: (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d) }
       }
     },
     delete: ({ req: { user: u } }) => (u as any)?.role === 'admin',
@@ -92,24 +95,23 @@ export const Programs: CollectionConfig = {
           const prefValue = (prefs.docs?.[0]?.value as any)?.value as number | null
           if (prefValue) {
             data.folder = prefValue
-          } else if (user && user.role !== 'admin' && user.department) {
-            // 2. Fall back to department's root folder
-            const deptId =
-              typeof user.department === 'object'
-                ? user.department.id
-                : user.department
-            const rootFolder = await req.payload.find({
-              collection: 'folders',
-              depth: 0,
-              limit: 1,
-              pagination: false,
-              where: {
-                department: { equals: deptId },
-                parent: { exists: false },
-              },
-            })
-            if (rootFolder.docs?.[0]) {
-              data.folder = rootFolder.docs[0].id
+          } else if (user && user.role !== 'admin' && user.departments) {
+            // 2. Fall back to first department's root folder
+            const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+            if (deptIds.length > 0) {
+              const rootFolder = await req.payload.find({
+                collection: 'folders',
+                depth: 0,
+                limit: 1,
+                pagination: false,
+                where: {
+                  department: { equals: deptIds[0] },
+                  parent: { exists: false },
+                },
+              })
+              if (rootFolder.docs?.[0]) {
+                data.folder = rootFolder.docs[0].id
+              }
             }
           }
         }

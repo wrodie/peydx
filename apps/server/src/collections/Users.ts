@@ -5,7 +5,7 @@ export const Users: CollectionConfig = {
   auth: {
     // This tells Payload to bake these specific fields into the secure cookie JWT
     // @ts-ignore - typegen doesn't include custom JWT fields
-    saveToJWT: ['role', 'department'],
+    saveToJWT: ['role', 'departments'],
   },
   admin: {
     useAsTitle: 'name',
@@ -41,9 +41,10 @@ export const Users: CollectionConfig = {
       ],
     },
     {
-      name: 'department',
+      name: 'departments',
       type: 'relationship',
       relationTo: 'departments',
+      hasMany: true,
       required: true,
       admin: {
         position: 'sidebar',

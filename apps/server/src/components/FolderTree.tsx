@@ -1,6 +1,6 @@
 'use client'
 
-import { useListQuery, usePreferences } from '@payloadcms/ui'
+import { useAuth, useListQuery, usePreferences } from '@payloadcms/ui'
 import { useCallback, useEffect, useState } from 'react'
 
 interface Folder {
@@ -130,6 +130,7 @@ const s = {
 }
 
 export function FolderTree() {
+  const { user } = useAuth()
   const { getPreference, setPreference } = usePreferences()
   const { query, handleWhereChange, collectionSlug } = useListQuery()
   const [folders, setFolders] = useState<Folder[]>([])
@@ -346,23 +347,27 @@ export function FolderTree() {
     <div style={s.tree}>
       <div style={s.title}>Folders</div>
 
-      <div style={s.row(activeFolder === null)} onClick={navigateToAll}>
-        <span style={s.guideCol}>
-          <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
-        </span>
-        <span style={{ width: 12, flexShrink: 0 }} />
-        <span style={s.label(activeFolder === null)}>
-          All {collectionSlug === 'media' ? 'Media' : 'Programs'}
-        </span>
-      </div>
+      {user?.role === 'admin' && (
+        <div style={s.row(activeFolder === null)} onClick={navigateToAll}>
+          <span style={s.guideCol}>
+            <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
+          </span>
+          <span style={{ width: 12, flexShrink: 0 }} />
+          <span style={s.label(activeFolder === null)}>
+            All {collectionSlug === 'media' ? 'Media' : 'Programs'}
+          </span>
+        </div>
+      )}
 
-      <div style={s.row(activeFolder === 'unfiled')} onClick={navigateToUnfiled}>
-        <span style={s.guideCol}>
-          <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
-        </span>
-        <span style={{ width: 12, flexShrink: 0 }} />
-        <span style={s.label(activeFolder === 'unfiled')}>Unfiled</span>
-      </div>
+      {user?.role === 'admin' && (
+        <div style={s.row(activeFolder === 'unfiled')} onClick={navigateToUnfiled}>
+          <span style={s.guideCol}>
+            <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
+          </span>
+          <span style={{ width: 12, flexShrink: 0 }} />
+          <span style={s.label(activeFolder === 'unfiled')}>Unfiled</span>
+        </div>
+      )}
 
       {loading ? (
           <div style={s.dimText}>Loading...</div>

@@ -352,7 +352,9 @@ app.prepare().then(() => {
                 type: 'user',
                 id: me.user.id,
                 role: me.user.role,
-                department: me.user.department,
+                departments: (me.user.departments || []).map((d: any) =>
+                  typeof d === 'object' ? d.id : d
+                ),
               }
               next()
               return
@@ -370,7 +372,7 @@ app.prepare().then(() => {
   })
 
   io.on('connection', (socket) => {
-    const { type, id, department, departments, controllingDevice } = socket.data
+    const { type, id, departments, controllingDevice } = socket.data
 
     if (type === 'device') {
       socket.join(`device:${id}`)
@@ -378,7 +380,9 @@ app.prepare().then(() => {
         socket.join(`department:${dep}`)
       }
     } else if (type === 'user') {
-      if (department) socket.join(`department:${department}`)
+      for (const dep of departments || []) {
+        socket.join(`department:${dep}`)
+      }
       if (socket.data.role === 'admin') socket.join('admin')
     }
 

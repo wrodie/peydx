@@ -25,13 +25,17 @@ export const Folders: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'department', 'order', 'parent'],
     group: 'Content',
+    hidden: ({ user }) => (user as any)?.role !== 'admin',
   },
   access: {
     read: ({ req: { user: u } }) => {
       const user = u as any
       if (!user) return { department: { exists: false } }
       if (user.role === 'admin') return true
-      if (user.role === 'basic') return { department: { equals: user.department } }
+      if (user.role === 'basic') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { department: { in: deptIds } }
+      }
       if (user.collection === 'devices') {
         const deptIds = (user.departments || []).map((d: any) =>
           typeof d === 'object' ? d.id : d
@@ -51,7 +55,10 @@ export const Folders: CollectionConfig = {
       const user = u as any
       if (!user) return false
       if (user.role === 'admin') return true
-      if (user.role === 'basic') return { department: { equals: user.department } }
+      if (user.role === 'basic') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { department: { in: deptIds } }
+      }
       return false
     },
     delete: ({ req: { user: u } }) => (u as any)?.role === 'admin',
@@ -78,12 +85,11 @@ export const Folders: CollectionConfig = {
         }
 
         if (user && user.role !== 'admin') {
-          const userDept =
-            typeof user.department === 'object'
-              ? user.department.id
-              : user.department
-          if (userDept) {
-            data.department = userDept
+          const deptIds = (user.departments || []).map((d: any) =>
+            typeof d === 'object' ? d.id : d
+          )
+          if (deptIds.length > 0 && !data.department) {
+            data.department = deptIds[0]
           }
         }
 

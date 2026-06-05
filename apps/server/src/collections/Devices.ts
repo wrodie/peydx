@@ -41,7 +41,8 @@ export const Devices: CollectionConfig = {
       if (!user) return false;
       if ((user as any).role === 'admin') return true;
       if ((user as any).collection === 'devices') return { id: { equals: user.id } } as any;
-      return { departments: { contains: (user as any).department } };
+      const deptIds = ((user as any).departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+      return { departments: { in: deptIds } };
     },
     create: ({ req: { user } }) => (user as any)?.role === 'admin',
     delete: ({ req: { user } }) => (user as any)?.role === 'admin',

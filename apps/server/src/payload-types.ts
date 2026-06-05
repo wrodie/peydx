@@ -315,7 +315,7 @@ export interface User {
   id: number;
   name: string;
   role: 'admin' | 'basic';
-  department?: (number | null) | Department;
+  departments?: (number | Department)[] | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -635,7 +635,7 @@ export interface FoldersSelect<T extends boolean = true> {
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   role?: T;
-  department?: T;
+  departments?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
