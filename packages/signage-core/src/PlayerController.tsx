@@ -340,24 +340,35 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     if (playerState === 'menu') {
       const programTitles = availableEntries.map((e) => ({ id: e.programId, title: e.program.title }))
       return (
-        <MenuEngine
-          programs={programTitles}
-          selectedIndex={menuIndex}
-          onSelect={(idx) => {
-            if (idx >= 0 && idx < availableEntries.length) {
-              const entry = availableEntries[idx]
-              transitionTo('playing', entry.program, entry, idx)
-            }
-          }}
-          onBack={() => {
-            if (activeProgram) {
-              return
-            }
-            setPlayerState('idle')
-            emitState('idle')
-          }}
-          keyConfig={keys}
-        />
+        <div className="slide-stage" style={{ position: 'relative' }}>
+          {scheduleData?.defaultBackground && (
+            <img
+              src={scheduleData.defaultBackground}
+              style={{ position: 'absolute', inset: 0, maxWidth: '100%', maxHeight: '100%', margin: 'auto', objectFit: 'contain', pointerEvents: 'none' }}
+              alt=""
+            />
+          )}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <MenuEngine
+              programs={programTitles}
+              selectedIndex={menuIndex}
+              onSelect={(idx) => {
+                if (idx >= 0 && idx < availableEntries.length) {
+                  const entry = availableEntries[idx]
+                  transitionTo('playing', entry.program, entry, idx)
+                }
+              }}
+              onBack={() => {
+                if (activeProgram) {
+                  return
+                }
+                setPlayerState('idle')
+                emitState('idle')
+              }}
+              keyConfig={keys}
+            />
+          </div>
+        </div>
       )
     }
 
@@ -374,8 +385,16 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }
 
     return (
-      <div className="slide-stage">
-        <div className="slide-status-text">No program scheduled</div>
+      <div className="slide-stage" style={{ position: 'relative' }}>
+        {scheduleData?.defaultBackground ? (
+          <img
+            src={scheduleData.defaultBackground}
+            style={{ position: 'absolute', inset: 0, maxWidth: '100%', maxHeight: '100%', margin: 'auto', objectFit: 'contain', pointerEvents: 'none' }}
+            alt=""
+          />
+        ) : (
+          <div className="slide-status-text">No program scheduled</div>
+        )}
       </div>
     )
   },

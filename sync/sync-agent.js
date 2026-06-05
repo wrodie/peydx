@@ -105,7 +105,7 @@ async function downloadSizes(media, mediaBaseUrl) {
   }
 }
 
-function buildScheduleJson(activeItems) {
+function buildScheduleJson(activeItems, backgroundUrl) {
   const schedule = activeItems.map(item => ({
     programId: item.program?.id,
     scheduleType: item.scheduleType || 'autoplay',
@@ -150,10 +150,11 @@ function buildScheduleJson(activeItems) {
   return {
     lastUpdated: new Date().toISOString(),
     schedule,
+    defaultBackground: backgroundUrl || null,
   };
 }
 
-async function resolveDeviceId() {
+async function resolveDevice() {
   const res = await fetchWithRetry(
     `${API_URL}/devices?depth=0&limit=1`,
     { headers: { Authorization: `devices API-Key ${API_KEY}` } }
@@ -161,7 +162,11 @@ async function resolveDeviceId() {
   if (!res.data.docs || res.data.docs.length === 0) {
     throw new Error('Device not found — check DEVICE_API_KEY');
   }
-  return res.data.docs[0].id;
+  const device = res.data.docs[0];
+  return {
+    id: device.id,
+    defaultBackground: device.defaultBackground || null,
+  };
 }
 
 async function downloadSpecificMedia(data) {
@@ -175,7 +180,9 @@ async function downloadSpecificMedia(data) {
 
 async function sync() {
   try {
-    const numericId = await resolveDeviceId();
+    const device = await resolveDevice();
+    const numericId = device.id;
+    const defaultBgId = device.defaultBackground;
 
     const res = await fetchWithRetry(
       `${API_URL}/schedule?where[devices][contains]=${numericId}&where[program.status][equals]=approved&depth=2&sort=startTime`,
@@ -243,6 +250,31 @@ async function sync() {
       }
     }
 
+    // Download default background (if set)
+    let defaultBackgroundUrl = null;
+    if (defaultBgId) {
+      try {
+        const bgRes = await fetchWithRetry(
+          `${API_URL}/media/${defaultBgId}?depth=0`,
+          { headers: { Authorization: `devices API-Key ${API_KEY}` } }
+        );
+        const bgMedia = bgRes.data;
+        if (bgMedia && bgMedia.filename) {
+          await downloadIfChanged(bgMedia, `${API_URL}/media/file`);
+          if (bgMedia.sizes) {
+            await downloadSizes(bgMedia, `${API_URL}/media/file`);
+          }
+          const bgFilename = bgMedia.sizes?.fullHD?.filename || bgMedia.filename;
+          defaultBackgroundUrl = `/local-media/${sanitizeFilename(bgFilename)}`;
+          requiredFilenames.add(sanitizeFilename(bgFilename));
+          const bgThumbFilename = bgMedia.sizes?.thumbnail?.filename;
+          if (bgThumbFilename) requiredFilenames.add(sanitizeFilename(bgThumbFilename));
+        }
+      } catch (err) {
+        console.error(`Failed to download default background: ${err.message}`);
+      }
+    }
+
     if (PLUG_IP) {
       const cmd = shouldPowerOn ? 'on' : 'off';
       axios.get(`http://${PLUG_IP}/relay?state=${cmd}`).catch(() => {});
@@ -257,7 +289,7 @@ async function sync() {
       }
     }
 
-    const scheduleData = buildScheduleJson(activeItems);
+    const scheduleData = buildScheduleJson(activeItems, defaultBackgroundUrl);
     const dir = path.dirname(SCHEDULE_PATH);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     const tmp = SCHEDULE_PATH + '.tmp';

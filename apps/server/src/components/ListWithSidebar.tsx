@@ -1,10 +1,21 @@
 'use client'
 
-import { DefaultListView } from '@payloadcms/ui'
+import { DefaultListView, useListDrawerContext } from '@payloadcms/ui'
 import type { ListViewClientProps } from 'payload'
 import { FolderTree } from './FolderTree'
+import { DrawerRowInterceptor } from './DrawerRowInterceptor'
 
 export function ListWithSidebar(props: ListViewClientProps) {
+  const { isInDrawer } = useListDrawerContext()
+
+  if (isInDrawer) {
+    return (
+      <DrawerRowInterceptor>
+        <DefaultListView {...props} />
+      </DrawerRowInterceptor>
+    )
+  }
+
   return (
     <>
       <style>{`

@@ -36,7 +36,7 @@ function normalizeSlide(slide: any): any {
   return result
 }
 
-function normalizeApiSchedule(apiData: any) {
+function normalizeApiSchedule(apiData: any, defaultBackgroundUrl?: string | null) {
   return {
     lastUpdated: new Date().toISOString(),
     schedule: (apiData.docs || [])
@@ -53,6 +53,7 @@ function normalizeApiSchedule(apiData: any) {
         slides: (entry.program?.slides || []).map(normalizeSlide),
       },
     })),
+    defaultBackground: defaultBackgroundUrl || null,
   }
 }
 
@@ -65,6 +66,7 @@ export function BrowserPlayer({ id, token }: Props) {
   const controllerRef = useRef<PlayerControllerHandle>(null)
   const [scheduleData, setScheduleData] = useState<any>(null)
   const socketRef = useRef<TypedSocket | null>(null)
+  const deviceBgRef = useRef<string | null>(null)
 
   useEffect(() => {
     const origin = window.location.origin
@@ -79,23 +81,36 @@ export function BrowserPlayer({ id, token }: Props) {
     socketRef.current = socket
 
     socket.on('connect', () => {
-      fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`)
+      const bgPromise = fetch(`/api/devices/${id}?depth=1&token=${token}`)
         .then((r) => r.json())
-        .then((data) => {
-          setScheduleData(normalizeApiSchedule(data))
+        .then((device) => {
+          const bg = device?.defaultBackground
+          const url = bg ? (bg.sizes?.fullHD?.url || bg.url || null) : null
+          deviceBgRef.current = url
+          return url
+        })
+        .catch(() => { deviceBgRef.current = null; return null })
+
+      const schedulePromise = fetch(
+        `/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`
+      ).then((r) => r.json())
+
+      Promise.all([bgPromise, schedulePromise])
+        .then(([bgUrl, data]) => {
+          setScheduleData(normalizeApiSchedule(data, bgUrl))
         })
         .catch(console.error)
     })
 
     socket.on('schedule:update', (data: any) => {
-      setScheduleData(normalizeApiSchedule(data.scheduleData))
+      setScheduleData(normalizeApiSchedule(data.scheduleData, deviceBgRef.current))
     })
 
     socket.on('program:update', () => {
       fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`)
         .then((r) => r.json())
         .then((data) => {
-          setScheduleData(normalizeApiSchedule(data))
+          setScheduleData(normalizeApiSchedule(data, deviceBgRef.current))
         })
         .catch(console.error)
     })
@@ -104,7 +119,7 @@ export function BrowserPlayer({ id, token }: Props) {
       fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`)
         .then((r) => r.json())
         .then((data) => {
-          setScheduleData(normalizeApiSchedule(data))
+          setScheduleData(normalizeApiSchedule(data, deviceBgRef.current))
         })
         .catch(console.error)
     })

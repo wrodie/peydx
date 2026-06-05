@@ -155,5 +155,13 @@ export const Devices: CollectionConfig = {
         },
       },
     },
+    {
+      name: 'defaultBackground',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description: 'Image shown centered on black when no program is running.',
+      },
+    },
   ],
 }

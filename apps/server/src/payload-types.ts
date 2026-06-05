@@ -377,6 +377,10 @@ export interface Device {
   currentProgram?: (number | null) | Program;
   status?: ('online' | 'offline' | 'stale') | null;
   browserToken?: string | null;
+  /**
+   * Image shown centered on black when no program is running.
+   */
+  defaultBackground?: (number | null) | Media;
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -666,6 +670,7 @@ export interface DevicesSelect<T extends boolean = true> {
   currentProgram?: T;
   status?: T;
   browserToken?: T;
+  defaultBackground?: T;
   updatedAt?: T;
   createdAt?: T;
   enableAPIKey?: T;

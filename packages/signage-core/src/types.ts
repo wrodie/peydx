@@ -39,6 +39,7 @@ export interface ScheduleEntry {
 export interface ResolvedSchedule {
   lastUpdated: string
   schedule: ScheduleEntry[]
+  defaultBackground?: string | null
 }
 
 export interface KeyConfig {
