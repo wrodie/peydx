@@ -13,6 +13,25 @@ export const Departments: CollectionConfig = {
     update: ({ req: { user } }) => (user as any)?.role === 'admin',
     delete: ({ req: { user } }) => (user as any)?.role === 'admin',
   },
+  hooks: {
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        if (operation !== 'create') return
+        const name = (doc as any).name
+        const deptId = doc.id
+        await Promise.all([
+          req.payload.create({
+            collection: 'folders',
+            data: { name, type: 'media', department: deptId, order: 0 },
+          }),
+          req.payload.create({
+            collection: 'folders',
+            data: { name, type: 'programs', department: deptId, order: 0 },
+          }),
+        ])
+      },
+    ],
+  },
   fields: [
     {
       name: 'name',

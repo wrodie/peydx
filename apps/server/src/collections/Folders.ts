@@ -25,7 +25,6 @@ export const Folders: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'department', 'order', 'parent'],
     group: 'Content',
-    hidden: true,
   },
   access: {
     read: ({ req: { user: u } }) => {
