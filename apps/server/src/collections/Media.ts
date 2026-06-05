@@ -236,5 +236,23 @@ export const Media: CollectionConfig = {
         condition: (data) => !!data?.id,
       },
     },
+    {
+      name: 'filesize',
+      type: 'number',
+      admin: {
+        components: {
+          Cell: '/components/FormattedFilesizeCell#FormattedFilesizeCell',
+        },
+      },
+    },
+    {
+      name: 'filename',
+      type: 'text',
+      admin: {
+        components: {
+          Cell: '/components/ThumbnailOnlyCell#ThumbnailOnlyCell',
+        },
+      },
+    },
   ],
 }
