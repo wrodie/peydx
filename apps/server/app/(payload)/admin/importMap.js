@@ -1,4 +1,4 @@
-import { ThumbnailOnlyCell as ThumbnailOnlyCell_4d451c0f96afc8a3eb4145b85dfdf2a9 } from '../../../src/components/ThumbnailOnlyCell'
+import { NameWithThumbnailCell as NameWithThumbnailCell_e58c5597d59ca78b1a1ebeb6933bd252 } from '../../../src/components/NameWithThumbnailCell'
 import { FormattedFilesizeCell as FormattedFilesizeCell_c7cd3958b74f4dc0249df3b07646a265 } from '../../../src/components/FormattedFilesizeCell'
 import { ListWithSidebar as ListWithSidebar_327dcbf0e0ac59d2715531a201bf0d0e } from '../../../src/components/ListWithSidebar'
 import { PreviewLink as PreviewLink_67606df83359e7f8b6b18048103c8d46 } from '../../../src/components/PreviewLink'
@@ -9,7 +9,7 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 /** @type import('payload').ImportMap */
 export const importMap = {
-  "/components/ThumbnailOnlyCell#ThumbnailOnlyCell": ThumbnailOnlyCell_4d451c0f96afc8a3eb4145b85dfdf2a9,
+  "/components/NameWithThumbnailCell#NameWithThumbnailCell": NameWithThumbnailCell_e58c5597d59ca78b1a1ebeb6933bd252,
   "/components/FormattedFilesizeCell#FormattedFilesizeCell": FormattedFilesizeCell_c7cd3958b74f4dc0249df3b07646a265,
   "/components/ListWithSidebar#ListWithSidebar": ListWithSidebar_327dcbf0e0ac59d2715531a201bf0d0e,
   "/components/PreviewLink#PreviewLink": PreviewLink_67606df83359e7f8b6b18048103c8d46,

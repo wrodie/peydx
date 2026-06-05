@@ -12,7 +12,7 @@ export const Media: CollectionConfig = {
   slug: 'media',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['filename', 'name', 'filesize', 'updatedAt'],
+    defaultColumns: ['name', 'filesize', 'updatedAt'],
     listSearchableFields: ['name', 'filename'],
     components: {
       views: {
@@ -221,6 +221,9 @@ export const Media: CollectionConfig = {
       label: 'Display Name',
       admin: {
         description: 'Name shown on screens for this media item.',
+        components: {
+          Cell: '/components/NameWithThumbnailCell#NameWithThumbnailCell',
+        },
       },
     },
     {
@@ -242,15 +245,6 @@ export const Media: CollectionConfig = {
       admin: {
         components: {
           Cell: '/components/FormattedFilesizeCell#FormattedFilesizeCell',
-        },
-      },
-    },
-    {
-      name: 'filename',
-      type: 'text',
-      admin: {
-        components: {
-          Cell: '/components/ThumbnailOnlyCell#ThumbnailOnlyCell',
         },
       },
     },
