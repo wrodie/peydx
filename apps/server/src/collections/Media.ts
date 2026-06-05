@@ -15,7 +15,11 @@ export const Media: CollectionConfig = {
     defaultColumns: ['filename', 'name', 'filesize', 'updatedAt'],
     listSearchableFields: ['name', 'filename'],
     components: {
-      beforeListTable: ['/components/FolderTree#FolderTree'],
+      views: {
+        list: {
+          Component: '/components/ListWithSidebar#ListWithSidebar',
+        },
+      },
     },
   },
   upload: {

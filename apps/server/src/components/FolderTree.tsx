@@ -45,16 +45,43 @@ const s = {
     marginBottom: 8,
     color: 'var(--theme-elevation-600, #6b7280)',
   } as React.CSSProperties,
-  row: (active: boolean, depth: number): React.CSSProperties => ({
+  row: (active: boolean): React.CSSProperties => ({
     display: 'flex',
     alignItems: 'center',
-    padding: `4px 4px 4px ${depth * 16 + 4}px`,
+    padding: 0,
     borderRadius: 4,
     cursor: 'pointer',
     background: active ? 'var(--theme-elevation-200, #e5e7eb)' : 'transparent',
-    fontSize: '0.875rem',
-    gap: 4,
+    fontSize: '1rem',
+    lineHeight: '24px',
   }),
+  guideCol: {
+    width: 16,
+    flexShrink: 0,
+    position: 'relative',
+    alignSelf: 'stretch',
+    zIndex: 0,
+  } as React.CSSProperties,
+  guideLine: {
+    position: 'absolute',
+    left: '50%',
+    width: 1,
+    background: 'var(--theme-elevation-300, #d1d5db)',
+  } as React.CSSProperties,
+  chevron: {
+    width: 24,
+    flexShrink: 0,
+    textAlign: 'center',
+    cursor: 'pointer',
+    userSelect: 'none',
+    fontSize: '1.2rem',
+    color: 'var(--theme-elevation-500, #9ca3af)',
+    lineHeight: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+  } as React.CSSProperties,
   label: (active: boolean): React.CSSProperties => ({
     flex: 1,
     overflow: 'hidden',
@@ -62,17 +89,13 @@ const s = {
     whiteSpace: 'nowrap',
     fontWeight: active ? 600 : 400,
     color: active ? 'var(--theme-primary-500, #3b82f6)' : 'inherit',
+    lineHeight: '24px',
   }),
-  chevron: {
-    cursor: 'pointer',
-    width: 16,
-    textAlign: 'center',
-    flexShrink: 0,
-    userSelect: 'none',
-  } as React.CSSProperties,
   addBtn: {
     fontSize: '0.7rem',
-    padding: '1px 6px',
+    padding: '2px 6px',
+    lineHeight: 1,
+    margin: '3px 0',
     opacity: 0.6,
     cursor: 'pointer',
     border: 'none',
@@ -276,23 +299,34 @@ export function FolderTree() {
     </div>
   )
 
-  const renderNode = (folder: Folder, depth: number = 0): React.ReactNode => {
+  const renderNode = (folder: Folder, isLast: boolean, ancestors: boolean[] = []): React.ReactNode => {
     const isExpanded = expanded.has(folder.id)
     const isActive = activeFolder === folder.id
     const hasChildren = folder.children.length > 0
+    const depth = ancestors.length
+
+    const handleToggle = (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (hasChildren) toggleExpand(folder.id)
+    }
 
     return (
       <div key={folder.id}>
-        <div style={s.row(isActive, depth)}>
-          <span
-            style={s.chevron}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (hasChildren) toggleExpand(folder.id)
-            }}
-          >
-            {hasChildren ? (isExpanded ? '▾' : '▸') : ''}
+        <div style={s.row(isActive)}>
+          {ancestors.map((a, i) => (
+            <span key={i} style={s.guideCol}>
+              {!a && <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />}
+            </span>
+          ))}
+          <span style={s.guideCol}>
+            <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
           </span>
+          {hasChildren && (
+            <span style={s.chevron} onClick={handleToggle}>
+              {isExpanded ? '▾' : '▸'}
+            </span>
+          )}
+          {!hasChildren && <span style={{ ...s.chevron, color: 'transparent', cursor: 'default' }} />}
           <span onClick={() => navigateToFolder(folder.id)} style={s.label(isActive)}>
             {folder.name}
           </span>
@@ -309,7 +343,7 @@ export function FolderTree() {
             </button>
           )}
         </div>
-        {isExpanded && folder.children.map((child) => renderNode(child, depth + 1))}
+        {isExpanded && folder.children.map((child, idx, arr) => renderNode(child, idx === arr.length - 1, [...ancestors, isLast]))}
         {showNewFolder === folder.id && renderInlineForm(folder.id, depth)}
       </div>
     )
@@ -319,27 +353,31 @@ export function FolderTree() {
     <div style={s.tree}>
       <div style={s.title}>Folders</div>
 
-      <div style={s.row(activeFolder === null, 0)} onClick={navigateToAll}>
-        <span style={s.chevron} />
+      <div style={s.row(activeFolder === null)} onClick={navigateToAll}>
+        <span style={s.guideCol}>
+          <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
+        </span>
+        <span style={{ ...s.chevron, color: 'transparent', cursor: 'default' }} />
         <span style={s.label(activeFolder === null)}>
           All {collectionSlug === 'media' ? 'Media' : 'Programs'}
         </span>
       </div>
 
-      <div style={s.row(activeFolder === 'unfiled', 0)} onClick={navigateToUnfiled}>
-        <span style={s.chevron} />
+      <div style={s.row(activeFolder === 'unfiled')} onClick={navigateToUnfiled}>
+        <span style={s.guideCol}>
+          <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
+        </span>
+        <span style={{ ...s.chevron, color: 'transparent', cursor: 'default' }} />
         <span style={s.label(activeFolder === 'unfiled')}>Unfiled</span>
       </div>
 
-      <div style={{ marginTop: 4 }}>
-        {loading ? (
+      {loading ? (
           <div style={s.dimText}>Loading...</div>
         ) : folders.length === 0 ? (
           <div style={s.dimText}>No folders yet</div>
         ) : (
-          folders.map((f) => renderNode(f))
+          folders.map((f, idx, arr) => renderNode(f, idx === arr.length - 1))
         )}
-      </div>
 
       {showNewFolder === 'root' && renderInlineForm(null, 0)}
 

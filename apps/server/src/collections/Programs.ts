@@ -10,7 +10,11 @@ export const Programs: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'updatedAt', 'createdBy'],
     components: {
-      beforeListTable: ['/components/FolderTree#FolderTree'],
+      views: {
+        list: {
+          Component: '/components/ListWithSidebar#ListWithSidebar',
+        },
+      },
     },
   },
   // Automatically manages 'createdAt' and 'updatedAt' fields
