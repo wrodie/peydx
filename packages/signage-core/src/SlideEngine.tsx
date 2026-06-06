@@ -23,6 +23,7 @@ export interface SlideEngineHandle {
   gotoSlide: (index: number) => void
   getCurrentIndex: () => number
   getProgramId: () => number | undefined
+  getMediaElements: () => { video: HTMLVideoElement | null; audio: HTMLAudioElement | null; youtubePlayer: any }
 }
 
 interface SlideEngineProps {
@@ -39,6 +40,8 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const [isEnded, setIsEnded] = useState(false)
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const playerRef = useRef<any>(null)
+    const videoRef = useRef<HTMLVideoElement>(null)
+    const audioRef = useRef<HTMLAudioElement>(null)
     const programRef = useRef(program.id)
     const prevProgramIdRef = useRef(program.id)
 
@@ -90,6 +93,11 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       gotoSlide,
       getCurrentIndex: () => currentIndex,
       getProgramId: () => program.id,
+      getMediaElements: () => ({
+        video: videoRef.current,
+        audio: audioRef.current,
+        youtubePlayer: playerRef.current,
+      }),
     }), [doNextSlide, doPrevSlide, gotoSlide, currentIndex, program.id])
 
     useEffect(() => {
@@ -232,6 +240,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
           {currentSlide.blockType === 'videoBlock' && (
             <>
               <video
+                ref={videoRef}
                 src={mediaUrl}
                 autoPlay
                 muted
@@ -283,6 +292,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
           {currentSlide.blockType === 'audioBlock' && (
             <>
               <audio
+                ref={audioRef}
                 src={mediaUrl}
                 autoPlay
                 muted

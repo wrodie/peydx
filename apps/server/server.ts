@@ -16,6 +16,8 @@ const handle = app.getRequestHandler()
 
 const API_URL = process.env.API_URL || `http://localhost:${port}/api`
 
+const deviceStateStore = new Map<number, { state: string; programId: number | null; slideIndex: number }>()
+
 async function verifyDeviceApiKey(apiKey: string): Promise<{ id: number; departments: string[]; controllingDevice: number | null } | null> {
   try {
     const res = await fetch(`${API_URL}/devices?depth=0&limit=1`, {
@@ -85,6 +87,7 @@ async function handleDeviceHeartbeat(
       programId: data.programId,
       status: 'online',
     })
+    deviceStateStore.set(device.id, { state: 'playing', programId: data.programId, slideIndex: data.slideIndex })
   } catch (err) {
     console.error('Heartbeat handler error:', err)
   }
@@ -96,6 +99,8 @@ async function handleDeviceSlideChange(
   data: { slideIndex: number }
 ) {
   const device = socket.data
+  const existing = deviceStateStore.get(device.id)
+  deviceStateStore.set(device.id, { state: 'playing', programId: existing?.programId ?? null, slideIndex: data.slideIndex })
   try {
     await fetch(`${API_URL}/devices/${device.id}`, {
       method: 'PATCH',
@@ -229,6 +234,7 @@ async function handleDeviceStateChange(
   data: { state: 'idle' | 'menu' | 'playing'; programId?: number; menuIndex?: number }
 ) {
   const device = socket.data
+  deviceStateStore.set(device.id, { state: data.state, programId: data.programId ?? null, slideIndex: data.menuIndex ?? 0 })
   try {
     await fetch(`${API_URL}/heartbeat`, {
       method: 'POST',
@@ -295,8 +301,26 @@ function handleRemoteSelect(
   io.to(`device:${data.id}`).emit('remote:select')
 }
 
+function handleRemotePause(
+  io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
+  _socket: any,
+  data: { id: number }
+) {
+  io.to(`device:${data.id}`).emit('remote:pause')
+}
+
 app.prepare().then(() => {
-  const httpServer = createServer(handle)
+  const httpServer = createServer((req, res) => {
+    // Device state store endpoint (in-memory, instant)
+    if (req.url?.startsWith('/api/device-state/')) {
+      const id = parseInt(req.url.split('/').pop() || '', 10)
+      const state = deviceStateStore.get(id)
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify(state || null))
+      return
+    }
+    handle(req, res)
+  })
 
   const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     path: '/api/ws',
@@ -425,6 +449,10 @@ app.prepare().then(() => {
 
     socket.on('remote:select', (data: any) => {
       handleRemoteSelect(io, socket, data)
+    })
+
+    socket.on('remote:pause', (data: any) => {
+      handleRemotePause(io, socket, data)
     })
 
     if (type === 'device' && controllingDevice) {

@@ -12,6 +12,7 @@ export interface PlayerControllerHandle {
   nextSlide: () => void
   prevSlide: () => void
   gotoSlide: (index: number) => void
+  togglePause: () => void
   selectProgram: (programId: number) => void
 }
 
@@ -78,6 +79,8 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const [showExitOverlay, setShowExitOverlay] = useState(false)
     const [availableEntries, setAvailableEntries] = useState<ScheduleEntry[]>([])
     const [currentScheduleEntry, setCurrentScheduleEntry] = useState<ScheduleEntry | null>(null)
+    const [showPaused, setShowPaused] = useState(false)
+    const pausedRef = useRef(false)
 
     const engineRef = useRef<SlideEngineHandle>(null)
     const menuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -99,6 +102,16 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
 
     const keys = mergeKeyConfig(userKeyConfig)
 
+    const resetPause = useCallback(() => {
+      setShowPaused(false)
+      pausedRef.current = false
+    }, [])
+
+    const handleSlideChange = useCallback((index: number) => {
+      resetPause()
+      onSlideChange?.(index)
+    }, [onSlideChange, resetPause])
+
     const emitState = useCallback(
       (state: PlayerState, programId?: number, idx?: number) => {
         onStateChange?.(state, programId, idx)
@@ -118,6 +131,8 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         clearMenuTimeout()
         setPlayerState(state)
         setShowExitOverlay(false)
+        setShowPaused(false)
+        pausedRef.current = false
         if (availEntries) setAvailableEntries(availEntries)
         if (program) {
           setActiveProgram(program)
@@ -203,6 +218,28 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       [transitionTo],
     )
 
+    const togglePause = useCallback(() => {
+      if (playerState !== 'playing') return
+      const els = engineRef.current?.getMediaElements()
+      if (!els) return
+
+      const blockType = activeProgram?.slides?.[engineRef.current?.getCurrentIndex() ?? -1]?.blockType
+      if (blockType !== 'videoBlock' && blockType !== 'audioBlock' && blockType !== 'youtubeBlock') return
+
+      if (pausedRef.current) {
+        if (blockType === 'videoBlock') els.video?.play()
+        else if (blockType === 'audioBlock') els.audio?.play()
+        else if (blockType === 'youtubeBlock') els.youtubePlayer?.playVideo()
+      } else {
+        if (blockType === 'videoBlock') els.video?.pause()
+        else if (blockType === 'audioBlock') els.audio?.pause()
+        else if (blockType === 'youtubeBlock') els.youtubePlayer?.pauseVideo()
+      }
+
+      setShowPaused((prev) => !prev)
+      pausedRef.current = !pausedRef.current
+    }, [playerState, activeProgram])
+
     useImperativeHandle(ref, () => ({
       openMenu,
       exitProgram,
@@ -210,8 +247,9 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       nextSlide: () => engineRef.current?.nextSlide(),
       prevSlide: () => engineRef.current?.prevSlide(),
       gotoSlide: (index: number) => engineRef.current?.gotoSlide(index),
+      togglePause,
       selectProgram,
-    }), [openMenu, exitProgram, selectItem, selectProgram])
+    }), [openMenu, exitProgram, selectItem, selectProgram, togglePause])
 
     useEffect(() => {
       if (!scheduleData) return
@@ -249,10 +287,14 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           }
           openMenu()
         }
+        if (e.code === (keys.pause || 'KeyP')) {
+          e.preventDefault()
+          togglePause()
+        }
       }
       window.addEventListener('keydown', handler)
       return () => window.removeEventListener('keydown', handler)
-    }, [keys, openMenu, clearMenuTimeout])
+    }, [keys, openMenu, clearMenuTimeout, togglePause])
 
     useEffect(() => {
       const sched = scheduleData
@@ -317,7 +359,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
             ref={engineRef}
             key={programKey}
             program={activeProgram}
-            onSlideChange={onSlideChange}
+            onSlideChange={handleSlideChange}
           />
           <MenuEngine
             programs={[]}
@@ -374,13 +416,33 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
 
     if (playerState === 'playing' && activeProgram) {
       return (
-        <SlideEngine
-          ref={engineRef}
-          key={programKey}
-          program={activeProgram}
-          initialSlideIndex={pendingSlideIndex}
-          onSlideChange={onSlideChange}
-        />
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <SlideEngine
+            ref={engineRef}
+            key={programKey}
+            program={activeProgram}
+            initialSlideIndex={pendingSlideIndex}
+            onSlideChange={handleSlideChange}
+          />
+          {showPaused && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0, 0, 0, 0.4)',
+                zIndex: 20,
+                pointerEvents: 'none',
+              }}
+            >
+              <span style={{ color: 'white', fontSize: '3rem', fontWeight: 600, opacity: 0.8 }}>
+                ⏸ Paused
+              </span>
+            </div>
+          )}
+        </div>
       )
     }
 

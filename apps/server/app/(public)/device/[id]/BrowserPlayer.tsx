@@ -152,6 +152,10 @@ export function BrowserPlayer({ id, token }: Props) {
       controllerRef.current?.selectItem()
     })
 
+    socket.on('remote:pause', () => {
+      controllerRef.current?.togglePause()
+    })
+
     return () => {
       socket.disconnect()
     }

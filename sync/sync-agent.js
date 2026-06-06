@@ -500,6 +500,10 @@ function connectToCMS() {
     localIO?.emit('remote:select');
   });
 
+  socket.on('remote:pause', () => {
+    localIO?.emit('remote:pause');
+  });
+
   socket.on('disconnect', () => {
     console.log('Disconnected from CMS WebSocket');
   });

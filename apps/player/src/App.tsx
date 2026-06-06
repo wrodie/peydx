@@ -123,6 +123,10 @@ export function App() {
       controllerRef.current?.selectItem()
     })
 
+    socket.on('remote:pause', () => {
+      controllerRef.current?.togglePause()
+    })
+
     return () => {
       socket.disconnect()
     }
@@ -167,6 +171,10 @@ export function App() {
 
     hardwareSocket.on('remote:select', () => {
       controllerRef.current?.selectItem()
+    })
+
+    hardwareSocket.on('remote:pause', () => {
+      controllerRef.current?.togglePause()
     })
 
     hardwareSocket.on('schedule:update', () => {

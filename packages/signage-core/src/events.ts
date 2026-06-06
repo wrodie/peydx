@@ -10,6 +10,7 @@ export interface ClientToServerEvents {
   'remote:menu': (data: { id: number }) => void
   'remote:back': (data: { id: number }) => void
   'remote:select': (data: { id: number }) => void
+  'remote:pause': (data: { id: number }) => void
 }
 
 // Server → Client events (to devices and admin UI)
@@ -24,6 +25,7 @@ export interface ServerToClientEvents {
   'remote:menu': () => void
   'remote:back': () => void
   'remote:select': () => void
+  'remote:pause': () => void
   'device:status': (data: { id: number; slideIndex: number; programId: number | null; status: string }) => void
   'device:stateChange': (data: { id: number; state: 'idle' | 'menu' | 'playing'; programId?: number }) => void
 }
@@ -37,4 +39,5 @@ export interface SocketEventData {
   'remote:menu': { targetDeviceIds: number[] }
   'remote:back': { targetDeviceIds: number[] }
   'remote:select': { targetDeviceIds: number[] }
+  'remote:pause': { targetDeviceIds: number[] }
 }

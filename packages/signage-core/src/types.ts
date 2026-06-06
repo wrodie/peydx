@@ -49,6 +49,7 @@ export interface KeyConfig {
   down: string
   enter: string
   exit: string
+  pause?: string
 }
 
 export const DEFAULT_KEY_CONFIG: KeyConfig = {
@@ -57,4 +58,5 @@ export const DEFAULT_KEY_CONFIG: KeyConfig = {
   down: 'ArrowDown',
   enter: 'Enter',
   exit: 'Escape',
+  pause: 'KeyP',
 }

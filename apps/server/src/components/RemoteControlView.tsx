@@ -69,7 +69,13 @@ export function RemoteControlView() {
     socket.on('device:stateChange', (data: any) => {
       if (selectedDeviceRef.current && data.id === selectedDeviceRef.current.id) {
         if (data.state) setPlayerState(data.state)
-        if (data.state !== 'playing') {
+        if (data.state === 'playing' && data.programId) {
+          fetch(`/api/programs/${data.programId}?depth=2`)
+            .then((r) => r.json())
+            .then(setCurrentProgram)
+            .catch(console.error)
+          setCurrentSlideIndex(data.menuIndex ?? 0)
+        } else if (data.state !== 'playing') {
           setCurrentProgram(null)
           setCurrentSlideIndex(0)
         }
@@ -89,19 +95,52 @@ export function RemoteControlView() {
     selectedDeviceRef.current = device
     setSelectedProgramId('')
 
-    if (device.currentProgram) {
-      const programId =
-        typeof device.currentProgram === 'object' ? device.currentProgram.id : device.currentProgram
-      fetch(`/api/programs/${programId}?depth=2`)
-        .then((r) => r.json())
-        .then(setCurrentProgram)
-        .catch(console.error)
-      setPlayerState('playing')
-    } else {
-      setCurrentProgram(null)
-      setCurrentSlideIndex(0)
-      setPlayerState('idle')
-    }
+    // Try in-memory state store first (instant, accurate)
+    fetch(`/api/device-state/${id}`)
+      .then((r) => r.json())
+      .then((state) => {
+        if (state && state.state === 'playing' && state.programId) {
+          setPlayerState(state.state)
+          setCurrentSlideIndex(state.slideIndex)
+          fetch(`/api/programs/${state.programId}?depth=2`)
+            .then((r) => r.json())
+            .then(setCurrentProgram)
+            .catch(console.error)
+          return
+        }
+        // Fall back to device API (slower, stale)
+        if (device.currentProgram) {
+          const programId =
+            typeof device.currentProgram === 'object' ? device.currentProgram.id : device.currentProgram
+          fetch(`/api/programs/${programId}?depth=2`)
+            .then((r) => r.json())
+            .then(setCurrentProgram)
+            .catch(console.error)
+          setPlayerState('playing')
+          setCurrentSlideIndex(device.currentSlideIndex || 0)
+        } else {
+          setCurrentProgram(null)
+          setCurrentSlideIndex(0)
+          setPlayerState('idle')
+        }
+      })
+      .catch(() => {
+        // If state store unavailable, fall back
+        if (device.currentProgram) {
+          const programId =
+            typeof device.currentProgram === 'object' ? device.currentProgram.id : device.currentProgram
+          fetch(`/api/programs/${programId}?depth=2`)
+            .then((r) => r.json())
+            .then(setCurrentProgram)
+            .catch(console.error)
+          setPlayerState('playing')
+          setCurrentSlideIndex(device.currentSlideIndex || 0)
+        } else {
+          setCurrentProgram(null)
+          setCurrentSlideIndex(0)
+          setPlayerState('idle')
+        }
+      })
 
     fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime`)
       .then((r) => r.json())
@@ -140,6 +179,10 @@ export function RemoteControlView() {
     setPlayerState('idle')
     setCurrentProgram(null)
     setCurrentSlideIndex(0)
+  }
+
+  const handlePause = () => {
+    socketRef.current?.emit('remote:pause', { id: parseInt(selectedDeviceId!, 10) })
   }
 
   const handleLoadProgram = () => {
@@ -327,6 +370,21 @@ export function RemoteControlView() {
                 }}
               >
                 ◀ Prev
+              </button>
+              <button
+                onClick={handlePause}
+                style={{
+                  flex: 1,
+                  minHeight: 48,
+                  fontSize: '1rem',
+                  borderRadius: 6,
+                  border: '1px solid var(--theme-elevation-200, #ccc)',
+                  background: 'var(--theme-elevation-100, #f3f4f6)',
+                  cursor: 'pointer',
+                  color: 'var(--theme-text, #333)',
+                }}
+              >
+                ⏸ Pause
               </button>
               <button
                 onClick={handleAdvance}
