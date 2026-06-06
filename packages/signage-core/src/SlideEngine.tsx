@@ -167,8 +167,12 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
                 event.target.playVideo()
               },
               onStateChange: (event: any) => {
-                if (event.data === (window as any).YT.PlayerState.ENDED && currentSlide?.advanceMode === 'onEnd') {
-                  doNextSlide()
+                if (event.data === (window as any).YT.PlayerState.ENDED) {
+                  if (currentSlide?.loop) {
+                    event.target.playVideo()
+                  } else if (currentSlide?.advanceMode === 'onEnd') {
+                    doNextSlide()
+                  }
                 }
               },
             },
@@ -249,6 +253,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
                 muted
                 disableRemotePlayback
                 playsInline
+                loop={currentSlide.loop || false}
                 onError={() => {
                   setVideoError('unknown format')
                   if (currentSlide.advanceMode !== 'timed') {
@@ -256,7 +261,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
                   }
                 }}
                 onEnded={() => {
-                  if (currentSlide.advanceMode === 'onEnd') doNextSlide()
+                  if (!currentSlide.loop && currentSlide.advanceMode === 'onEnd') doNextSlide()
                 }}
                 onPlaying={(e) => {
                   e.currentTarget.muted = false
@@ -300,8 +305,9 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
                 autoPlay
                 muted
                 playsInline
+                loop={currentSlide.loop || false}
                 onEnded={() => {
-                  if (currentSlide.advanceMode === 'onEnd') doNextSlide()
+                  if (!currentSlide.loop && currentSlide.advanceMode === 'onEnd') doNextSlide()
                 }}
                 onPlaying={(e) => {
                   e.currentTarget.muted = false

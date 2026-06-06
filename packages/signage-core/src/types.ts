@@ -14,6 +14,7 @@ export interface Slide {
   advanceMode: 'timed' | 'manual' | 'onEnd'
   duration?: number | null
   transition?: 'fade' | 'cut' | 'slide' | null
+  loop?: boolean | null
   id?: string | null
 }
 

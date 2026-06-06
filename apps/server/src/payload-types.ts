@@ -253,6 +253,10 @@ export interface Program {
              */
             advanceMode: 'timed' | 'manual' | 'onEnd';
             duration?: number | null;
+            /**
+             * Repeats the video until the slide transitions.
+             */
+            loop?: boolean | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'videoBlock';
@@ -268,6 +272,10 @@ export interface Program {
              */
             advanceMode: 'timed' | 'manual' | 'onEnd';
             duration?: number | null;
+            /**
+             * Repeats the video until the slide transitions.
+             */
+            loop?: boolean | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'youtubeBlock';
@@ -280,6 +288,10 @@ export interface Program {
              */
             advanceMode: 'timed' | 'manual' | 'onEnd';
             duration?: number | null;
+            /**
+             * Repeats the audio until the slide transitions.
+             */
+            loop?: boolean | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'audioBlock';
@@ -574,6 +586,7 @@ export interface ProgramsSelect<T extends boolean = true> {
               transition?: T;
               advanceMode?: T;
               duration?: T;
+              loop?: T;
               id?: T;
               blockName?: T;
             };
@@ -584,6 +597,7 @@ export interface ProgramsSelect<T extends boolean = true> {
               transition?: T;
               advanceMode?: T;
               duration?: T;
+              loop?: T;
               id?: T;
               blockName?: T;
             };
@@ -594,6 +608,7 @@ export interface ProgramsSelect<T extends boolean = true> {
               transition?: T;
               advanceMode?: T;
               duration?: T;
+              loop?: T;
               id?: T;
               blockName?: T;
             };

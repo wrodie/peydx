@@ -96,6 +96,15 @@ export const VideoBlock: Block = {
       },
     },
     ...getAdvanceSettings(true),
+    {
+      name: 'loop',
+      type: 'checkbox',
+      label: 'Loop Media',
+      defaultValue: false,
+      admin: {
+        description: 'Repeats the video until the slide transitions.',
+      },
+    },
   ],
 }
 
@@ -119,6 +128,15 @@ export const YoutubeBlock: Block = {
       },
     },
     ...getAdvanceSettings(true),
+    {
+      name: 'loop',
+      type: 'checkbox',
+      label: 'Loop Media',
+      defaultValue: false,
+      admin: {
+        description: 'Repeats the video until the slide transitions.',
+      },
+    },
   ],
 }
 
@@ -142,5 +160,14 @@ export const AudioBlock: Block = {
       },
     },
     ...getAdvanceSettings(true),
+    {
+      name: 'loop',
+      type: 'checkbox',
+      label: 'Loop Media',
+      defaultValue: false,
+      admin: {
+        description: 'Repeats the audio until the slide transitions.',
+      },
+    },
   ],
 }
