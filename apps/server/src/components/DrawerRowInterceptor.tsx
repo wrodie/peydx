@@ -12,7 +12,7 @@ export function DrawerRowInterceptor({ children }: { children: ReactNode }) {
     if (!el) return
 
     const handler = (e: MouseEvent) => {
-      const tr = (e.target as HTMLElement).closest('tr[data-id]')
+      const tr = (e.target as HTMLElement).closest('tr[data-id]') as HTMLElement | null
       if (!tr) return
 
       const docId = parseInt(tr.dataset.id || '', 10)
@@ -24,7 +24,7 @@ export function DrawerRowInterceptor({ children }: { children: ReactNode }) {
       const match = link.getAttribute('href')?.match(/\/admin\/collections\/([^/]+)\/(\d+)/)
       if (!match) return
 
-      onSelect?.({ collectionSlug: match[1], doc: { id: docId } })
+      onSelect?.({ collectionSlug: match[1] as any, doc: { id: docId } as any, docID: String(docId) })
     }
 
     el.addEventListener('click', handler)

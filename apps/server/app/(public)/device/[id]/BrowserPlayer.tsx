@@ -72,7 +72,7 @@ export function BrowserPlayer({ id, token }: Props) {
   const lastDataRef = useRef<any>(null)
 
   const setScheduleDataIfChanged = useCallback((data: any) => {
-    setScheduleData(prev => {
+    setScheduleData((prev: any) => {
       if (!prev) return data
       // Compare without lastUpdated to avoid false changes
       const { lastUpdated: a, ...prevRest } = prev

@@ -185,7 +185,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       }
 
       const { availablePrograms } = getResolvedState()
-      const programTitles = availablePrograms.map((e) => ({ id: e.programId, title: e.program.title, department: e.program.department }))
+      const programTitles = availablePrograms.map((e) => ({ id: e.programId, title: e.program.title, department: e.program.department ?? undefined }))
       const menuPrograms = programTitles
 
       if (menuPrograms.length > 0) {
@@ -399,7 +399,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }
 
     if (playerState === 'menu') {
-      const programTitles = availableEntries.map((e) => ({ id: e.programId, title: e.program.title, department: e.program.department }))
+      const programTitles = availableEntries.map((e) => ({ id: e.programId, title: e.program.title, department: e.program.department ?? undefined }))
       return (
         <MenuEngine
           programs={programTitles}

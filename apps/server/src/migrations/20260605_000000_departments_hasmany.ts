@@ -1,7 +1,9 @@
 import type { Migration } from 'payload'
 
 export const migration: Migration = {
-  up: async ({ payload }) => {
+  name: 'departments_hasmany',
+  up: async (args: any) => {
+    const { payload } = args || {}
     const db = payload.db as any
     const drizzle = db?.drizzle || db
 
@@ -59,7 +61,8 @@ export const migration: Migration = {
 
     await drizzle.execute('ALTER TABLE users DROP COLUMN IF EXISTS department_id')
   },
-  down: async ({ payload }) => {
+  down: async (args: any) => {
+    const { payload } = args || {}
     const db = payload.db as any
     const drizzle = db?.drizzle || db
 
