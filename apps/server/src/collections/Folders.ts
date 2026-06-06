@@ -24,7 +24,7 @@ export const Folders: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'department', 'order', 'parent'],
-    group: 'Content',
+    group: 'Admin',
     hidden: ({ user }) => (user as any)?.role !== 'admin',
   },
   access: {
