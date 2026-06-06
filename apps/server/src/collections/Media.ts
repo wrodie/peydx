@@ -12,7 +12,7 @@ export const Media: CollectionConfig = {
   slug: 'media',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'filesize', 'updatedAt'],
+    defaultColumns: ['name', 'filesize', 'duration', 'updatedAt'],
     listSearchableFields: ['name', 'filename'],
     components: {
       views: {
@@ -98,17 +98,38 @@ export const Media: CollectionConfig = {
     afterChange: [
       async ({ doc, operation, req }) => {
         if (operation !== 'create') return
-        if (!doc.mimeType?.startsWith('video/')) return
+        if (!doc.mimeType?.startsWith('video/') && !doc.mimeType?.startsWith('audio/')) return
         if (!doc.filename) return
 
-        const thumbFilename = doc.filename.replace(/\.[^.]+$/, '_thumb.webp')
         const inputPath = path.resolve(process.cwd(), 'media', doc.filename)
-        const outputPath = path.resolve(process.cwd(), 'media', thumbFilename)
 
+        // Generate video thumbnail
+        if (doc.mimeType?.startsWith('video/')) {
+          const thumbFilename = doc.filename.replace(/\.[^.]+$/, '_thumb.webp')
+          const outputPath = path.resolve(process.cwd(), 'media', thumbFilename)
+          try {
+            await execAsync(`ffmpeg -ss 2 -i "${inputPath}" -vframes 1 -vf "scale=400:300" "${outputPath}"`)
+          } catch (err) {
+            console.error(`Failed to generate video thumbnail for ${doc.filename}:`, err)
+          }
+        }
+
+        // Extract duration via ffprobe
         try {
-          await execAsync(`ffmpeg -ss 2 -i "${inputPath}" -vframes 1 -vf "scale=400:300" "${outputPath}"`)
+          const { stdout } = await execAsync(
+            `ffprobe -v error -show_entries format=duration -of csv=p=0 "${inputPath}"`,
+          )
+          const durationSeconds = parseFloat(stdout.trim())
+          if (!isNaN(durationSeconds) && durationSeconds > 0) {
+            await req.payload.update({
+              collection: 'media',
+              id: doc.id,
+              data: { duration: Math.round(durationSeconds) },
+              req,
+            })
+          }
         } catch (err) {
-          console.error(`Failed to generate video thumbnail for ${doc.filename}:`, err)
+          console.error(`Failed to extract duration for ${doc.filename}:`, err)
         }
       },
       async ({ doc, operation, req }) => {
@@ -253,6 +274,18 @@ export const Media: CollectionConfig = {
       admin: {
         components: {
           Cell: '/components/FormattedFilesizeCell#FormattedFilesizeCell',
+        },
+      },
+    },
+    {
+      name: 'duration',
+      type: 'number',
+      label: 'Duration',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        components: {
+          Cell: '/components/DurationCell#DurationCell',
         },
       },
     },

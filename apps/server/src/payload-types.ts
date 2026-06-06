@@ -157,6 +157,7 @@ export interface Media {
    */
   name?: string | null;
   folder?: (number | null) | Folder;
+  duration?: number | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -523,6 +524,7 @@ export interface PayloadMigration {
 export interface MediaSelect<T extends boolean = true> {
   name?: T;
   folder?: T;
+  duration?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
