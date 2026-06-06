@@ -36,7 +36,13 @@ export function App() {
       const res = await fetch(MANIFEST_URL)
       if (!res.ok) return
       const data = await res.json()
-      setScheduleData(data)
+      setScheduleData(prev => {
+        if (!prev) return data
+        const { lastUpdated: a, ...prevRest } = prev
+        const { lastUpdated: b, ...dataRest } = data
+        if (JSON.stringify(prevRest) === JSON.stringify(dataRest)) return prev
+        return data
+      })
     } catch (err) {
       console.error('Failed to load schedule:', err)
     }

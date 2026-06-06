@@ -183,11 +183,23 @@ function buildScheduleJson(activeItems, backgroundUrl) {
 }
 
 function writeScheduleAtomically(data) {
+  // Skip if content is identical (ignoring lastUpdated)
+  try {
+    const existing = JSON.parse(fs.readFileSync(SCHEDULE_PATH, 'utf-8'));
+    const { lastUpdated: a, ...existingRest } = existing;
+    const { lastUpdated: b, ...dataRest } = data;
+    if (JSON.stringify(existingRest) === JSON.stringify(dataRest)) {
+      console.log(ts('[sync] Schedule unchanged, skipping write'));
+      return false;
+    }
+  } catch {}
+
   const dir = path.dirname(SCHEDULE_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   const tmp = SCHEDULE_PATH + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n');
   fs.renameSync(tmp, SCHEDULE_PATH);
+  return true;
 }
 
 async function resolveDevice() {
@@ -276,11 +288,6 @@ async function sync() {
     }
 
     console.log(ts(`[sync] Fetched schedule: ${activeItems.length} active program(s)`));
-
-    // Phase 1: Write schedule immediately so player has data
-    writeScheduleAtomically(buildScheduleJson(activeItems, null));
-    localIO?.emit('schedule:update');
-    console.log(ts('[sync] Initial schedule written'));
 
     // Phase 2: Download all media in parallel
     const downloads = [];
@@ -406,8 +413,10 @@ async function sync() {
     }
 
     // Phase 3: Rewrite schedule with local URLs
-    writeScheduleAtomically(buildScheduleJson(activeItems, defaultBackgroundUrl));
-    console.log(ts('[sync] Schedule rewritten with local URLs'));
+    let scheduleChanged = writeScheduleAtomically(buildScheduleJson(activeItems, defaultBackgroundUrl));
+    if (scheduleChanged) {
+      console.log(ts('[sync] Schedule rewritten with local URLs'));
+    }
 
     // Determine the currently-active program
     const checkNow = new Date();
@@ -443,8 +452,10 @@ async function sync() {
       console.error('Heartbeat failed:', err.message);
     }
 
-    // Notify local player
-    localIO?.emit('schedule:update');
+    // Notify local player if schedule actually changed
+    if (scheduleChanged) {
+      localIO?.emit('schedule:update');
+    }
 
   } catch (err) {
     console.error('Sync error:', err.message);

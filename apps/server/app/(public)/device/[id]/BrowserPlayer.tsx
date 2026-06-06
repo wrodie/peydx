@@ -67,6 +67,18 @@ export function BrowserPlayer({ id, token }: Props) {
   const [scheduleData, setScheduleData] = useState<any>(null)
   const socketRef = useRef<TypedSocket | null>(null)
   const deviceBgRef = useRef<string | null>(null)
+  const lastDataRef = useRef<any>(null)
+
+  const setScheduleDataIfChanged = useCallback((data: any) => {
+    setScheduleData(prev => {
+      if (!prev) return data
+      // Compare without lastUpdated to avoid false changes
+      const { lastUpdated: a, ...prevRest } = prev
+      const { lastUpdated: b, ...dataRest } = data
+      if (JSON.stringify(prevRest) === JSON.stringify(dataRest)) return prev
+      return data
+    })
+  }, [])
 
   useEffect(() => {
     const origin = window.location.origin
@@ -97,20 +109,20 @@ export function BrowserPlayer({ id, token }: Props) {
 
       Promise.all([bgPromise, schedulePromise])
         .then(([bgUrl, data]) => {
-          setScheduleData(normalizeApiSchedule(data, bgUrl))
+          setScheduleDataIfChanged(normalizeApiSchedule(data, bgUrl))
         })
         .catch(console.error)
     })
 
     socket.on('schedule:update', (data: any) => {
-      setScheduleData(normalizeApiSchedule(data.scheduleData, deviceBgRef.current))
+      setScheduleDataIfChanged(normalizeApiSchedule(data.scheduleData, deviceBgRef.current))
     })
 
     socket.on('program:update', () => {
       fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`)
         .then((r) => r.json())
         .then((data) => {
-          setScheduleData(normalizeApiSchedule(data, deviceBgRef.current))
+          setScheduleDataIfChanged(normalizeApiSchedule(data, deviceBgRef.current))
         })
         .catch(console.error)
     })
@@ -119,7 +131,7 @@ export function BrowserPlayer({ id, token }: Props) {
       fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`)
         .then((r) => r.json())
         .then((data) => {
-          setScheduleData(normalizeApiSchedule(data, deviceBgRef.current))
+          setScheduleDataIfChanged(normalizeApiSchedule(data, deviceBgRef.current))
         })
         .catch(console.error)
     })
