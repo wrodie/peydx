@@ -22,21 +22,21 @@ interface PlayerControllerProps {
   onStateChange?: (state: PlayerState, programId?: number, menuIndex?: number) => void
 }
 
-function getTodayStr(): string {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-}
-
 function resolveScheduleState(schedule: ScheduleEntry[]): {
   activeAutoPlay: ScheduleEntry | null
   availablePrograms: ScheduleEntry[]
 } {
   const now = new Date()
-  const today = getTodayStr()
 
-  const todayAvailability = schedule.filter(
-    (e) => e.scheduleType === 'availability' && e.startTime.startsWith(today),
-  )
+  const availablePrograms = schedule.filter((e) => {
+    if (e.scheduleType !== 'availability') return false
+    if (!e.startTime) return false
+    const start = new Date(e.startTime)
+    const end = e.endTime ? new Date(e.endTime) : null
+    if (start > now) return false
+    if (end && now > new Date(end.getTime() + 24 * 60 * 60 * 1000)) return false
+    return true
+  })
 
   let activeAutoPlay: ScheduleEntry | null = null
   for (const entry of schedule) {
@@ -50,7 +50,7 @@ function resolveScheduleState(schedule: ScheduleEntry[]): {
     }
   }
 
-  return { activeAutoPlay, availablePrograms: todayAvailability }
+  return { activeAutoPlay, availablePrograms }
 }
 
 function getNextAutoPlay(schedule: ScheduleEntry[]): ScheduleEntry | null {

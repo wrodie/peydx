@@ -23,6 +23,13 @@ function normalizeSlide(slide: any): any {
       alt: slide.video.alt,
     }
   }
+  if (slide.blockType === 'audioBlock' && slide.audio) {
+    result.audio = {
+      id: slide.audio.id,
+      url: slide.audio.url,
+      alt: slide.audio.alt,
+    }
+  }
   if (slide.blockType === 'youtubeBlock') {
     result.youtubeId = slide.youtubeId
   }
@@ -53,19 +60,20 @@ export interface ResolvedScheduleState {
   availablePrograms: ScheduleEntry[]
 }
 
-function getTodayStr(): string {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-}
-
 export function resolveScheduleState(scheduleData: ResolvedSchedule): ResolvedScheduleState {
   const now = new Date()
-  const today = getTodayStr()
   const schedule = scheduleData.schedule
 
-  const todayAvailability = schedule.filter(
-    (e) => e.scheduleType === 'availability' && e.startTime.startsWith(today),
-  )
+  const availablePrograms = schedule.filter((e) => {
+    if (e.scheduleType !== 'availability') return false
+    if (!e.startTime) return false
+    const start = new Date(e.startTime)
+    const end = e.endTime ? new Date(e.endTime) : null
+    if (start > now) return false
+    // 24-hour grace period past end time
+    if (end && now > new Date(end.getTime() + 24 * 60 * 60 * 1000)) return false
+    return true
+  })
 
   let activeAutoPlay: ScheduleEntry | null = null
   for (const entry of schedule) {
@@ -79,7 +87,7 @@ export function resolveScheduleState(scheduleData: ResolvedSchedule): ResolvedSc
     }
   }
 
-  return { activeAutoPlay, availablePrograms: todayAvailability }
+  return { activeAutoPlay, availablePrograms }
 }
 
 export function resolveActiveProgram(scheduleData: ResolvedSchedule): Program | null {

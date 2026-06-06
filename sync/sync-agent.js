@@ -20,6 +20,18 @@ const SCHEDULE_PATH = path.join(__dirname, '..', 'apps', 'player', 'public', 'sc
 
 if (!fs.existsSync(LOCAL_DIR)) fs.mkdirSync(LOCAL_DIR, { recursive: true });
 
+console.log(ts('[sync] Sync agent starting...'));
+
+// Write empty schedule so player always has a file to fetch on startup
+if (!fs.existsSync(SCHEDULE_PATH)) {
+  const empty = JSON.stringify({ lastUpdated: new Date().toISOString(), schedule: [], defaultBackground: null }, null, 2) + '\n'
+  const dir = path.dirname(SCHEDULE_PATH)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const tmp = SCHEDULE_PATH + '.tmp'
+  fs.writeFileSync(tmp, empty)
+  fs.renameSync(tmp, SCHEDULE_PATH)
+}
+
 let currentSlideIndex = 0;
 let activeProgramId = null;
 let userSelectedProgramId = null;
@@ -30,14 +42,18 @@ function sanitizeFilename(filename) {
     .replace(/[^a-zA-Z0-9._-]/g, '');
 }
 
+function ts(msg) {
+  return `[${new Date().toISOString().slice(11, 19)}] ${msg}`
+}
+
 async function fetchWithRetry(url, opts, retries = 3) {
   let delay = 5000;
   for (let i = 0; i <= retries; i++) {
     try {
-      return await axios.get(url, opts);
+      return await axios.get(url, { ...opts, timeout: 30000 });
     } catch (err) {
       if (i === retries) throw err;
-      console.error(`Request failed (attempt ${i + 1}/${retries + 1}): ${err.message}. Retrying in ${delay}ms...`);
+      console.error(ts(`[sync] API request failed (${err.code || err.message}) — retry ${i + 1}/${retries} in ${delay / 1000}s`));
       await new Promise(r => setTimeout(r, delay));
       delay = Math.min(delay * 2, 300000);
     }
@@ -165,6 +181,14 @@ function buildScheduleJson(activeItems, backgroundUrl) {
   };
 }
 
+function writeScheduleAtomically(data) {
+  const dir = path.dirname(SCHEDULE_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const tmp = SCHEDULE_PATH + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n');
+  fs.renameSync(tmp, SCHEDULE_PATH);
+}
+
 async function resolveDevice() {
   const res = await fetchWithRetry(
     `${API_URL}/devices?depth=0&limit=1`,
@@ -190,34 +214,41 @@ async function downloadSpecificMedia(data) {
 }
 
 async function sync() {
+  console.log(ts('[sync] sync() started'));
   try {
+    let t0 = Date.now();
     const device = await resolveDevice();
+    console.log(ts(`[sync] resolveDevice: ${Date.now() - t0}ms`));
     const numericId = device.id;
     const defaultBgId = device.defaultBackground;
 
+    t0 = Date.now();
     const res = await fetchWithRetry(
       `${API_URL}/schedule?where[devices][contains]=${numericId}&where[program.status][equals]=approved&depth=2&sort=startTime`,
       { headers: { Authorization: `devices API-Key ${API_KEY}` } }
     );
+    console.log(ts(`[sync] fetch schedule: ${Date.now() - t0}ms`));
 
     const docs = res.data.docs || [];
     if (docs.length === 0) {
-      console.log(`No schedule entries found for device ${numericId}`);
+      console.log(ts(`[sync] No schedule entries found for device ${numericId}`));
       return;
     }
 
     const now = new Date();
     const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
     const graceStart = new Date(now.getTime() - (6 * 60 * 60 * 1000));
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
 
     const activeItems = docs.filter(item => {
       const scheduleType = item.scheduleType || 'autoplay';
 
       if (scheduleType === 'availability') {
-        const dateStr = item.startTime ? String(item.startTime).slice(0, 10) : '';
-        return dateStr === todayStr || dateStr === tomorrowStr;
+        if (!item.startTime) return false;
+        const start = new Date(item.startTime);
+        const end = item.endTime ? new Date(item.endTime) : null;
+        if (start > now) return false;
+        if (end && now > new Date(end.getTime() + 24 * 60 * 60 * 1000)) return false;
+        return true;
       }
 
       const start = new Date(item.startTime);
@@ -228,7 +259,10 @@ async function sync() {
       return true;
     });
 
-    if (activeItems.length === 0) return;
+    if (activeItems.length === 0) {
+      console.log(ts('[sync] No active schedule items after filtering'));
+      return;
+    }
 
     const requiredFilenames = new Set();
     let shouldPowerOn = false;
@@ -236,10 +270,21 @@ async function sync() {
     for (const item of activeItems) {
       const start = new Date(item.startTime);
       const end = item.endTime ? new Date(item.endTime) : null;
-
       if (start <= new Date(now.getTime() + 30 * 60000)) shouldPowerOn = true;
       if (start <= now && (!end || now < end)) shouldPowerOn = true;
+    }
 
+    console.log(ts(`[sync] Fetched schedule: ${activeItems.length} active program(s)`));
+
+    // Phase 1: Write schedule immediately so player has data
+    writeScheduleAtomically(buildScheduleJson(activeItems, null));
+    localIO?.emit('schedule:update');
+    console.log(ts('[sync] Initial schedule written'));
+
+    // Phase 2: Download all media in parallel
+    const downloads = [];
+
+    for (const item of activeItems) {
       if (item.program?.slides) {
         for (const slide of item.program.slides) {
           const media =
@@ -251,42 +296,82 @@ async function sync() {
             if (media.sizes?.fullHD?.filename) requiredFilenames.add(sanitizeFilename(media.sizes.fullHD.filename));
             if (media.sizes?.thumbnail?.filename) requiredFilenames.add(sanitizeFilename(media.sizes.thumbnail.filename));
 
-            await downloadIfChanged(media, `${API_URL}/media/file`).catch(err =>
-              console.error(`Download failed for ${media.filename}: ${err.message}`)
+            const logName = media.filename || 'unknown';
+            console.log(ts(`[sync] Queuing ${logName}...`));
+            downloads.push(
+              downloadIfChanged(media, `${API_URL}/media/file`)
+                .then(() => console.log(ts(`[sync]   ${logName} done`)))
+                .catch(err => console.error(ts(`[sync]   ${logName} failed: ${err.message}`)))
             );
+
             if (media.sizes) {
-              await downloadSizes(media, `${API_URL}/media/file`).catch(err =>
-                console.error(`Size download failed for ${media.filename}: ${err.message}`)
-              );
+              for (const size of ['fullHD', 'thumbnail']) {
+                const sizeData = media.sizes?.[size];
+                if (sizeData?.filename) {
+                  const sanitized = sanitizeFilename(sizeData.filename);
+                  if (!requiredFilenames.has(sanitized)) continue;
+                  const dest = path.join(LOCAL_DIR, sanitized);
+                  const url = `${API_URL}/media/file/${sizeData.filename}`;
+                  downloads.push(
+                    downloadFile(url, dest, media.updatedAt)
+                      .then(() => console.log(ts(`[sync]   ${sizeData.filename} done`)))
+                      .catch(err => console.error(ts(`[sync]   ${sizeData.filename} failed: ${err.message}`)))
+                  );
+                }
+              }
             }
           }
         }
       }
     }
 
-    // Download default background (if set)
+    // Download default background
     let defaultBackgroundUrl = null;
     if (defaultBgId) {
-      try {
-        const bgRes = await fetchWithRetry(
-          `${API_URL}/media/${defaultBgId}?depth=0`,
-          { headers: { Authorization: `devices API-Key ${API_KEY}` } }
-        );
-        const bgMedia = bgRes.data;
-        if (bgMedia && bgMedia.filename) {
-          await downloadIfChanged(bgMedia, `${API_URL}/media/file`);
-          if (bgMedia.sizes) {
-            await downloadSizes(bgMedia, `${API_URL}/media/file`);
+      downloads.push(
+        (async () => {
+          try {
+            const bgRes = await fetchWithRetry(
+              `${API_URL}/media/${defaultBgId}?depth=0`,
+              { headers: { Authorization: `devices API-Key ${API_KEY}` } }
+            );
+            const bgMedia = bgRes.data;
+            if (bgMedia && bgMedia.filename) {
+              console.log(ts(`[sync] Queuing background ${bgMedia.filename}...`));
+              await downloadIfChanged(bgMedia, `${API_URL}/media/file`);
+              const fullHdFilename = bgMedia.sizes?.fullHD?.filename;
+              if (fullHdFilename) {
+                await downloadFile(
+                  `${API_URL}/media/file/${fullHdFilename}`,
+                  path.join(LOCAL_DIR, sanitizeFilename(fullHdFilename)),
+                  bgMedia.updatedAt
+                );
+              }
+              const thumbFilename = bgMedia.sizes?.thumbnail?.filename;
+              if (thumbFilename) {
+                await downloadFile(
+                  `${API_URL}/media/file/${thumbFilename}`,
+                  path.join(LOCAL_DIR, sanitizeFilename(thumbFilename)),
+                  bgMedia.updatedAt
+                );
+              }
+              const bgFilename = fullHdFilename || bgMedia.filename;
+              defaultBackgroundUrl = `/local-media/${sanitizeFilename(bgFilename)}`;
+              requiredFilenames.add(sanitizeFilename(bgFilename));
+              if (thumbFilename) requiredFilenames.add(sanitizeFilename(thumbFilename));
+              console.log(ts(`[sync]   background done`));
+            }
+          } catch (err) {
+            console.error(ts(`[sync] Background download failed: ${err.message}`));
           }
-          const bgFilename = bgMedia.sizes?.fullHD?.filename || bgMedia.filename;
-          defaultBackgroundUrl = `/local-media/${sanitizeFilename(bgFilename)}`;
-          requiredFilenames.add(sanitizeFilename(bgFilename));
-          const bgThumbFilename = bgMedia.sizes?.thumbnail?.filename;
-          if (bgThumbFilename) requiredFilenames.add(sanitizeFilename(bgThumbFilename));
-        }
-      } catch (err) {
-        console.error(`Failed to download default background: ${err.message}`);
-      }
+        })()
+      );
+    }
+
+    if (downloads.length > 0) {
+      console.log(ts(`[sync] Downloading ${downloads.length} file(s)...`));
+      await Promise.allSettled(downloads);
+      console.log(ts('[sync] All downloads complete'));
     }
 
     if (PLUG_IP) {
@@ -294,6 +379,7 @@ async function sync() {
       axios.get(`http://${PLUG_IP}/relay?state=${cmd}`).catch(() => {});
     }
 
+    // Cleanup stale files
     const localFiles = fs.readdirSync(LOCAL_DIR);
     for (const file of localFiles) {
       if (!requiredFilenames.has(file)) {
@@ -303,12 +389,9 @@ async function sync() {
       }
     }
 
-    const scheduleData = buildScheduleJson(activeItems, defaultBackgroundUrl);
-    const dir = path.dirname(SCHEDULE_PATH);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    const tmp = SCHEDULE_PATH + '.tmp';
-    fs.writeFileSync(tmp, JSON.stringify(scheduleData, null, 2) + '\n');
-    fs.renameSync(tmp, SCHEDULE_PATH);
+    // Phase 3: Rewrite schedule with local URLs
+    writeScheduleAtomically(buildScheduleJson(activeItems, defaultBackgroundUrl));
+    console.log(ts('[sync] Schedule rewritten with local URLs'));
 
     // Determine the currently-active program
     const checkNow = new Date();
@@ -322,7 +405,7 @@ async function sync() {
     }, null);
     activeProgramId = userSelectedProgramId || nowPlaying?.program?.id || null;
 
-    // Emit heartbeat via Socket.IO (will also fall back via the interval)
+    // Emit heartbeat via Socket.IO
     if (cmsSocket?.connected) {
       cmsSocket.emit('device:heartbeat', {
         programId: activeProgramId,
@@ -344,7 +427,7 @@ async function sync() {
       console.error('Heartbeat failed:', err.message);
     }
 
-    // Notify local player that schedule has been updated
+    // Notify local player
     localIO?.emit('schedule:update');
 
   } catch (err) {
@@ -429,69 +512,67 @@ function connectToCMS() {
 // ========================
 let localIO = null;
 
-sync().then(() => {
-  const app = express();
+const app = express();
 
-  app.get('/schedule.json', (_, res) => {
-    res.sendFile(SCHEDULE_PATH);
+app.get('/schedule.json', (_, res) => {
+  res.sendFile(SCHEDULE_PATH);
+});
+
+app.get('/config.json', (_, res) => {
+  const configPath = path.join(__dirname, 'key-config.json');
+  try {
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      return res.json(config);
+    }
+  } catch {}
+  res.json({
+    keys: {
+      menu: 'KeyM',
+      up: 'ArrowUp',
+      down: 'ArrowDown',
+      enter: 'Enter',
+      exit: 'Escape',
+    },
+  });
+});
+app.use('/local-media', express.static(LOCAL_DIR));
+app.use(express.static(path.join(__dirname, '..', 'apps', 'player', 'dist')));
+
+const httpServer = http.createServer(app);
+
+localIO = new SocketIOServer(httpServer, {
+  path: '/ws',
+  cors: { origin: '*' },
+});
+
+localIO.on('connection', (localPlayerSocket) => {
+  console.log('Local player connected via WebSocket');
+  localPlayerSocket.emit('schedule:update');
+
+  localPlayerSocket.on('device:slideChange', (data) => {
+    currentSlideIndex = data.slideIndex;
+    if (cmsSocket?.connected) {
+      cmsSocket.emit('device:slideChange', data);
+    }
   });
 
-  app.get('/config.json', (_, res) => {
-    const configPath = path.join(__dirname, 'key-config.json');
-    try {
-      if (fs.existsSync(configPath)) {
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        return res.json(config);
-      }
-    } catch {}
-    res.json({
-      keys: {
-        menu: 'KeyM',
-        up: 'ArrowUp',
-        down: 'ArrowDown',
-        enter: 'Enter',
-        exit: 'Escape',
-      },
-    });
+  localPlayerSocket.on('device:stateChange', (data) => {
+    if (data.state === 'playing' && data.programId) {
+      userSelectedProgramId = data.programId;
+    } else if (data.state !== 'playing') {
+      userSelectedProgramId = null;
+    }
+    if (cmsSocket?.connected) {
+      cmsSocket.emit('device:stateChange', data);
+    }
   });
-  app.use('/local-media', express.static(LOCAL_DIR));
-  app.use(express.static(path.join(__dirname, '..', 'apps', 'player', 'dist')));
+});
 
-  const httpServer = http.createServer(app);
+httpServer.listen(5000, () => {
+  console.log('Player server listening on http://localhost:5000');
 
-  localIO = new SocketIOServer(httpServer, {
-    path: '/ws',
-    cors: { origin: '*' },
-  });
-
-  localIO.on('connection', (localPlayerSocket) => {
-    console.log('Local player connected via WebSocket');
-
-    localPlayerSocket.on('device:slideChange', (data) => {
-      currentSlideIndex = data.slideIndex;
-      if (cmsSocket?.connected) {
-        cmsSocket.emit('device:slideChange', data);
-      }
-    });
-
-    localPlayerSocket.on('device:stateChange', (data) => {
-      if (data.state === 'playing' && data.programId) {
-        userSelectedProgramId = data.programId;
-      } else if (data.state !== 'playing') {
-        userSelectedProgramId = null;
-      }
-      if (cmsSocket?.connected) {
-        cmsSocket.emit('device:stateChange', data);
-      }
-    });
-  });
-
-  httpServer.listen(5000, () => {
-    console.log('Player server listening on http://localhost:5000');
-
-    // Connect to CMS after local server is up
-    connectToCMS();
-  });
+  connectToCMS();
 });
 
 // HTTP polling as fallback
