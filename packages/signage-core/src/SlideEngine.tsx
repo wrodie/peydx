@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import type { Program, Slide } from './types'
 import './transitions.css'
 
@@ -60,22 +60,32 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
 
     const slides = program.slides
 
+    useLayoutEffect(() => {
+      if (!slides?.length || !onProgramEnd) {
+        if (isEnded) setIsEnded(false)
+        return
+      }
+      if (currentIndex >= slides.length - 1) {
+        if (!isEnded) setIsEnded(true)
+      } else if (isEnded) {
+        setIsEnded(false)
+      }
+    }, [currentIndex, slides, onProgramEnd, isEnded])
+
     const doNextSlide = useCallback(() => {
       if (isEnded) {
         onProgramEnd?.()
         return
       }
       if (!slides?.length) return
-      setCurrentIndex((i) => {
-        if (i < slides.length - 1) return i + 1
-        if (onProgramEnd) {
-          setIsEnded(true)
-          return i
-        }
-        return 0
-      })
+
+      if (currentIndex < slides.length - 1) {
+        setCurrentIndex(currentIndex + 1)
+      } else if (!onProgramEnd) {
+        setCurrentIndex(0)
+      }
       setVideoError(null)
-    }, [slides, onProgramEnd, isEnded])
+    }, [slides, onProgramEnd, isEnded, currentIndex])
 
     const doPrevSlide = useCallback(() => {
       if (isEnded || !slides?.length) return
@@ -346,8 +356,15 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
               zIndex: 10,
               background: 'black',
               animation: `signageFadeIn ${TRANSITION_DURATION}ms ease both`,
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
             }}
-          />
+          >
+            <span style={{ color: 'white', fontSize: '1.875rem', fontFamily: 'system-ui, sans-serif', opacity: 0.6, paddingBottom: '20px' }}>
+              End of program — press Menu to exit
+            </span>
+          </div>
         )}
         {slides && slides.length > 1 && (
           <div className="slide-slide-indicator">
