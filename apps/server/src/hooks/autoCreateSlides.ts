@@ -33,6 +33,18 @@ export const autoCreateSlides: CollectionBeforeChangeHook = async ({
       }
 
       const isVideo = media.mimeType?.includes('video')
+      const isAudio = media.mimeType?.includes('audio')
+
+      if (isAudio) {
+        return {
+          blockType: 'audioBlock',
+          blockName: null,
+          audio: id,
+          advanceMode: 'onEnd',
+          duration: null,
+          transition: 'fade',
+        }
+      }
 
       return {
         blockType: isVideo ? 'videoBlock' : 'imageBlock',

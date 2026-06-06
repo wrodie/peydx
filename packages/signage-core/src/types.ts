@@ -6,9 +6,10 @@ export interface Media {
 }
 
 export interface Slide {
-  blockType: 'imageBlock' | 'videoBlock' | 'youtubeBlock' | 'blackScreenBlock'
+  blockType: 'imageBlock' | 'videoBlock' | 'youtubeBlock' | 'audioBlock' | 'blackScreenBlock'
   image?: Media | number
   video?: Media | number
+  audio?: Media | number
   youtubeId?: string | null
   advanceMode: 'timed' | 'manual' | 'onEnd'
   duration?: number | null

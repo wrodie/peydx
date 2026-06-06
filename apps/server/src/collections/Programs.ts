@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { ImageBlock, VideoBlock, YoutubeBlock } from '../blocks/SlideBlocks'
+import { ImageBlock, VideoBlock, YoutubeBlock, AudioBlock } from '../blocks/SlideBlocks'
 import { BlackScreenBlock } from '../blocks/BlackScreenBlock'
 import { autoCreateSlides } from '../hooks/autoCreateSlides'
 import { getIO } from '../websocket/io'
@@ -214,7 +214,7 @@ export const Programs: CollectionConfig = {
     {
       name: 'slides',
       type: 'blocks',
-      blocks: [ImageBlock, VideoBlock, YoutubeBlock, BlackScreenBlock],
+      blocks: [ImageBlock, VideoBlock, YoutubeBlock, AudioBlock, BlackScreenBlock],
     },
     {
       name: 'status',

@@ -193,7 +193,9 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const slideMedia =
       currentSlide.blockType === 'videoBlock'
         ? resolveMedia(currentSlide.video)
-        : resolveMedia(currentSlide.image)
+        : currentSlide.blockType === 'audioBlock'
+          ? resolveMedia(currentSlide.audio)
+          : resolveMedia(currentSlide.image)
     const mediaUrl = slideMedia?.url ?? ''
     const youtubeId = currentSlide.blockType === 'youtubeBlock' ? parseYouTubeId(currentSlide.youtubeId || '') : null
     const youtubeBackdrop = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : null
@@ -277,6 +279,40 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
           )}
           {currentSlide.blockType === 'blackScreenBlock' && (
             <div className="slide-stage" style={{ background: '#000' }} />
+          )}
+          {currentSlide.blockType === 'audioBlock' && (
+            <>
+              <audio
+                src={mediaUrl}
+                autoPlay
+                muted
+                playsInline
+                onEnded={() => {
+                  if (currentSlide.advanceMode === 'onEnd') doNextSlide()
+                }}
+                onPlaying={(e) => {
+                  e.currentTarget.muted = false
+                }}
+              />
+              <div
+                className="slide-stage"
+                style={{
+                  background: '#000',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <svg
+                  className="slide-audio-icon"
+                  viewBox="0 0 24 24"
+                  fill="white"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M3 9v6h4l5 5V4L7 9H3zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                </svg>
+              </div>
+            </>
           )}
         </div>
         {isEnded && (

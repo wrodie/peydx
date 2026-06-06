@@ -273,6 +273,18 @@ export interface Program {
             blockType: 'youtubeBlock';
           }
         | {
+            audio: number | Media;
+            transition?: ('fade' | 'cut' | 'slide') | null;
+            /**
+             * How should the player move to the next slide?
+             */
+            advanceMode: 'timed' | 'manual' | 'onEnd';
+            duration?: number | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'audioBlock';
+          }
+        | {
             transition?: ('fade' | 'cut' | 'slide') | null;
             /**
              * How should the player move to the next slide?
@@ -569,6 +581,16 @@ export interface ProgramsSelect<T extends boolean = true> {
           | T
           | {
               youtubeId?: T;
+              transition?: T;
+              advanceMode?: T;
+              duration?: T;
+              id?: T;
+              blockName?: T;
+            };
+        audioBlock?:
+          | T
+          | {
+              audio?: T;
               transition?: T;
               advanceMode?: T;
               duration?: T;

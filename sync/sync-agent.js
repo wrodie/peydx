@@ -142,6 +142,17 @@ function buildScheduleJson(activeItems, backgroundUrl) {
             };
           }
         }
+        if (slide.blockType === 'audioBlock' && slide.audio) {
+          const aud = typeof slide.audio === 'object' ? slide.audio : null;
+          if (aud) {
+            resolved.audio = {
+              url: aud.url
+                ? `/local-media/${sanitizeFilename(aud.filename || '')}`
+                : null,
+              alt: aud.alt || null,
+            };
+          }
+        }
         return resolved;
       }),
     },
@@ -231,7 +242,10 @@ async function sync() {
 
       if (item.program?.slides) {
         for (const slide of item.program.slides) {
-          const media = slide.blockType === 'videoBlock' ? slide.video : slide.image;
+          const media =
+            slide.blockType === 'videoBlock' ? slide.video
+              : slide.blockType === 'audioBlock' ? slide.audio
+              : slide.image;
           if (media && typeof media === 'object') {
             if (media.filename) requiredFilenames.add(sanitizeFilename(media.filename));
             if (media.sizes?.fullHD?.filename) requiredFilenames.add(sanitizeFilename(media.sizes.fullHD.filename));

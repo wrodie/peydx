@@ -121,3 +121,26 @@ export const YoutubeBlock: Block = {
     ...getAdvanceSettings(true),
   ],
 }
+
+export const AudioBlock: Block = {
+  slug: 'audioBlock',
+  labels: {
+    singular: 'Audio Slide',
+    plural: 'Audio Slides',
+  },
+  admin: {
+    group: 'Content',
+  },
+  fields: [
+    {
+      name: 'audio',
+      type: 'upload',
+      relationTo: 'media',
+      required: true,
+      filterOptions: {
+        mimeType: { contains: 'audio' },
+      },
+    },
+    ...getAdvanceSettings(true),
+  ],
+}
