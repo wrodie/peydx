@@ -112,6 +112,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       onSlideChange?.(index)
     }, [onSlideChange, resetPause])
 
+    
     const emitState = useCallback(
       (state: PlayerState, programId?: number, idx?: number) => {
         onStateChange?.(state, programId, idx)
@@ -154,6 +155,23 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       const sched = scheduleDataRef.current?.schedule ?? []
       return resolveScheduleState(sched)
     }, [])
+    const handleProgramEnd = useCallback(() => {
+      const { availablePrograms } = getResolvedState()
+      if (availablePrograms.length > 0) {
+        setAvailableEntries(availablePrograms)
+        setMenuIndex(0)
+        setPlayerState('menu')
+        setActiveProgram(null)
+        setCurrentScheduleEntry(null)
+        emitState('menu', undefined, 0)
+      } else {
+        setActiveProgram(null)
+        setCurrentScheduleEntry(null)
+        setPlayerState('idle')
+        emitState('idle')
+      }
+    }, [emitState, getResolvedState])
+
 
     const openMenu = useCallback(() => {
       if (stateRef.current === 'playing' && activeProgramRef.current) {
@@ -360,6 +378,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
             key={programKey}
             program={activeProgram}
             onSlideChange={handleSlideChange}
+            onProgramEnd={activeProgram.loop ? undefined : handleProgramEnd}
           />
           <MenuEngine
             programs={[]}
@@ -423,6 +442,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
             program={activeProgram}
             initialSlideIndex={pendingSlideIndex}
             onSlideChange={handleSlideChange}
+            onProgramEnd={activeProgram.loop ? undefined : handleProgramEnd}
           />
           {showPaused && (
             <div

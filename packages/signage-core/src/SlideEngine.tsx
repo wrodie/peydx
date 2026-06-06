@@ -61,12 +61,15 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const slides = program.slides
 
     const doNextSlide = useCallback(() => {
-      if (isEnded || !slides?.length) return
+      if (isEnded) {
+        onProgramEnd?.()
+        return
+      }
+      if (!slides?.length) return
       setCurrentIndex((i) => {
         if (i < slides.length - 1) return i + 1
         if (onProgramEnd) {
           setIsEnded(true)
-          setTimeout(() => onProgramEnd(), TRANSITION_DURATION)
           return i
         }
         return 0
