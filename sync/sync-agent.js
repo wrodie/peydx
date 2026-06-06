@@ -92,11 +92,12 @@ async function downloadIfChanged(file, mediaBaseUrl) {
 
   const sanitized = sanitizeFilename(file.filename);
   const dest = path.join(LOCAL_DIR, sanitized);
-  const remoteDate = new Date(file.updatedAt);
+  const remoteSec = Math.floor(new Date(file.updatedAt).getTime() / 1000);
 
   if (fs.existsSync(dest)) {
     const stats = fs.statSync(dest);
-    if (new Date(stats.mtime) >= remoteDate) return;
+    const localSec = Math.floor(new Date(stats.mtime).getTime() / 1000);
+    if (localSec >= remoteSec) return;
   }
 
   const url = mediaBaseUrl ? `${mediaBaseUrl}/${file.filename}` : file.url;
@@ -311,6 +312,12 @@ async function sync() {
                   const sanitized = sanitizeFilename(sizeData.filename);
                   if (!requiredFilenames.has(sanitized)) continue;
                   const dest = path.join(LOCAL_DIR, sanitized);
+                  const remoteSec = Math.floor(new Date(media.updatedAt).getTime() / 1000);
+                  if (fs.existsSync(dest)) {
+                    const stats = fs.statSync(dest);
+                    const localSec = Math.floor(new Date(stats.mtime).getTime() / 1000);
+                    if (localSec >= remoteSec) continue;
+                  }
                   const url = `${API_URL}/media/file/${sizeData.filename}`;
                   downloads.push(
                     downloadFile(url, dest, media.updatedAt)
@@ -336,25 +343,34 @@ async function sync() {
               { headers: { Authorization: `devices API-Key ${API_KEY}` } }
             );
             const bgMedia = bgRes.data;
-            if (bgMedia && bgMedia.filename) {
-              console.log(ts(`[sync] Queuing background ${bgMedia.filename}...`));
-              await downloadIfChanged(bgMedia, `${API_URL}/media/file`);
-              const fullHdFilename = bgMedia.sizes?.fullHD?.filename;
-              if (fullHdFilename) {
-                await downloadFile(
-                  `${API_URL}/media/file/${fullHdFilename}`,
-                  path.join(LOCAL_DIR, sanitizeFilename(fullHdFilename)),
-                  bgMedia.updatedAt
-                );
-              }
-              const thumbFilename = bgMedia.sizes?.thumbnail?.filename;
-              if (thumbFilename) {
-                await downloadFile(
-                  `${API_URL}/media/file/${thumbFilename}`,
-                  path.join(LOCAL_DIR, sanitizeFilename(thumbFilename)),
-                  bgMedia.updatedAt
-                );
-              }
+              if (bgMedia && bgMedia.filename) {
+                console.log(ts(`[sync] Queuing background ${bgMedia.filename}...`));
+                await downloadIfChanged(bgMedia, `${API_URL}/media/file`);
+                const bgRemoteSec = Math.floor(new Date(bgMedia.updatedAt).getTime() / 1000);
+                const fullHdFilename = bgMedia.sizes?.fullHD?.filename;
+                if (fullHdFilename) {
+                  const fhdSanitized = sanitizeFilename(fullHdFilename);
+                  const fhdDest = path.join(LOCAL_DIR, fhdSanitized);
+                  if (!fs.existsSync(fhdDest) || Math.floor(new Date(fs.statSync(fhdDest).mtime).getTime() / 1000) < bgRemoteSec) {
+                    await downloadFile(
+                      `${API_URL}/media/file/${fullHdFilename}`,
+                      fhdDest,
+                      bgMedia.updatedAt
+                    );
+                  }
+                }
+                const thumbFilename = bgMedia.sizes?.thumbnail?.filename;
+                if (thumbFilename) {
+                  const thumbSanitized = sanitizeFilename(thumbFilename);
+                  const thumbDest = path.join(LOCAL_DIR, thumbSanitized);
+                  if (!fs.existsSync(thumbDest) || Math.floor(new Date(fs.statSync(thumbDest).mtime).getTime() / 1000) < bgRemoteSec) {
+                    await downloadFile(
+                      `${API_URL}/media/file/${thumbFilename}`,
+                      thumbDest,
+                      bgMedia.updatedAt
+                    );
+                  }
+                }
               const bgFilename = fullHdFilename || bgMedia.filename;
               defaultBackgroundUrl = `/local-media/${sanitizeFilename(bgFilename)}`;
               requiredFilenames.add(sanitizeFilename(bgFilename));
