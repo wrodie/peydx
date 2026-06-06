@@ -36,7 +36,7 @@ function normalizeSlide(slide: any): any {
   return result
 }
 
-function normalizeApiSchedule(apiData: any, defaultBackgroundUrl?: string | null) {
+function normalizeApiSchedule(apiData: any, defaultBackgroundUrl?: string | null, deviceName?: string | null) {
   return {
     lastUpdated: new Date().toISOString(),
     schedule: (apiData.docs || [])
@@ -50,10 +50,12 @@ function normalizeApiSchedule(apiData: any, defaultBackgroundUrl?: string | null
         id: entry.program?.id,
         title: entry.program?.title,
         loop: entry.program?.loop,
+        department: entry.program?.folder?.department?.name || null,
         slides: (entry.program?.slides || []).map(normalizeSlide),
       },
     })),
     defaultBackground: defaultBackgroundUrl || null,
+    deviceName: deviceName || null,
   }
 }
 
@@ -93,33 +95,42 @@ export function BrowserPlayer({ id, token }: Props) {
     socketRef.current = socket
 
     socket.on('connect', () => {
-      const bgPromise = fetch(`/api/devices/${id}?depth=1&token=${token}`)
+      const devicePromise = fetch(`/api/devices/${id}?depth=1&token=${token}`)
         .then((r) => r.json())
         .then((device) => {
           const bg = device?.defaultBackground
           const url = bg ? (bg.sizes?.fullHD?.url || bg.url || null) : null
           deviceBgRef.current = url
-          return url
+          return { bgUrl: url, deviceName: device?.name || null }
         })
-        .catch(() => { deviceBgRef.current = null; return null })
+        .catch(() => { deviceBgRef.current = null; return { bgUrl: null, deviceName: null } })
 
       const schedulePromise = fetch(
-        `/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`
+        `/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`
       ).then((r) => r.json())
 
-      Promise.all([bgPromise, schedulePromise])
-        .then(([bgUrl, data]) => {
-          setScheduleDataIfChanged(normalizeApiSchedule(data, bgUrl))
+      Promise.all([devicePromise, schedulePromise])
+        .then(([{ bgUrl, deviceName }, data]) => {
+          setScheduleDataIfChanged(normalizeApiSchedule(data, bgUrl, deviceName))
         })
         .catch(console.error)
     })
 
     socket.on('schedule:update', (data: any) => {
-      setScheduleDataIfChanged(normalizeApiSchedule(data.scheduleData, deviceBgRef.current))
+      setScheduleDataIfChanged(normalizeApiSchedule(data.scheduleData, deviceBgRef.current, data.deviceName))
     })
 
     socket.on('program:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`)
+      fetch(`/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`)
+        .then((r) => r.json())
+        .then((data) => {
+          setScheduleDataIfChanged(normalizeApiSchedule(data, deviceBgRef.current))
+        })
+        .catch(console.error)
+    })
+
+    socket.on('program:update', () => {
+      fetch(`/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleDataIfChanged(normalizeApiSchedule(data, deviceBgRef.current))
@@ -128,7 +139,7 @@ export function BrowserPlayer({ id, token }: Props) {
     })
 
     socket.on('media:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${id}&depth=2&sort=startTime&token=${token}`)
+      fetch(`/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`)
         .then((r) => r.json())
         .then((data) => {
           setScheduleDataIfChanged(normalizeApiSchedule(data, deviceBgRef.current))

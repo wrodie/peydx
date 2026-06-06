@@ -185,7 +185,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       }
 
       const { availablePrograms } = getResolvedState()
-      const programTitles = availablePrograms.map((e) => ({ id: e.programId, title: e.program.title }))
+      const programTitles = availablePrograms.map((e) => ({ id: e.programId, title: e.program.title, department: e.program.department }))
       const menuPrograms = programTitles
 
       if (menuPrograms.length > 0) {
@@ -399,37 +399,29 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }
 
     if (playerState === 'menu') {
-      const programTitles = availableEntries.map((e) => ({ id: e.programId, title: e.program.title }))
+      const programTitles = availableEntries.map((e) => ({ id: e.programId, title: e.program.title, department: e.program.department }))
       return (
-        <div className="slide-stage" style={{ position: 'relative' }}>
-          {scheduleData?.defaultBackground && (
-            <img
-              src={scheduleData.defaultBackground}
-              style={{ position: 'absolute', inset: 0, maxWidth: '100%', maxHeight: '100%', margin: 'auto', objectFit: 'contain', pointerEvents: 'none' }}
-              alt=""
-            />
-          )}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <MenuEngine
-              programs={programTitles}
-              selectedIndex={menuIndex}
-              onSelect={(idx) => {
-                if (idx >= 0 && idx < availableEntries.length) {
-                  const entry = availableEntries[idx]
-                  transitionTo('playing', entry.program, entry, idx)
-                }
-              }}
-              onBack={() => {
-                if (activeProgram) {
-                  return
-                }
-                setPlayerState('idle')
-                emitState('idle')
-              }}
-              keyConfig={keys}
-            />
-          </div>
-        </div>
+        <MenuEngine
+          programs={programTitles}
+          selectedIndex={menuIndex}
+          onSelect={(idx) => {
+            if (idx >= 0 && idx < availableEntries.length) {
+              const entry = availableEntries[idx]
+              transitionTo('playing', entry.program, entry, idx)
+            }
+          }}
+          onBack={() => {
+            if (activeProgram) {
+              return
+            }
+            setPlayerState('idle')
+            emitState('idle')
+          }}
+          keyConfig={keys}
+          title="Select a Program"
+          deviceName={scheduleData?.deviceName}
+          defaultBackground={scheduleData?.defaultBackground}
+        />
       )
     }
 

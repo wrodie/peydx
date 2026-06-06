@@ -23,6 +23,7 @@ export interface Program {
   slides?: Slide[] | null
   loop?: boolean | null
   autoBlackEndSlide?: boolean | null
+  department?: string | null
 }
 
 export type ScheduleType = 'autoplay' | 'availability'
@@ -41,6 +42,7 @@ export interface ResolvedSchedule {
   lastUpdated: string
   schedule: ScheduleEntry[]
   defaultBackground?: string | null
+  deviceName?: string | null
 }
 
 export interface KeyConfig {

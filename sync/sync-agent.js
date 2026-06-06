@@ -122,7 +122,7 @@ async function downloadSizes(media, mediaBaseUrl) {
   }
 }
 
-function buildScheduleJson(activeItems, backgroundUrl) {
+function buildScheduleJson(activeItems, backgroundUrl, deviceName) {
   const schedule = activeItems.map(item => ({
     programId: item.program?.id,
     scheduleType: item.scheduleType || 'autoplay',
@@ -132,6 +132,7 @@ function buildScheduleJson(activeItems, backgroundUrl) {
       id: item.program?.id,
       title: item.program?.title,
       loop: item.program?.loop,
+      department: item.program?.folder?.department?.name || null,
       slides: (item.program?.slides || []).map(slide => {
         const resolved = { ...slide };
         if (slide.blockType === 'imageBlock' && slide.image) {
@@ -179,6 +180,7 @@ function buildScheduleJson(activeItems, backgroundUrl) {
     lastUpdated: new Date().toISOString(),
     schedule,
     defaultBackground: backgroundUrl || null,
+    deviceName: deviceName || null,
   };
 }
 
@@ -213,6 +215,7 @@ async function resolveDevice() {
   const device = res.data.docs[0];
   return {
     id: device.id,
+    name: device.name || null,
     defaultBackground: device.defaultBackground || null,
   };
 }
@@ -233,11 +236,12 @@ async function sync() {
     const device = await resolveDevice();
     console.log(ts(`[sync] resolveDevice: ${Date.now() - t0}ms`));
     const numericId = device.id;
+    const deviceName = device.name;
     const defaultBgId = device.defaultBackground;
 
     t0 = Date.now();
     const res = await fetchWithRetry(
-      `${API_URL}/schedule?where[devices][contains]=${numericId}&where[program.status][equals]=approved&depth=2&sort=startTime`,
+      `${API_URL}/schedule?where[devices][contains]=${numericId}&where[program.status][equals]=approved&depth=3&sort=startTime`,
       { headers: { Authorization: `devices API-Key ${API_KEY}` } }
     );
     console.log(ts(`[sync] fetch schedule: ${Date.now() - t0}ms`));
@@ -413,7 +417,7 @@ async function sync() {
     }
 
     // Phase 3: Rewrite schedule with local URLs
-    let scheduleChanged = writeScheduleAtomically(buildScheduleJson(activeItems, defaultBackgroundUrl));
+    let scheduleChanged = writeScheduleAtomically(buildScheduleJson(activeItems, defaultBackgroundUrl, deviceName));
     if (scheduleChanged) {
       console.log(ts('[sync] Schedule rewritten with local URLs'));
     }

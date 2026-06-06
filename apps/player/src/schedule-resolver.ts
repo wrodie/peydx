@@ -37,7 +37,7 @@ function normalizeSlide(slide: any): any {
   return result
 }
 
-export function normalizeApiSchedule(apiData: any): ResolvedSchedule {
+export function normalizeApiSchedule(apiData: any, deviceName?: string | null): ResolvedSchedule {
   return {
     lastUpdated: new Date().toISOString(),
     schedule: (apiData.docs || []).map((entry: any) => ({
@@ -49,9 +49,11 @@ export function normalizeApiSchedule(apiData: any): ResolvedSchedule {
         id: entry.program?.id,
         title: entry.program?.title,
         loop: entry.program?.loop,
+        department: entry.program?.folder?.department?.name || null,
         slides: (entry.program?.slides || []).map(normalizeSlide),
       },
     })),
+    deviceName: deviceName || null,
   }
 }
 
