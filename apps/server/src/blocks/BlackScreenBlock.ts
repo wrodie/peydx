@@ -9,6 +9,7 @@ export const BlackScreenBlock: Block = {
   },
   admin: {
     group: 'Utility',
+    disableBlockName: true,
   },
   fields: [
     ...getAdvanceSettings(false),

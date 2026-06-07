@@ -69,7 +69,14 @@ export const Programs: CollectionConfig = {
     beforeValidate: [
       ({ data }) => {
         if (data?.slides && Array.isArray(data.slides)) {
-          data.slides = data.slides.filter((s: any) => s.id !== 'auto-end')
+          data.slides = data.slides.filter((s: any) => {
+            if (s.id === 'auto-end') return false
+            if (!s.blockType) {
+              console.warn('[Programs.beforeValidate] Filtered out slide missing blockType:', s)
+              return false
+            }
+            return true
+          })
         }
         return data
       },
@@ -184,7 +191,8 @@ export const Programs: CollectionConfig = {
           && !doc.slides.some((s: any) => s.id === 'auto-end')
         ) {
           // Suppress auto-end in admin edit view so it doesn't clutter the slides list
-          if (req?.url?.includes('/admin/')) return doc
+          const user = req?.user as any
+          if (user?.collection === 'users') return doc
           doc.slides = [...doc.slides, {
             id: 'auto-end',
             blockType: 'blackScreenBlock',

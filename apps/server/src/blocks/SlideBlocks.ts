@@ -59,6 +59,7 @@ export const ImageBlock: Block = {
   },
   admin: {
     group: 'Content',
+    disableBlockName: true,
   },
   fields: [
     {
@@ -83,6 +84,7 @@ export const VideoBlock: Block = {
   },
   admin: {
     group: 'Content',
+    disableBlockName: true,
   },
   fields: [
     {
@@ -116,6 +118,7 @@ export const YoutubeBlock: Block = {
   },
   admin: {
     group: 'Content',
+    disableBlockName: true,
   },
   fields: [
     {
@@ -148,6 +151,7 @@ export const AudioBlock: Block = {
   },
   admin: {
     group: 'Content',
+    disableBlockName: true,
   },
   fields: [
     {
