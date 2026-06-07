@@ -317,7 +317,7 @@ export interface Program {
    */
   bulkMedia?: (number | Media)[] | null;
   /**
-   * When enabled, program loops continuously. When disabled, a black end slide is appended.
+   * When enabled, program loops continuously. When disabled, the program ends after the last slide.
    */
   loop?: boolean | null;
   /**

@@ -253,7 +253,7 @@ export const Programs: CollectionConfig = {
       defaultValue: false,
       admin: {
         position: 'sidebar',
-        description: 'When enabled, program loops continuously. When disabled, a black end slide is appended.',
+        description: 'When enabled, program loops continuously. When disabled, the program ends after the last slide.',
       },
     },
     {

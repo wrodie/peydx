@@ -12,7 +12,9 @@ export function DrawerRowInterceptor({ children }: { children: ReactNode }) {
     if (!el) return
 
     const handler = (e: MouseEvent) => {
-      const tr = (e.target as HTMLElement).closest('tr[data-id]') as HTMLElement | null
+      const target = e.target as HTMLElement
+      if (target.closest('input[type="checkbox"]')) return
+      const tr = target.closest('tr[data-id]') as HTMLElement | null
       if (!tr) return
 
       const docId = parseInt(tr.dataset.id || '', 10)
