@@ -248,18 +248,6 @@ export const Programs: CollectionConfig = {
       },
     },
     {
-      name: 'durationMinutes',
-      type: 'number',
-      required: true,
-      defaultValue: 5,
-      min: 1,
-      max: 480,
-      admin: {
-        position: 'sidebar',
-        description: 'Estimated runtime in minutes. Used for schedule conflict detection.',
-      },
-    },
-    {
       name: 'loop',
       type: 'checkbox',
       defaultValue: false,

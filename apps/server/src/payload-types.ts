@@ -317,10 +317,6 @@ export interface Program {
    */
   bulkMedia?: (number | Media)[] | null;
   /**
-   * Estimated runtime in minutes. Used for schedule conflict detection.
-   */
-  durationMinutes: number;
-  /**
    * When enabled, program loops continuously. When disabled, a black end slide is appended.
    */
   loop?: boolean | null;
@@ -627,7 +623,6 @@ export interface ProgramsSelect<T extends boolean = true> {
   status?: T;
   createdBy?: T;
   bulkMedia?: T;
-  durationMinutes?: T;
   loop?: T;
   autoBlackEndSlide?: T;
   folder?: T;
