@@ -23,10 +23,12 @@ export const Departments: CollectionConfig = {
           req.payload.create({
             collection: 'folders',
             data: { name, type: 'media', department: deptId, order: 0 },
+            req,
           }),
           req.payload.create({
             collection: 'folders',
             data: { name, type: 'programs', department: deptId, order: 0 },
+            req,
           }),
         ])
       },
