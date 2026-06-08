@@ -9,6 +9,24 @@ import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
 function normalizeSlide(slide: any): any {
+  if (slide.blockType === 'segmentBlock') {
+    const bgAudio = slide.backgroundAudio
+    return {
+      blockType: slide.blockType,
+      name: slide.name,
+      backgroundAudio: (bgAudio && typeof bgAudio === 'object') ? {
+        id: bgAudio.id,
+        url: bgAudio.url,
+        alt: bgAudio.alt,
+      } : null,
+      loop: slide.loop ?? false,
+      advanceMode: slide.advanceMode ?? 'slides',
+      duration: slide.duration ?? null,
+      slides: (slide.slides || []).map(normalizeSlide),
+      id: slide.id,
+    }
+  }
+
   const result: any = {
     blockType: slide.blockType,
     advanceMode: slide.advanceMode,
@@ -16,14 +34,14 @@ function normalizeSlide(slide: any): any {
     transition: slide.transition,
     id: slide.id,
   }
-  if (slide.blockType === 'imageBlock' && slide.image) {
+  if (slide.blockType === 'imageBlock' && slide.image && typeof slide.image === 'object') {
     result.image = {
       id: slide.image.id,
       url: slide.image.sizes?.fullHD?.url || slide.image.url,
       alt: slide.image.alt,
     }
   }
-  if (slide.blockType === 'videoBlock' && slide.video) {
+  if (slide.blockType === 'videoBlock' && slide.video && typeof slide.video === 'object') {
     result.video = {
       id: slide.video.id,
       url: slide.video.url,

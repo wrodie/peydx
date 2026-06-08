@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
-import type { Program, Slide } from './types'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react'
+import type { Program, Slide, SegmentContext } from './types'
+import { flattenProgram } from './flattenProgram'
 import './transitions.css'
 
 const TRANSITION_DURATION = 2500
@@ -33,15 +34,37 @@ interface SlideEngineProps {
   initialSlideIndex?: number
 }
 
+function findSegmentStartIndex(slides: Slide[], currentIndex: number, segCtx?: SegmentContext | null): number {
+  if (!segCtx) return 0
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    if (slides[i]?.segmentContext?.segmentId !== segCtx.segmentId) return i + 1
+  }
+  return 0
+}
+
+function getSegmentEndIndex(slides: Slide[], currentIndex: number, segCtx?: SegmentContext | null): number {
+  if (!segCtx) return slides.length - 1
+  for (let i = currentIndex + 1; i < slides.length; i++) {
+    if (slides[i]?.segmentContext?.segmentId !== segCtx.segmentId) return i - 1
+  }
+  return slides.length - 1
+}
+
 export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
   ({ program, onProgramEnd, onSlideChange, initialSlideIndex }, ref) => {
+    const flattened = useMemo(() => flattenProgram(program), [program])
+
     const [currentIndex, setCurrentIndex] = useState(initialSlideIndex ?? 0)
     const [videoError, setVideoError] = useState<string | null>(null)
     const [isEnded, setIsEnded] = useState(false)
+    const [segmentLoopKey, setSegmentLoopKey] = useState(0)
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const playerRef = useRef<any>(null)
     const videoRef = useRef<HTMLVideoElement>(null)
     const audioRef = useRef<HTMLAudioElement>(null)
+    const bgAudioRef = useRef<HTMLAudioElement>(null)
+    const prevSegmentIdRef = useRef<string | null>(null)
     const programRef = useRef(program.id)
     const prevProgramIdRef = useRef(program.id)
 
@@ -52,25 +75,42 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
         setCurrentIndex(initialSlideIndex ?? 0)
         setVideoError(null)
         setIsEnded(false)
+        setSegmentLoopKey(0)
+        prevSegmentIdRef.current = null
         if (timerRef.current) clearTimeout(timerRef.current)
+        if (segmentTimerRef.current) clearTimeout(segmentTimerRef.current)
         try { playerRef.current?.destroy() } catch {}
         playerRef.current = null
+        if (bgAudioRef.current) {
+          bgAudioRef.current.pause()
+          bgAudioRef.current.src = ''
+        }
       }
     }, [program.id, initialSlideIndex])
 
-    const slides = program.slides
+    const slides = flattened.slides
+
+    const currentSlide = slides[currentIndex]
+    const segCtx = currentSlide?.segmentContext
+
+    const isLastSlideInSegment = segCtx
+      ? getSegmentEndIndex(slides, currentIndex, segCtx) === currentIndex
+      : false
+
+    const isLastSlide = slides.length > 0 && currentIndex >= slides.length - 1
+    const effectiveProgramEnd = isLastSlide && (!segCtx || !(segCtx.loop || segCtx.advanceMode === 'manual'))
 
     useLayoutEffect(() => {
       if (!slides?.length || !onProgramEnd) {
         if (isEnded) setIsEnded(false)
         return
       }
-      if (currentIndex >= slides.length - 1) {
+      if (effectiveProgramEnd) {
         if (!isEnded) setIsEnded(true)
       } else if (isEnded) {
         setIsEnded(false)
       }
-    }, [currentIndex, slides, onProgramEnd, isEnded])
+    }, [effectiveProgramEnd, isEnded, slides, onProgramEnd])
 
     const doNextSlide = useCallback(() => {
       if (isEnded) {
@@ -79,13 +119,31 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       }
       if (!slides?.length) return
 
+      const slide = slides[currentIndex]
+      const ctx = slide?.segmentContext
+
+      if (ctx) {
+        if (isLastSlideInSegment && ctx.loop) {
+          setCurrentIndex(findSegmentStartIndex(slides, currentIndex, ctx))
+          setSegmentLoopKey((k) => k + 1)
+          setVideoError(null)
+          return
+        }
+        if (isLastSlideInSegment && ctx.advanceMode === 'manual') {
+          return
+        }
+        if (isLastSlideInSegment && ctx.advanceMode === 'timed') {
+          return
+        }
+      }
+
       if (currentIndex < slides.length - 1) {
         setCurrentIndex(currentIndex + 1)
       } else if (!onProgramEnd) {
         setCurrentIndex(0)
       }
       setVideoError(null)
-    }, [slides, onProgramEnd, isEnded, currentIndex])
+    }, [slides, onProgramEnd, isEnded, currentIndex, isLastSlideInSegment])
 
     const doPrevSlide = useCallback(() => {
       if (isEnded || !slides?.length) return
@@ -126,14 +184,62 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       [doNextSlide],
     )
 
-    const currentSlide = slides?.[currentIndex]
-
     useEffect(() => {
       runSlideLogic(currentSlide)
       return () => {
         if (timerRef.current) clearTimeout(timerRef.current)
       }
     }, [currentSlide, runSlideLogic])
+
+    // Background audio management
+    useEffect(() => {
+      const newSegId = segCtx?.segmentId ?? null
+
+      if (newSegId !== prevSegmentIdRef.current) {
+        // Leaving previous segment
+        if (prevSegmentIdRef.current && bgAudioRef.current) {
+          bgAudioRef.current.pause()
+          bgAudioRef.current.src = ''
+        }
+
+        // Entering new segment with background audio
+        if (newSegId && segCtx?.backgroundAudio?.url && bgAudioRef.current) {
+          bgAudioRef.current.src = segCtx.backgroundAudio.url
+          bgAudioRef.current.load()
+          bgAudioRef.current.play().catch(() => {})
+        }
+
+        prevSegmentIdRef.current = newSegId
+      } else if (segmentLoopKey > 0 && newSegId && segCtx?.backgroundAudio?.url && bgAudioRef.current) {
+        // Segment looped, restart background audio
+        bgAudioRef.current.pause()
+        bgAudioRef.current.load()
+        bgAudioRef.current.currentTime = 0
+        bgAudioRef.current.play().catch(() => {})
+      }
+    }, [segCtx, segmentLoopKey])
+
+    // Segment timer for 'timed' advance mode
+    useEffect(() => {
+      if (segmentTimerRef.current) clearTimeout(segmentTimerRef.current)
+
+      if (segCtx?.advanceMode === 'timed' && segCtx?.duration) {
+        const durationMs = segCtx.duration * 60 * 1000
+        segmentTimerRef.current = setTimeout(() => {
+          // Find the index just after this segment
+          const endIdx = getSegmentEndIndex(slides, currentIndex, segCtx)
+          if (endIdx < slides.length - 1) {
+            setCurrentIndex(endIdx + 1)
+          } else if (!onProgramEnd) {
+            setCurrentIndex(0)
+          }
+        }, durationMs)
+      }
+
+      return () => {
+        if (segmentTimerRef.current) clearTimeout(segmentTimerRef.current)
+      }
+    }, [currentIndex, slides, segCtx, onProgramEnd, segmentLoopKey])
 
     useEffect(() => {
       const handler = (e: KeyboardEvent) => {
@@ -227,6 +333,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
 
     return (
       <div className="slide-stage">
+        <audio ref={bgAudioRef} style={{ display: 'none' }} loop />
         <div
           key={currentIndex}
           className="slide-slide-wrapper"

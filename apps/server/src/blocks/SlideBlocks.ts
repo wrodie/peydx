@@ -51,6 +51,19 @@ export const getAdvanceSettings = (isVideoButton: boolean): Field[] => {
   ]
 }
 
+export const getSlideMoveControl = (): Field => ({
+  name: '_moveToSegment',
+  type: 'text',
+  label: 'Move to segment',
+  defaultValue: '__none__',
+  admin: {
+    components: {
+      Field: '/components/SlideMoveSelect#SlideMoveSelect',
+    },
+    description: 'Move this slide to another segment or the top level on save.',
+  },
+})
+
 export const ImageBlock: Block = {
   slug: 'imageBlock',
   labels: {
@@ -67,12 +80,12 @@ export const ImageBlock: Block = {
       type: 'upload',
       relationTo: 'media',
       required: true,
-      // Prevents videos appearing in the image selection list
       filterOptions: {
         mimeType: { contains: 'image' },
       },
     },
     ...getAdvanceSettings(false),
+    getSlideMoveControl(),
   ],
 }
 
@@ -92,7 +105,6 @@ export const VideoBlock: Block = {
       type: 'upload',
       relationTo: 'media',
       required: true,
-      // Prevents images appearing in the video selection list
       filterOptions: {
         mimeType: { contains: 'video' },
       },
@@ -107,6 +119,7 @@ export const VideoBlock: Block = {
         description: 'Repeats the video until the slide transitions.',
       },
     },
+    getSlideMoveControl(),
   ],
 }
 
@@ -140,6 +153,7 @@ export const YoutubeBlock: Block = {
         description: 'Repeats the video until the slide transitions.',
       },
     },
+    getSlideMoveControl(),
   ],
 }
 
@@ -173,5 +187,6 @@ export const AudioBlock: Block = {
         description: 'Repeats the audio until the slide transitions.',
       },
     },
+    getSlideMoveControl(),
   ],
 }

@@ -242,6 +242,10 @@ export interface Program {
              */
             advanceMode: 'timed' | 'manual';
             duration?: number | null;
+            /**
+             * Move this slide to another segment or the top level on save.
+             */
+            _moveToSegment?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'imageBlock';
@@ -258,6 +262,10 @@ export interface Program {
              * Repeats the video until the slide transitions.
              */
             loop?: boolean | null;
+            /**
+             * Move this slide to another segment or the top level on save.
+             */
+            _moveToSegment?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'videoBlock';
@@ -277,6 +285,10 @@ export interface Program {
              * Repeats the video until the slide transitions.
              */
             loop?: boolean | null;
+            /**
+             * Move this slide to another segment or the top level on save.
+             */
+            _moveToSegment?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'youtubeBlock';
@@ -293,6 +305,10 @@ export interface Program {
              * Repeats the audio until the slide transitions.
              */
             loop?: boolean | null;
+            /**
+             * Move this slide to another segment or the top level on save.
+             */
+            _moveToSegment?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'audioBlock';
@@ -304,9 +320,141 @@ export interface Program {
              */
             advanceMode: 'timed' | 'manual';
             duration?: number | null;
+            /**
+             * Move this slide to another segment or the top level on save.
+             */
+            _moveToSegment?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'blackScreenBlock';
+          }
+        | {
+            /**
+             * For identification in the admin UI only.
+             */
+            name?: string | null;
+            /**
+             * Audio that plays across all slides in this segment.
+             */
+            backgroundAudio?: (number | null) | Media;
+            /**
+             * When enabled, the segment restarts from slide 1 after the last slide.
+             */
+            loop?: boolean | null;
+            /**
+             * How the player moves to the next item after this segment ends.
+             */
+            advanceMode?: ('slides' | 'timed' | 'manual') | null;
+            /**
+             * Play this segment for this many minutes, then advance.
+             */
+            duration?: number | null;
+            /**
+             * Slides within this segment.
+             */
+            slides: (
+              | {
+                  image: number | Media;
+                  transition?: ('fade' | 'cut' | 'slide') | null;
+                  /**
+                   * How should the player move to the next slide?
+                   */
+                  advanceMode: 'timed' | 'manual';
+                  duration?: number | null;
+                  /**
+                   * Move this slide to another segment or the top level on save.
+                   */
+                  _moveToSegment?: string | null;
+                  id?: string | null;
+                  blockName?: string | null;
+                  blockType: 'imageBlock';
+                }
+              | {
+                  video: number | Media;
+                  transition?: ('fade' | 'cut' | 'slide') | null;
+                  /**
+                   * How should the player move to the next slide?
+                   */
+                  advanceMode: 'timed' | 'manual' | 'onEnd';
+                  duration?: number | null;
+                  /**
+                   * Repeats the video until the slide transitions.
+                   */
+                  loop?: boolean | null;
+                  /**
+                   * Move this slide to another segment or the top level on save.
+                   */
+                  _moveToSegment?: string | null;
+                  id?: string | null;
+                  blockName?: string | null;
+                  blockType: 'videoBlock';
+                }
+              | {
+                  /**
+                   * Paste a YouTube link (e.g. youtube.com/watch?v=...) or just the video ID.
+                   */
+                  youtubeId: string;
+                  transition?: ('fade' | 'cut' | 'slide') | null;
+                  /**
+                   * How should the player move to the next slide?
+                   */
+                  advanceMode: 'timed' | 'manual' | 'onEnd';
+                  duration?: number | null;
+                  /**
+                   * Repeats the video until the slide transitions.
+                   */
+                  loop?: boolean | null;
+                  /**
+                   * Move this slide to another segment or the top level on save.
+                   */
+                  _moveToSegment?: string | null;
+                  id?: string | null;
+                  blockName?: string | null;
+                  blockType: 'youtubeBlock';
+                }
+              | {
+                  audio: number | Media;
+                  transition?: ('fade' | 'cut' | 'slide') | null;
+                  /**
+                   * How should the player move to the next slide?
+                   */
+                  advanceMode: 'timed' | 'manual' | 'onEnd';
+                  duration?: number | null;
+                  /**
+                   * Repeats the audio until the slide transitions.
+                   */
+                  loop?: boolean | null;
+                  /**
+                   * Move this slide to another segment or the top level on save.
+                   */
+                  _moveToSegment?: string | null;
+                  id?: string | null;
+                  blockName?: string | null;
+                  blockType: 'audioBlock';
+                }
+              | {
+                  transition?: ('fade' | 'cut' | 'slide') | null;
+                  /**
+                   * How should the player move to the next slide?
+                   */
+                  advanceMode: 'timed' | 'manual';
+                  duration?: number | null;
+                  /**
+                   * Move this slide to another segment or the top level on save.
+                   */
+                  _moveToSegment?: string | null;
+                  id?: string | null;
+                  blockName?: string | null;
+                  blockType: 'blackScreenBlock';
+                }
+            )[];
+            /**
+             * Drop files here to auto-generate slides inside this segment.
+             */
+            bulkMedia?: (number | Media)[] | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'segmentBlock';
           }
       )[]
     | null;
@@ -574,6 +722,7 @@ export interface ProgramsSelect<T extends boolean = true> {
               transition?: T;
               advanceMode?: T;
               duration?: T;
+              _moveToSegment?: T;
               id?: T;
               blockName?: T;
             };
@@ -585,6 +734,7 @@ export interface ProgramsSelect<T extends boolean = true> {
               advanceMode?: T;
               duration?: T;
               loop?: T;
+              _moveToSegment?: T;
               id?: T;
               blockName?: T;
             };
@@ -596,6 +746,7 @@ export interface ProgramsSelect<T extends boolean = true> {
               advanceMode?: T;
               duration?: T;
               loop?: T;
+              _moveToSegment?: T;
               id?: T;
               blockName?: T;
             };
@@ -607,6 +758,7 @@ export interface ProgramsSelect<T extends boolean = true> {
               advanceMode?: T;
               duration?: T;
               loop?: T;
+              _moveToSegment?: T;
               id?: T;
               blockName?: T;
             };
@@ -616,6 +768,80 @@ export interface ProgramsSelect<T extends boolean = true> {
               transition?: T;
               advanceMode?: T;
               duration?: T;
+              _moveToSegment?: T;
+              id?: T;
+              blockName?: T;
+            };
+        segmentBlock?:
+          | T
+          | {
+              name?: T;
+              backgroundAudio?: T;
+              loop?: T;
+              advanceMode?: T;
+              duration?: T;
+              slides?:
+                | T
+                | {
+                    imageBlock?:
+                      | T
+                      | {
+                          image?: T;
+                          transition?: T;
+                          advanceMode?: T;
+                          duration?: T;
+                          _moveToSegment?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    videoBlock?:
+                      | T
+                      | {
+                          video?: T;
+                          transition?: T;
+                          advanceMode?: T;
+                          duration?: T;
+                          loop?: T;
+                          _moveToSegment?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    youtubeBlock?:
+                      | T
+                      | {
+                          youtubeId?: T;
+                          transition?: T;
+                          advanceMode?: T;
+                          duration?: T;
+                          loop?: T;
+                          _moveToSegment?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    audioBlock?:
+                      | T
+                      | {
+                          audio?: T;
+                          transition?: T;
+                          advanceMode?: T;
+                          duration?: T;
+                          loop?: T;
+                          _moveToSegment?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    blackScreenBlock?:
+                      | T
+                      | {
+                          transition?: T;
+                          advanceMode?: T;
+                          duration?: T;
+                          _moveToSegment?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                  };
+              bulkMedia?: T;
               id?: T;
               blockName?: T;
             };

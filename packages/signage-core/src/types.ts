@@ -16,12 +16,59 @@ export interface Slide {
   transition?: 'fade' | 'cut' | 'slide' | null
   loop?: boolean | null
   id?: string | null
+  segmentContext?: SegmentContext | null
+}
+
+export interface SegmentContext {
+  segmentId: string
+  name?: string | null
+  backgroundAudio?: Media | null
+  loop: boolean
+  advanceMode: 'slides' | 'timed' | 'manual'
+  duration?: number | null
+  index: number
+  total: number
+}
+
+export interface Segment {
+  blockType: 'segmentBlock'
+  name?: string | null
+  backgroundAudio?: Media | number | null
+  loop: boolean
+  advanceMode: 'slides' | 'timed' | 'manual'
+  duration?: number | null
+  slides: Slide[]
+  id?: string | null
+}
+
+export type SlideOrSegment = Slide | Segment
+
+export interface FlattenedProgram {
+  id: number
+  title: string
+  slides: Slide[]
+  loop?: boolean | null
+  autoBlackEndSlide?: boolean | null
+  department?: string | null
+  segmentBoundaries: Map<number, SegmentBoundary>
+}
+
+export interface SegmentBoundary {
+  segmentId: string
+  name?: string | null
+  backgroundAudio?: Media | null
+  loop: boolean
+  advanceMode: 'slides' | 'timed' | 'manual'
+  duration?: number | null
+  startIndex: number
+  endIndex: number
+  totalSlides: number
 }
 
 export interface Program {
   id: number
   title: string
-  slides?: Slide[] | null
+  slides?: SlideOrSegment[] | null
   loop?: boolean | null
   autoBlackEndSlide?: boolean | null
   department?: string | null

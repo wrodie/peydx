@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { SlideEngine } from './SlideEngine'
 import { MenuEngine } from './MenuEngine'
-import type { Program, PlayerState, ScheduleEntry, ResolvedSchedule, KeyConfig } from './types'
+import type { Program, PlayerState, ScheduleEntry, ResolvedSchedule, KeyConfig, Slide } from './types'
+import { flattenProgram } from './flattenProgram'
 import { mergeKeyConfig } from './keyConfig'
 import type { SlideEngineHandle } from './SlideEngine'
 
@@ -81,6 +82,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const [currentScheduleEntry, setCurrentScheduleEntry] = useState<ScheduleEntry | null>(null)
     const [showPaused, setShowPaused] = useState(false)
     const pausedRef = useRef(false)
+    const flattenedSlidesRef = useRef<Slide[]>([])
 
     const engineRef = useRef<SlideEngineHandle>(null)
     const menuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -137,11 +139,13 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         if (availEntries) setAvailableEntries(availEntries)
         if (program) {
           setActiveProgram(program)
+          flattenedSlidesRef.current = flattenProgram(program).slides
           setProgramKey((k) => k + 1)
           setPendingSlideIndex(0)
           setCurrentScheduleEntry(entry ?? null)
         } else if (program === null) {
           setActiveProgram(null)
+          flattenedSlidesRef.current = []
           setCurrentScheduleEntry(null)
         }
         if (index !== undefined) setMenuIndex(index)
@@ -241,7 +245,8 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       const els = engineRef.current?.getMediaElements()
       if (!els) return
 
-      const blockType = activeProgram?.slides?.[engineRef.current?.getCurrentIndex() ?? -1]?.blockType
+      const idx = engineRef.current?.getCurrentIndex() ?? -1
+      const blockType = flattenedSlidesRef.current[idx]?.blockType
       if (blockType !== 'videoBlock' && blockType !== 'audioBlock' && blockType !== 'youtubeBlock') return
 
       if (pausedRef.current) {
@@ -256,7 +261,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
 
       setShowPaused((prev) => !prev)
       pausedRef.current = !pausedRef.current
-    }, [playerState, activeProgram])
+    }, [playerState])
 
     useImperativeHandle(ref, () => ({
       openMenu,
@@ -370,31 +375,52 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       return () => clearMenuTimeout()
     }, [clearMenuTimeout])
 
-    if (showExitOverlay && activeProgram) {
+    if (playerState === 'playing' && activeProgram) {
       return (
-        <>
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
           <SlideEngine
             ref={engineRef}
             key={programKey}
             program={activeProgram}
+            initialSlideIndex={pendingSlideIndex}
             onSlideChange={handleSlideChange}
             onProgramEnd={activeProgram.loop ? undefined : handleProgramEnd}
           />
-          <MenuEngine
-            programs={[]}
-            selectedIndex={0}
-            onSelect={() => {}}
-            onBack={() => {
-              clearMenuTimeout()
-              setShowExitOverlay(false)
-            }}
-            onExit={exitProgram}
-            keyConfig={keys}
-            title="Options"
-            exitLabel="Exit Program"
-            continueLabel="Continue"
-          />
-        </>
+          {showExitOverlay && (
+            <MenuEngine
+              programs={[]}
+              selectedIndex={0}
+              onSelect={() => {}}
+              onBack={() => {
+                clearMenuTimeout()
+                setShowExitOverlay(false)
+              }}
+              onExit={exitProgram}
+              keyConfig={keys}
+              title="Options"
+              exitLabel="Exit Program"
+              continueLabel="Continue"
+            />
+          )}
+          {showPaused && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0, 0, 0, 0.4)',
+                zIndex: 20,
+                pointerEvents: 'none',
+              }}
+            >
+              <span style={{ color: 'white', fontSize: '3rem', fontWeight: 600, opacity: 0.8 }}>
+                ⏸ Paused
+              </span>
+            </div>
+          )}
+        </div>
       )
     }
 
@@ -422,39 +448,6 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           deviceName={scheduleData?.deviceName}
           defaultBackground={scheduleData?.defaultBackground}
         />
-      )
-    }
-
-    if (playerState === 'playing' && activeProgram) {
-      return (
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-          <SlideEngine
-            ref={engineRef}
-            key={programKey}
-            program={activeProgram}
-            initialSlideIndex={pendingSlideIndex}
-            onSlideChange={handleSlideChange}
-            onProgramEnd={activeProgram.loop ? undefined : handleProgramEnd}
-          />
-          {showPaused && (
-            <div
-              style={{
-                position: 'fixed',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(0, 0, 0, 0.4)',
-                zIndex: 20,
-                pointerEvents: 'none',
-              }}
-            >
-              <span style={{ color: 'white', fontSize: '3rem', fontWeight: 600, opacity: 0.8 }}>
-                ⏸ Paused
-              </span>
-            </div>
-          )}
-        </div>
       )
     }
 

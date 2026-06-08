@@ -1,7 +1,9 @@
 import type { CollectionConfig } from 'payload'
 import { ImageBlock, VideoBlock, YoutubeBlock, AudioBlock } from '../blocks/SlideBlocks'
 import { BlackScreenBlock } from '../blocks/BlackScreenBlock'
+import { SegmentBlock } from '../blocks/SegmentBlock'
 import { autoCreateSlides } from '../hooks/autoCreateSlides'
+import { moveSlides } from '../hooks/moveSlides'
 import { getIO } from '../websocket/io'
 
 export const Programs: CollectionConfig = {
@@ -123,6 +125,7 @@ export const Programs: CollectionConfig = {
           }
         }
         await autoCreateSlides(args)
+        await moveSlides(args)
         if (user && !data.createdBy) {
           data.createdBy = user.id
         }
@@ -190,9 +193,6 @@ export const Programs: CollectionConfig = {
           && doc.slides[doc.slides.length - 1]?.blockType !== 'blackScreenBlock'
           && !doc.slides.some((s: any) => s.id === 'auto-end')
         ) {
-          // Suppress auto-end in admin edit view so it doesn't clutter the slides list
-          const user = req?.user as any
-          if (user?.collection === 'users') return doc
           doc.slides = [...doc.slides, {
             id: 'auto-end',
             blockType: 'blackScreenBlock',
@@ -222,7 +222,7 @@ export const Programs: CollectionConfig = {
     {
       name: 'slides',
       type: 'blocks',
-      blocks: [ImageBlock, VideoBlock, YoutubeBlock, AudioBlock, BlackScreenBlock],
+      blocks: [ImageBlock, VideoBlock, YoutubeBlock, AudioBlock, BlackScreenBlock, SegmentBlock],
     },
     {
       name: 'status',

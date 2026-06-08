@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
+import { flattenProgram } from 'signage-core'
 
 function getThumbnailUrl(slide: any): string | null {
   if (!slide) return null
@@ -148,9 +149,12 @@ export function RemoteControlView() {
       .catch(console.error)
   }, [selectedDeviceId, devices])
 
-  const slides = currentProgram?.slides || []
-  const currentSlide = slides[currentSlideIndex] || slides[0]
-  const isLastSlide = slides.length > 0 && currentSlideIndex >= slides.length - 1
+  const { slides: flatSlides } = useMemo(
+    () => currentProgram ? flattenProgram(currentProgram) : { slides: [] },
+    [currentProgram]
+  )
+  const currentSlide = flatSlides[currentSlideIndex] || flatSlides[0]
+  const isLastSlide = flatSlides.length > 0 && currentSlideIndex >= flatSlides.length - 1
   const thumbnailUrl = getThumbnailUrl(currentSlide)
   const blockIcon = getBlockIcon(currentSlide)
 
@@ -352,7 +356,7 @@ export function RemoteControlView() {
                 marginBottom: 12,
               }}
             >
-              Slide {currentSlideIndex + 1} of {slides.length}
+              Slide {currentSlideIndex + 1} of {flatSlides.length}
             </div>
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -413,7 +417,7 @@ export function RemoteControlView() {
                 scrollbarWidth: 'thin',
               }}
             >
-              {slides.map((slide: any, i: number) => {
+              {flatSlides.map((slide: any, i: number) => {
                 const url = getThumbnailUrl(slide)
                 const icon = getBlockIcon(slide)
                 return (

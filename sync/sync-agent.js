@@ -122,6 +122,60 @@ async function downloadSizes(media, mediaBaseUrl) {
   }
 }
 
+function resolveSlideMedia(slide) {
+  if (slide.blockType === 'segmentBlock') {
+    slide.slides = (slide.slides || []).map(resolveSlideMedia)
+    if (slide.backgroundAudio && typeof slide.backgroundAudio === 'object') {
+      slide.backgroundAudio = {
+        ...slide.backgroundAudio,
+        url: slide.backgroundAudio.url
+          ? `/local-media/${sanitizeFilename(slide.backgroundAudio.filename || '')}`
+          : null,
+      }
+    }
+    return slide
+  }
+
+  const resolved = { ...slide }
+  if (slide.blockType === 'imageBlock' && slide.image) {
+    const img = typeof slide.image === 'object' ? slide.image : null;
+    if (img) {
+      const sizeFilename = img.sizes?.fullHD?.filename;
+      resolved.image = {
+        url: sizeFilename
+          ? `/local-media/${sanitizeFilename(sizeFilename)}`
+          : img.url
+            ? `/local-media/${sanitizeFilename(img.filename || '')}`
+            : null,
+        alt: img.alt || null,
+      };
+    }
+  }
+  if (slide.blockType === 'videoBlock' && slide.video) {
+    const vid = typeof slide.video === 'object' ? slide.video : null;
+    if (vid) {
+      resolved.video = {
+        url: vid.url
+          ? `/local-media/${sanitizeFilename(vid.filename || '')}`
+          : null,
+        alt: vid.alt || null,
+      };
+    }
+  }
+  if (slide.blockType === 'audioBlock' && slide.audio) {
+    const aud = typeof slide.audio === 'object' ? slide.audio : null;
+    if (aud) {
+      resolved.audio = {
+        url: aud.url
+          ? `/local-media/${sanitizeFilename(aud.filename || '')}`
+          : null,
+        alt: aud.alt || null,
+      };
+    }
+  }
+  return resolved;
+}
+
 function buildScheduleJson(activeItems, backgroundUrl, deviceName) {
   const schedule = activeItems.map(item => ({
     programId: item.program?.id,
@@ -133,46 +187,7 @@ function buildScheduleJson(activeItems, backgroundUrl, deviceName) {
       title: item.program?.title,
       loop: item.program?.loop,
       department: item.program?.folder?.department?.name || null,
-      slides: (item.program?.slides || []).map(slide => {
-        const resolved = { ...slide };
-        if (slide.blockType === 'imageBlock' && slide.image) {
-          const img = typeof slide.image === 'object' ? slide.image : null;
-          if (img) {
-            const sizeFilename = img.sizes?.fullHD?.filename;
-            resolved.image = {
-              url: sizeFilename
-                ? `/local-media/${sanitizeFilename(sizeFilename)}`
-                : img.url
-                  ? `/local-media/${sanitizeFilename(img.filename || '')}`
-                  : null,
-              alt: img.alt || null,
-            };
-          }
-        }
-        if (slide.blockType === 'videoBlock' && slide.video) {
-          const vid = typeof slide.video === 'object' ? slide.video : null;
-          if (vid) {
-            resolved.video = {
-              url: vid.url
-                ? `/local-media/${sanitizeFilename(vid.filename || '')}`
-                : null,
-              alt: vid.alt || null,
-            };
-          }
-        }
-        if (slide.blockType === 'audioBlock' && slide.audio) {
-          const aud = typeof slide.audio === 'object' ? slide.audio : null;
-          if (aud) {
-            resolved.audio = {
-              url: aud.url
-                ? `/local-media/${sanitizeFilename(aud.filename || '')}`
-                : null,
-              alt: aud.alt || null,
-            };
-          }
-        }
-        return resolved;
-      }),
+      slides: (item.program?.slides || []).map(resolveSlideMedia),
     },
   }));
 
@@ -296,49 +311,70 @@ async function sync() {
     // Phase 2: Download all media in parallel
     const downloads = [];
 
+    function collectSlideMedia(slide) {
+      if (slide.blockType === 'segmentBlock') {
+        // Collect background audio
+        const bgAudio = slide.backgroundAudio
+        if (bgAudio && typeof bgAudio === 'object') {
+          collectMedia(bgAudio, downloads)
+        }
+        // Recurse into child slides
+        for (const child of (slide.slides || [])) {
+          collectSlideMedia(child)
+        }
+        return
+      }
+
+      const media =
+        slide.blockType === 'videoBlock' ? slide.video
+          : slide.blockType === 'audioBlock' ? slide.audio
+          : slide.image
+      if (media && typeof media === 'object') {
+        collectMedia(media, downloads)
+      }
+    }
+
+    function collectMedia(media, downloadsArr) {
+      if (media.filename) requiredFilenames.add(sanitizeFilename(media.filename));
+      if (media.sizes?.fullHD?.filename) requiredFilenames.add(sanitizeFilename(media.sizes.fullHD.filename));
+      if (media.sizes?.thumbnail?.filename) requiredFilenames.add(sanitizeFilename(media.sizes.thumbnail.filename));
+
+      const logName = media.filename || 'unknown';
+      console.log(ts(`[sync] Queuing ${logName}...`));
+      downloadsArr.push(
+        downloadIfChanged(media, `${API_URL}/media/file`)
+          .then(() => console.log(ts(`[sync]   ${logName} done`)))
+          .catch(err => console.error(ts(`[sync]   ${logName} failed: ${err.message}`)))
+      );
+
+      if (media.sizes) {
+        for (const size of ['fullHD', 'thumbnail']) {
+          const sizeData = media.sizes?.[size];
+          if (sizeData?.filename) {
+            const sanitized = sanitizeFilename(sizeData.filename);
+            if (!requiredFilenames.has(sanitized)) continue;
+            const dest = path.join(LOCAL_DIR, sanitized);
+            const remoteSec = Math.floor(new Date(media.updatedAt).getTime() / 1000);
+            if (fs.existsSync(dest)) {
+              const stats = fs.statSync(dest);
+              const localSec = Math.floor(new Date(stats.mtime).getTime() / 1000);
+              if (localSec >= remoteSec) continue;
+            }
+            const url = `${API_URL}/media/file/${sizeData.filename}`;
+            downloadsArr.push(
+              downloadFile(url, dest, media.updatedAt)
+                .then(() => console.log(ts(`[sync]   ${sizeData.filename} done`)))
+                .catch(err => console.error(ts(`[sync]   ${sizeData.filename} failed: ${err.message}`)))
+            );
+          }
+        }
+      }
+    }
+
     for (const item of activeItems) {
       if (item.program?.slides) {
         for (const slide of item.program.slides) {
-          const media =
-            slide.blockType === 'videoBlock' ? slide.video
-              : slide.blockType === 'audioBlock' ? slide.audio
-              : slide.image;
-          if (media && typeof media === 'object') {
-            if (media.filename) requiredFilenames.add(sanitizeFilename(media.filename));
-            if (media.sizes?.fullHD?.filename) requiredFilenames.add(sanitizeFilename(media.sizes.fullHD.filename));
-            if (media.sizes?.thumbnail?.filename) requiredFilenames.add(sanitizeFilename(media.sizes.thumbnail.filename));
-
-            const logName = media.filename || 'unknown';
-            console.log(ts(`[sync] Queuing ${logName}...`));
-            downloads.push(
-              downloadIfChanged(media, `${API_URL}/media/file`)
-                .then(() => console.log(ts(`[sync]   ${logName} done`)))
-                .catch(err => console.error(ts(`[sync]   ${logName} failed: ${err.message}`)))
-            );
-
-            if (media.sizes) {
-              for (const size of ['fullHD', 'thumbnail']) {
-                const sizeData = media.sizes?.[size];
-                if (sizeData?.filename) {
-                  const sanitized = sanitizeFilename(sizeData.filename);
-                  if (!requiredFilenames.has(sanitized)) continue;
-                  const dest = path.join(LOCAL_DIR, sanitized);
-                  const remoteSec = Math.floor(new Date(media.updatedAt).getTime() / 1000);
-                  if (fs.existsSync(dest)) {
-                    const stats = fs.statSync(dest);
-                    const localSec = Math.floor(new Date(stats.mtime).getTime() / 1000);
-                    if (localSec >= remoteSec) continue;
-                  }
-                  const url = `${API_URL}/media/file/${sizeData.filename}`;
-                  downloads.push(
-                    downloadFile(url, dest, media.updatedAt)
-                      .then(() => console.log(ts(`[sync]   ${sizeData.filename} done`)))
-                      .catch(err => console.error(ts(`[sync]   ${sizeData.filename} failed: ${err.message}`)))
-                  );
-                }
-              }
-            }
-          }
+          collectSlideMedia(slide)
         }
       }
     }
