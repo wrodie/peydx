@@ -26,3 +26,137 @@
     background: #1d4ed8;
   }
 }
+
+// --- Top navigation bar ---
+
+.top-nav-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+  background: var(--theme-elevation-100);
+  border-bottom: 1px solid var(--theme-elevation-200);
+  height: 48px;
+  flex-shrink: 0;
+
+  &__inner {
+    height: 100%;
+    padding: 0 var(--gutter-h);
+    display: flex;
+    align-items: center;
+  }
+
+  &__nav {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 2px;
+    width: 100%;
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: var(--theme-elevation-800);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+    cursor: pointer;
+    border: none;
+    background: none;
+    white-space: nowrap;
+    font-family: inherit;
+
+    &:hover {
+      background: var(--theme-elevation-200);
+      color: var(--theme-text);
+    }
+
+    &--active {
+      background: var(--theme-elevation-300);
+      color: var(--theme-text);
+      font-weight: 600;
+
+      &:hover {
+        background: var(--theme-elevation-300);
+      }
+    }
+  }
+
+  &__account {
+    margin-left: auto;
+  }
+
+  &__dropdown {
+    position: relative;
+  }
+
+  &__dropdown-toggle {
+    gap: 6px;
+  }
+
+  &__dropdown-menu {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    min-width: 160px;
+    background: var(--theme-input-bg);
+    border: 1px solid var(--theme-elevation-200);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: var(--z-modal);
+    padding: 4px 0;
+    overflow: hidden;
+  }
+
+  &__dropdown-item {
+    display: block;
+    padding: 8px 14px;
+    color: var(--theme-elevation-800);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 400;
+    transition: background 0.1s;
+    white-space: nowrap;
+
+    &:hover {
+      background: var(--theme-elevation-100);
+    }
+
+    &--active {
+      background: var(--theme-elevation-150);
+      font-weight: 600;
+    }
+  }
+}
+
+// --- Remove sidebar and reclaim space ---
+
+aside.nav {
+  display: none !important;
+}
+
+.template-default__nav-toggler-wrapper {
+  display: none !important;
+}
+
+.template-default,
+.template-default--nav-open,
+.template-default--nav-hydrated,
+.template-default--nav-hydrated.template-default--nav-open {
+  grid-template-columns: 1fr !important;
+}
+
+// --- Remove AppHeader (breadcrumbs + account moved to top bar) ---
+
+.app-header {
+  display: none !important;
+}
+
+.template-default__wrap {
+  padding-top: 16px;
+}

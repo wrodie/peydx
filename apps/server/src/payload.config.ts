@@ -22,19 +22,11 @@ export default buildConfig({
   admin: {
     user: Users.slug,
     components: {
-      afterNavLinks: ['/components/RemoteNavLink#RemoteNavLink'],
+      Nav: '/components/HiddenSidebar#HiddenSidebar',
+      header: ['/components/TopNavHeader#TopNavHeader'],
     },
     importMap: {
       baseDir: path.resolve(dirname),
-    },
-  },
-  i18n: {
-    translations: {
-      en: {
-        general: {
-          collections: 'Menu',
-        },
-      },
     },
   },
   collections: [
