@@ -48,8 +48,10 @@ export const moveSlides: CollectionBeforeChangeHook = async ({ data }) => {
         if (target !== '__top__') {
           // Move from top level to a segment
           moves.push({ slide: stripMoveField(item), targetId: target })
+        } else {
+          // target === '__top__' → no-op (already top level)
+          newTopLevel.push(stripMoveField(item))
         }
-        // else: target === '__top__' → no-op (already top level)
       } else {
         newTopLevel.push(stripMoveField(item))
       }

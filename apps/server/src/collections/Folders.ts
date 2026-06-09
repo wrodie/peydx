@@ -1,23 +1,5 @@
 import type { CollectionConfig } from 'payload'
-
-async function getAncestorCount(payload: any, folderId: number): Promise<number> {
-  let count = 0
-  let currentId: number | null = folderId
-
-  while (currentId) {
-    const result: { parent?: number | { id: number } | null } = await payload.findByID({
-      collection: 'folders',
-      id: currentId,
-      depth: 0,
-    })
-    const parent = result?.parent
-    if (!parent) break
-    count++
-    currentId = typeof parent === 'object' ? parent.id : parent
-  }
-
-  return count
-}
+import { getAncestorCount } from './folder-utils'
 
 export const Folders: CollectionConfig = {
   slug: 'folders',

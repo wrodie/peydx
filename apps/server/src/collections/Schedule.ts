@@ -1,26 +1,8 @@
 import type { CollectionConfig } from 'payload'
 import { getIO } from '../websocket/io'
+import { timeOfDayMinutes, dateOnly, dateRangesOverlap, DAY_NAMES } from './schedule-utils'
 
 const ONE_HOUR = 60 * 60 * 1000
-
-function timeOfDayMinutes(iso: string): number {
-  const d = new Date(iso)
-  return d.getUTCHours() * 60 + d.getUTCMinutes()
-}
-
-function dateOnly(iso: string): string {
-  return new Date(iso).toISOString().split('T')[0]
-}
-
-function dateRangesOverlap(sdA: string | null, untilA: string | null, sdB: string | null, untilB: string | null): boolean {
-  const sa = sdA ? new Date(sdA).getTime() : 0
-  const sb = sdB ? new Date(sdB).getTime() : 0
-  const ea = untilA ? new Date(untilA).getTime() : Infinity
-  const eb = untilB ? new Date(untilB).getTime() : Infinity
-  return sa <= eb && sb <= ea
-}
-
-const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 
 export const Schedule: CollectionConfig = {
   slug: 'schedule',

@@ -6,6 +6,7 @@ const express = require('express');
 const { io: socketIOClient } = require('socket.io-client');
 const { Server: SocketIOServer } = require('socket.io');
 const http = require('http');
+const { sanitizeFilename, resolveSlideMedia, buildScheduleJson, writeScheduleAtomically: writeScheduleJson } = require('./sync-utils');
 
 // CONFIGURATION — all from environment variables
 const API_KEY = process.env.DEVICE_API_KEY;
@@ -35,12 +36,6 @@ if (!fs.existsSync(SCHEDULE_PATH)) {
 let currentSlideIndex = 0;
 let activeProgramId = null;
 let userSelectedProgramId = null;
-
-function sanitizeFilename(filename) {
-  return filename
-    .replace(/\s+/g, '_')
-    .replace(/[^a-zA-Z0-9._-]/g, '');
-}
 
 function ts(msg) {
   return `[${new Date().toISOString().slice(11, 19)}] ${msg}`
@@ -122,119 +117,8 @@ async function downloadSizes(media, mediaBaseUrl) {
   }
 }
 
-function resolveSlideMedia(slide) {
-  if (slide.blockType === 'segmentBlock') {
-    slide.slides = (slide.slides || []).map(resolveSlideMedia)
-    if (slide.backgroundAudio && typeof slide.backgroundAudio === 'object') {
-      slide.backgroundAudio = {
-        ...slide.backgroundAudio,
-        url: slide.backgroundAudio.url
-          ? `/local-media/${sanitizeFilename(slide.backgroundAudio.filename || '')}`
-          : null,
-      }
-    }
-    return slide
-  }
-
-  const resolved = { ...slide }
-  if (slide.blockType === 'imageBlock' && slide.image) {
-    const img = typeof slide.image === 'object' ? slide.image : null;
-    if (img) {
-      const sizeFilename = img.sizes?.fullHD?.filename;
-      resolved.image = {
-        url: sizeFilename
-          ? `/local-media/${sanitizeFilename(sizeFilename)}`
-          : img.url
-            ? `/local-media/${sanitizeFilename(img.filename || '')}`
-            : null,
-        alt: img.alt || null,
-      };
-    }
-  }
-  if (slide.blockType === 'videoBlock' && slide.video) {
-    const vid = typeof slide.video === 'object' ? slide.video : null;
-    if (vid) {
-      resolved.video = {
-        url: vid.url
-          ? `/local-media/${sanitizeFilename(vid.filename || '')}`
-          : null,
-        alt: vid.alt || null,
-      };
-    }
-  }
-  if (slide.blockType === 'audioBlock' && slide.audio) {
-    const aud = typeof slide.audio === 'object' ? slide.audio : null;
-    if (aud) {
-      resolved.audio = {
-        url: aud.url
-          ? `/local-media/${sanitizeFilename(aud.filename || '')}`
-          : null,
-        alt: aud.alt || null,
-      };
-    }
-  }
-  return resolved;
-}
-
-function buildScheduleJson(scheduleItems, availabilityItems, backgroundUrl, deviceName) {
-  const schedule = scheduleItems.map(item => ({
-    programId: item.program?.id,
-    scheduleType: 'autoplay',
-    startTime: item.startTime,
-    endTime: item.endTime,
-    daysOfWeek: item.daysOfWeek || [],
-    startDate: item.startDate || null,
-    untilDate: item.untilDate || null,
-    program: {
-      id: item.program?.id,
-      title: item.program?.title,
-      loop: item.program?.loop,
-      department: item.program?.folder?.department?.name || null,
-      slides: (item.program?.slides || []).map(resolveSlideMedia),
-    },
-  }));
-
-  const availability = availabilityItems.map(item => ({
-    programId: item.program?.id,
-    scheduleType: 'availability',
-    startDate: item.startDate,
-    endDate: item.endDate || null,
-    program: {
-      id: item.program?.id,
-      title: item.program?.title,
-      loop: item.program?.loop,
-      department: item.program?.folder?.department?.name || null,
-      slides: (item.program?.slides || []).map(resolveSlideMedia),
-    },
-  }));
-
-  return {
-    lastUpdated: new Date().toISOString(),
-    schedule,
-    availability,
-    defaultBackground: backgroundUrl || null,
-    deviceName: deviceName || null,
-  };
-}
-
 function writeScheduleAtomically(data) {
-  // Skip if content is identical (ignoring lastUpdated)
-  try {
-    const existing = JSON.parse(fs.readFileSync(SCHEDULE_PATH, 'utf-8'));
-    const { lastUpdated: a, ...existingRest } = existing;
-    const { lastUpdated: b, ...dataRest } = data;
-    if (JSON.stringify(existingRest) === JSON.stringify(dataRest)) {
-      console.log(ts('[sync] Schedule unchanged, skipping write'));
-      return false;
-    }
-  } catch {}
-
-  const dir = path.dirname(SCHEDULE_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const tmp = SCHEDULE_PATH + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n');
-  fs.renameSync(tmp, SCHEDULE_PATH);
-  return true;
+  return writeScheduleJson(data, SCHEDULE_PATH);
 }
 
 async function resolveDevice() {

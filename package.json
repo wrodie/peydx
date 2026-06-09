@@ -12,7 +12,12 @@
     "sync": "node sync/sync-agent.js",
     "build:all": "npm run build -w apps/server && npm run build -w apps/player",
     "server": "NODE_ENV=production npm run start -w apps/server",
-    "generate:importmap": "payload generate:importmap"
+    "generate:importmap": "payload generate:importmap",
+    "test": "npm run test -w packages/signage-core -w apps/player -w apps/server",
+    "test:core": "npm run test -w packages/signage-core",
+    "test:player": "npm run test -w apps/player",
+    "test:server": "npm run test -w apps/server",
+    "test:sync": "node --import tsx node_modules/.bin/vitest run --config sync/vitest.config.ts"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -20,5 +25,12 @@
     "express": "^5.2.1",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "jsdom": "^25.0.1",
+    "vitest": "^4.1.8"
   }
 }
