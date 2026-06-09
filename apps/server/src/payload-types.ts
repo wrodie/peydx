@@ -531,6 +531,10 @@ export interface Device {
   controllingDevice?: (number | null) | Device;
   lastHeartbeat?: string | null;
   currentProgram?: (number | null) | Program;
+  /**
+   * Current slide index, reported by the device.
+   */
+  currentSlideIndex?: number | null;
   status?: ('online' | 'offline' | 'stale') | null;
   browserToken?: string | null;
   /**
@@ -953,6 +957,7 @@ export interface DevicesSelect<T extends boolean = true> {
   controllingDevice?: T;
   lastHeartbeat?: T;
   currentProgram?: T;
+  currentSlideIndex?: T;
   status?: T;
   browserToken?: T;
   defaultBackground?: T;

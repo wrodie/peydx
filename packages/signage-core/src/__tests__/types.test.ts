@@ -112,7 +112,7 @@ describe('shared type contracts', () => {
     expect(cEvents.length).toBeGreaterThan(0)
 
     const sEvents: (keyof ServerToClientEvents)[] = [
-      'schedule:update', 'program:update', 'media:update',
+      'schedule:update',
       'remote:advance', 'remote:previous', 'remote:goto', 'remote:program',
       'remote:menu', 'remote:back', 'remote:select', 'remote:pause',
       'device:status', 'device:stateChange',

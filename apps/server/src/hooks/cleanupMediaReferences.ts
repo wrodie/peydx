@@ -7,6 +7,8 @@ export const cleanupMediaReferences: CollectionBeforeDeleteHook = async ({ req, 
     limit: 1000,
   })
 
+  const affectedProgramIds: number[] = []
+
   for (const program of programs.docs) {
     let changed = false
     let slides = program.slides ? [...program.slides] : []
@@ -34,6 +36,8 @@ export const cleanupMediaReferences: CollectionBeforeDeleteHook = async ({ req, 
 
     if (!changed) continue
 
+    affectedProgramIds.push(program.id)
+
     await req.payload.update({
       collection: 'programs',
       id: program.id,
@@ -44,4 +48,7 @@ export const cleanupMediaReferences: CollectionBeforeDeleteHook = async ({ req, 
       context: { preventSync: true },
     })
   }
+
+  if (!req.context) req.context = {}
+  req.context.affectedProgramIds = affectedProgramIds
 }

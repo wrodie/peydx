@@ -198,7 +198,7 @@ export const Schedule: CollectionConfig = {
       },
     ],
     afterChange: [
-      async ({ doc, req }) => {
+      async ({ doc }) => {
         const io = getIO()
         if (!io) return
 
@@ -207,26 +207,12 @@ export const Schedule: CollectionConfig = {
           : []
 
         for (const deviceId of deviceIds) {
-          const scheduleForDevice = await req.payload.find({
-            collection: 'schedule',
-            depth: 2,
-            where: {
-              and: [
-                { devices: { contains: deviceId } },
-                { 'program.status': { equals: 'approved' } },
-              ],
-            },
-            sort: 'startTime',
-          })
-
-          io.to(`device:${deviceId}`).emit('schedule:update', {
-            scheduleData: scheduleForDevice,
-          })
+          io.to(`device:${deviceId}`).emit('schedule:update', {} as any)
         }
       },
     ],
     afterDelete: [
-      async ({ doc, req }) => {
+      async ({ doc }) => {
         const io = getIO()
         if (!io) return
 
@@ -235,21 +221,7 @@ export const Schedule: CollectionConfig = {
           : []
 
         for (const deviceId of deviceIds) {
-          const scheduleForDevice = await req.payload.find({
-            collection: 'schedule',
-            depth: 2,
-            where: {
-              and: [
-                { devices: { contains: deviceId } },
-                { 'program.status': { equals: 'approved' } },
-              ],
-            },
-            sort: 'startTime',
-          })
-
-          io.to(`device:${deviceId}`).emit('schedule:update', {
-            scheduleData: scheduleForDevice,
-          })
+          io.to(`device:${deviceId}`).emit('schedule:update', {} as any)
         }
       },
     ],

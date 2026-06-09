@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { normalizeApiSchedule, resolveScheduleState, resolveActiveProgram } from '../schedule-resolver'
+import { normalizeApiSchedule } from 'signage-core'
+import { resolveScheduleState } from 'signage-core'
 import type { ResolvedSchedule, ScheduleEntry } from 'signage-core'
 
 describe('normalizeApiSchedule', () => {
@@ -88,7 +89,7 @@ describe('normalizeApiSchedule', () => {
         },
       ],
     }
-    const result = normalizeApiSchedule(baseApiData, programsData, null, 5)
+    const result = normalizeApiSchedule(baseApiData, programsData, { deviceId: 5 })
     expect(result.availability).toHaveLength(1)
     expect(result.availability[0].programId).toBe(201)
   })
@@ -100,7 +101,7 @@ describe('normalizeApiSchedule', () => {
   })
 
   it('sets deviceName when provided', () => {
-    const result = normalizeApiSchedule(baseApiData, undefined, 'Lobby TV')
+    const result = normalizeApiSchedule(baseApiData, undefined, { deviceName: 'Lobby TV' })
     expect(result.deviceName).toBe('Lobby TV')
   })
 
@@ -230,13 +231,13 @@ describe('resolveScheduleState', () => {
       }],
       availability: [],
     }
-    const result = resolveScheduleState(schedule)
+    const result = resolveScheduleState(schedule.schedule, schedule.availability)
     expect(result.activeAutoPlay).toBeDefined()
     expect(result.activeAutoPlay!.programId).toBe(1)
   })
 
   it('returns null when no schedule data', () => {
-    const result = resolveScheduleState({ lastUpdated: '', schedule: [], availability: [] })
+    const result = resolveScheduleState([], [])
     expect(result.activeAutoPlay).toBeNull()
     expect(result.availablePrograms).toEqual([])
   })
@@ -256,7 +257,7 @@ describe('resolveScheduleState', () => {
       })],
       availability: [],
     }
-    const result = resolveScheduleState(schedule)
+    const result = resolveScheduleState(schedule.schedule, schedule.availability)
     expect(result.activeAutoPlay).toBeNull()
   })
 
@@ -273,7 +274,7 @@ describe('resolveScheduleState', () => {
       })],
       availability: [],
     }
-    const result = resolveScheduleState(schedule)
+    const result = resolveScheduleState(schedule.schedule, schedule.availability)
     expect(result.activeAutoPlay).toBeNull()
   })
 
@@ -292,7 +293,7 @@ describe('resolveScheduleState', () => {
       })],
       availability: [],
     }
-    const result = resolveScheduleState(schedule)
+    const result = resolveScheduleState(schedule.schedule, schedule.availability)
     expect(result.activeAutoPlay).toBeNull()
   })
 
@@ -311,7 +312,7 @@ describe('resolveScheduleState', () => {
       })],
       availability: [],
     }
-    const result = resolveScheduleState(schedule)
+    const result = resolveScheduleState(schedule.schedule, schedule.availability)
     expect(result.activeAutoPlay).toBeNull()
   })
 
@@ -334,7 +335,7 @@ describe('resolveScheduleState', () => {
       })],
       availability: [],
     }
-    const result = resolveScheduleState(schedule)
+    const result = resolveScheduleState(schedule.schedule, schedule.availability)
     expect(result.activeAutoPlay).toBeNull()
   })
 
@@ -357,7 +358,7 @@ describe('resolveScheduleState', () => {
       })],
       availability: [],
     }
-    const result = resolveScheduleState(schedule)
+    const result = resolveScheduleState(schedule.schedule, schedule.availability)
     expect(result.activeAutoPlay).toBeNull()
   })
 
@@ -377,13 +378,13 @@ describe('resolveScheduleState', () => {
         },
       ],
     }
-    const result = resolveScheduleState(schedule)
+    const result = resolveScheduleState(schedule.schedule, schedule.availability)
     expect(result.availablePrograms).toHaveLength(1)
     expect(result.availablePrograms[0].programId).toBe(10)
   })
 })
 
-describe('resolveActiveProgram', () => {
+describe('resolveActiveProgram (via resolveScheduleState)', () => {
   it('returns the program from active schedule entry', () => {
     const now = new Date()
     const day = now.toISOString().split('T')[0]
@@ -402,14 +403,14 @@ describe('resolveActiveProgram', () => {
       ],
       availability: [],
     }
-    const result = resolveActiveProgram(schedule)
-    expect(result).toBeDefined()
-    expect(result!.id).toBe(42)
-    expect(result!.title).toBe('Active Program')
+    const result = resolveScheduleState(schedule.schedule, schedule.availability)
+    expect(result.activeAutoPlay).toBeDefined()
+    expect(result.activeAutoPlay!.programId).toBe(42)
+    expect(result.activeAutoPlay!.program.title).toBe('Active Program')
   })
 
   it('returns null when no active schedule', () => {
-    const result = resolveActiveProgram({ lastUpdated: '', schedule: [], availability: [] })
-    expect(result).toBeNull()
+    const result = resolveScheduleState([], [])
+    expect(result.activeAutoPlay).toBeNull()
   })
 })

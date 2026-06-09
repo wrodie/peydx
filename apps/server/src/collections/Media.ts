@@ -132,7 +132,9 @@ export const Media: CollectionConfig = {
           console.error(`Failed to extract duration for ${doc.filename}:`, err)
         }
       },
-      async ({ doc, operation, req }) => {
+      async (args) => {
+        if (args.context?.preventSync) return
+        const { doc, operation, req } = args
         if (operation === 'create') return
 
         const io = getIO()
@@ -154,6 +156,7 @@ export const Media: CollectionConfig = {
         if (programs.docs.length === 0) return
 
         // For each program, find devices and notify
+        const deviceIds = new Set<number>()
         for (const program of programs.docs) {
           const schedules = await req.payload.find({
             collection: 'schedule',
@@ -162,19 +165,67 @@ export const Media: CollectionConfig = {
             where: { program: { equals: program.id } },
           })
 
-          const deviceIds = new Set<number>()
           for (const s of schedules.docs) {
             for (const dId of s.devices as number[]) {
               deviceIds.add(typeof dId === 'object' ? (dId as any).id : dId)
             }
           }
 
-          for (const deviceId of deviceIds) {
-            io.to(`device:${deviceId}`).emit('media:update', {
-              mediaId: doc.id,
-              url: doc.url || '',
-              sizes: doc.sizes,
-            })
+          // Also include availableDevices
+          if ((program as any).availableDevices) {
+            for (const dId of (program as any).availableDevices) {
+              deviceIds.add(typeof dId === 'object' ? dId.id : dId)
+            }
+          }
+        }
+
+        for (const deviceId of deviceIds) {
+          io.to(`device:${deviceId}`).emit('schedule:update', {} as any)
+        }
+
+        // Department fallback
+        if (deviceIds.size === 0) {
+          const deptId = (doc as any)?.folder?.department
+          if (deptId) {
+            const deptIdNum = typeof deptId === 'object' ? deptId.id : deptId
+            io.to(`department:${deptIdNum}`).emit('schedule:update', {} as any)
+          }
+        }
+      },
+    ],
+    afterDelete: [
+      async ({ doc, req }) => {
+        const io = getIO()
+        if (!io) return
+
+        const affectedProgramIds: number[] = (req as any).context?.affectedProgramIds || []
+        if (affectedProgramIds.length === 0) return
+
+        const deviceIds = new Set<number>()
+        for (const programId of affectedProgramIds) {
+          const schedules = await req.payload.find({
+            collection: 'schedule',
+            depth: 0,
+            pagination: false,
+            where: { program: { equals: programId } },
+          })
+          for (const s of schedules.docs) {
+            for (const dId of s.devices as number[]) {
+              deviceIds.add(typeof dId === 'object' ? (dId as any).id : dId)
+            }
+          }
+        }
+
+        for (const deviceId of deviceIds) {
+          io.to(`device:${deviceId}`).emit('schedule:update', {} as any)
+        }
+
+        // Department fallback
+        if (deviceIds.size === 0) {
+          const deptId = (doc as any)?.folder?.department
+          if (deptId) {
+            const deptIdNum = typeof deptId === 'object' ? deptId.id : deptId
+            io.to(`department:${deptIdNum}`).emit('schedule:update', {} as any)
           }
         }
       },
@@ -202,17 +253,14 @@ export const Media: CollectionConfig = {
   access: {
     read: ({ req: { user: u } }) => {
       const user = u as any
-      if (!user) return true;
-      if (user.role === 'admin') return true;
-      if (user.role === 'basic') {
-        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
-        return { 'folder.department': { in: deptIds } }
-      }
+      if (!user) return false;
       if (user.collection === 'devices') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
         return { 'folder.department': { in: deptIds } }
       }
-      return true;
+      if (user.role === 'admin') return true;
+      const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+      return { 'folder.department': { in: deptIds } }
     },
     update: ({ req: { user: u } }) => {
       const user = u as any

@@ -137,15 +137,6 @@ async function resolveDevice() {
   };
 }
 
-async function downloadSpecificMedia(data) {
-  if (!data.url) return;
-  const sanitized = sanitizeFilename(data.url.split('/').pop() || `media-${data.mediaId}`);
-  const dest = path.join(LOCAL_DIR, sanitized);
-  await downloadFile(data.url, dest, new Date().toISOString()).catch(err =>
-    console.error(`Download failed for media ${data.mediaId}: ${err.message}`)
-  );
-}
-
 async function sync() {
   console.log(ts('[sync] sync() started'));
   try {
@@ -401,26 +392,18 @@ async function sync() {
     }, null);
     activeProgramId = userSelectedProgramId || nowPlaying?.program?.id || null;
 
-    // Emit heartbeat via Socket.IO
-    if (cmsSocket?.connected) {
-      cmsSocket.emit('device:heartbeat', {
-        programId: activeProgramId,
-        slideIndex: currentSlideIndex,
-      }, (ack) => {
-        if (!ack?.ok) console.error('Heartbeat via Socket.IO failed')
-      })
-    }
-
-    // HTTP heartbeat fallback
-    try {
-      await axios.post(`${API_URL}/heartbeat`, {
-        programId: activeProgramId,
-        slideIndex: currentSlideIndex,
-      }, {
-        headers: { Authorization: `devices API-Key ${API_KEY}` },
-      });
-    } catch (err) {
-      console.error('Heartbeat failed:', err.message);
+    // HTTP heartbeat fallback when WebSocket is disconnected
+    if (!cmsSocket?.connected) {
+      try {
+        await axios.post(`${API_URL}/heartbeat`, {
+          programId: activeProgramId,
+          slideIndex: currentSlideIndex,
+        }, {
+          headers: { Authorization: `devices API-Key ${API_KEY}` },
+        });
+      } catch (err) {
+        console.error('Heartbeat failed:', err.message);
+      }
     }
 
     // Notify local player if schedule actually changed
@@ -458,16 +441,6 @@ function connectToCMS() {
   socket.on('schedule:update', () => {
     console.log('Received schedule update via WebSocket');
     sync();
-  });
-
-  socket.on('program:update', () => {
-    console.log('Received program update via WebSocket');
-    sync();
-  });
-
-  socket.on('media:update', (data) => {
-    console.log('Received media update via WebSocket');
-    downloadSpecificMedia(data);
   });
 
   socket.on('remote:advance', () => {

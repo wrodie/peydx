@@ -133,53 +133,106 @@ export const Programs: CollectionConfig = {
       },
     ],
     afterChange: [
-      async ({ doc, operation, req }) => {
+      async (args) => {
+        if (args.context?.preventSync) return
+        const { doc, operation, req } = args
         if (operation === 'create') return
 
         const io = getIO()
         if (!io) return
 
-        // Find all devices currently running this program via schedule
+        // Find all devices affected by this program change
+        const deviceIds = new Set<number>()
+
+        // Devices from schedules that use this program
         const schedules = await req.payload.find({
           collection: 'schedule',
           depth: 0,
           pagination: false,
-          where: {
-            program: { equals: doc.id },
-          },
+          where: { program: { equals: doc.id } },
         })
-
-        const deviceIds = new Set<number>()
         for (const schedule of schedules.docs) {
           for (const deviceId of schedule.devices as number[]) {
             deviceIds.add(typeof deviceId === 'object' ? (deviceId as any).id : deviceId)
           }
         }
 
-        // Also find devices where currentProgram === this program
+        // Devices from availableDevices
+        if (doc.availableDevices) {
+          for (const deviceId of doc.availableDevices as number[]) {
+            deviceIds.add(typeof deviceId === 'object' ? (deviceId as any).id : deviceId)
+          }
+        }
+
+        // Devices where currentProgram === this program
         const devices = await req.payload.find({
           collection: 'devices',
           depth: 0,
           pagination: false,
-          where: {
-            currentProgram: { equals: doc.id },
-          },
+          where: { currentProgram: { equals: doc.id } },
         })
         for (const device of devices.docs) {
           deviceIds.add(device.id)
         }
 
-        if (deviceIds.size === 0) return
+        // Emit signal-only schedule:update to each device
+        for (const deviceId of deviceIds) {
+          io.to(`device:${deviceId}`).emit('schedule:update', {} as any)
+        }
 
-        // Fetch full program with slides populated
-        const fullProgram = await req.payload.findByID({
-          collection: 'programs',
-          id: doc.id,
-          depth: 2,
+        // Department fallback if no specific devices
+        if (deviceIds.size === 0) {
+          const program = await req.payload.findByID({
+            collection: 'programs',
+            id: doc.id,
+            depth: 1,
+          })
+          const deptId = (program as any)?.folder?.department
+          if (deptId) {
+            const deptIdNum = typeof deptId === 'object' ? deptId.id : deptId
+            io.to(`department:${deptIdNum}`).emit('schedule:update', {} as any)
+          }
+        }
+      },
+    ],
+    afterDelete: [
+      async ({ doc, req }) => {
+        const io = getIO()
+        if (!io) return
+
+        const deviceIds = new Set<number>()
+
+        // Devices from schedules that used this program
+        const schedules = await req.payload.find({
+          collection: 'schedule',
+          depth: 0,
+          pagination: false,
+          where: { program: { equals: doc.id } },
         })
+        for (const schedule of schedules.docs) {
+          for (const deviceId of schedule.devices as number[]) {
+            deviceIds.add(typeof deviceId === 'object' ? (deviceId as any).id : deviceId)
+          }
+        }
+
+        // Devices from availableDevices
+        if (doc.availableDevices) {
+          for (const deviceId of doc.availableDevices as number[]) {
+            deviceIds.add(typeof deviceId === 'object' ? (deviceId as any).id : deviceId)
+          }
+        }
 
         for (const deviceId of deviceIds) {
-          io.to(`device:${deviceId}`).emit('program:update', { program: fullProgram })
+          io.to(`device:${deviceId}`).emit('schedule:update', {} as any)
+        }
+
+        // Department fallback
+        if (deviceIds.size === 0) {
+          const deptId = (doc as any)?.folder?.department
+          if (deptId) {
+            const deptIdNum = typeof deptId === 'object' ? deptId.id : deptId
+            io.to(`department:${deptIdNum}`).emit('schedule:update', {} as any)
+          }
         }
       },
     ],

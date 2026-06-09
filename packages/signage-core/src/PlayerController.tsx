@@ -35,7 +35,7 @@ function timeOfDayMinutes(iso: string): number {
   return d.getUTCHours() * 60 + d.getUTCMinutes()
 }
 
-function resolveScheduleState(
+export function resolveScheduleState(
   scheduleEntries: ScheduleEntry[],
   availabilityEntries: AvailabilityEntry[],
 ): {

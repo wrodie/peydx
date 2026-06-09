@@ -1,14 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { PlayerController } from 'signage-core'
-import type { PlayerControllerHandle, PlayerState } from 'signage-core'
-import { normalizeApiSchedule } from './schedule-resolver'
-import { createBrowserSocket, createHardwareSocket } from './socket'
+import { PlayerController, useRemoteControl } from 'signage-core'
+import type { PlayerControllerHandle, PlayerState, DeviceProvider } from 'signage-core'
 import type { Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
+import { createCmsProvider } from './providers/CmsProvider'
+import { createLocalProvider } from './providers/LocalProvider'
 
 const POLL_INTERVAL = 60_000
-const MANIFEST_URL = '/schedule.json'
-
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
 function detectMode(): 'browser' | 'hardware' {
@@ -17,37 +15,30 @@ function detectMode(): 'browser' | 'hardware' {
   return 'hardware'
 }
 
-function getDeviceConfig() {
+function createProvider(): DeviceProvider | null {
   const params = new URLSearchParams(window.location.search)
-  return {
-    id: params.get('id') || undefined,
-    token: params.get('token') || undefined,
-  }
-}
+  const mode = detectMode()
 
-async function fetchScheduleAndPrograms(deviceId: string) {
-  const [scheduleRes, programsRes] = await Promise.all([
-    fetch(`/api/schedule?where[devices][contains]=${deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`),
-    fetch(`/api/programs?where[status][equals]=approved&depth=2`),
-  ])
-  const [scheduleData, programsData] = await Promise.all([
-    scheduleRes.json(),
-    programsRes.json(),
-  ])
-  return normalizeApiSchedule(scheduleData, programsData, null, deviceId)
+  if (mode === 'browser') {
+    const id = params.get('id')
+    const token = params.get('token')
+    if (!id || !token) return null
+    return createCmsProvider(id, token)
+  }
+
+  return createLocalProvider()
 }
 
 export function App() {
   const controllerRef = useRef<PlayerControllerHandle>(null)
   const [scheduleData, setScheduleData] = useState<any>(null)
   const socketRef = useRef<TypedSocket | null>(null)
-  const mode = detectMode()
+  const [provider] = useState(() => createProvider())
 
   const loadSchedule = useCallback(async () => {
+    if (!provider) return
     try {
-      const res = await fetch(MANIFEST_URL)
-      if (!res.ok) return
-      const data = await res.json()
+      const data = await provider.fetchSchedule()
       setScheduleData(prev => {
         if (!prev) return data
         const { lastUpdated: a, ...prevRest } = prev
@@ -58,7 +49,7 @@ export function App() {
     } catch (err) {
       console.error('Failed to load schedule:', err)
     }
-  }, [])
+  }, [provider])
 
   const handleSlideChange = useCallback((index: number) => {
     socketRef.current?.emit('device:slideChange', { slideIndex: index })
@@ -71,137 +62,44 @@ export function App() {
     [],
   )
 
-  // Browser mode: connect to CMS Socket.IO
+  useRemoteControl(socketRef.current, controllerRef)
+
+  // Connect socket and set up event handlers
   useEffect(() => {
-    if (mode !== 'browser') return
+    if (!provider) return
 
-    const config = getDeviceConfig()
-    if (!config.id || !config.token) return
-
-    const origin = window.location.origin
-    const socket = createBrowserSocket(origin, config.token)
-    socketRef.current = socket
+    const socket = provider.connectSocket()
+    if (!socket) return
+    socketRef.current = socket as TypedSocket
 
     socket.on('connect', () => {
-      fetchScheduleAndPrograms(config.id!)
-        .then(setScheduleData)
-        .catch(console.error)
+      loadSchedule()
     })
 
     socket.on('schedule:update', () => {
-      fetchScheduleAndPrograms(config.id!)
-        .then(setScheduleData)
-        .catch(console.error)
-    })
-
-    socket.on('program:update', () => {
-      fetchScheduleAndPrograms(config.id!)
-        .then(setScheduleData)
-        .catch(console.error)
-    })
-
-    socket.on('media:update', () => {
-      fetchScheduleAndPrograms(config.id!)
-        .then(setScheduleData)
-        .catch(console.error)
-    })
-
-    socket.on('remote:advance', () => {
-      controllerRef.current?.nextSlide()
-    })
-
-    socket.on('remote:previous', () => {
-      controllerRef.current?.prevSlide()
-    })
-
-    socket.on('remote:goto', (data) => {
-      controllerRef.current?.gotoSlide(data.slideIndex)
-    })
-
-    socket.on('remote:program', (data) => {
-      controllerRef.current?.selectProgram(data.program?.id)
-    })
-
-    socket.on('remote:menu', () => {
-      controllerRef.current?.openMenu()
-    })
-
-    socket.on('remote:back', () => {
-      controllerRef.current?.exitProgram()
-    })
-
-    socket.on('remote:select', () => {
-      controllerRef.current?.selectItem()
-    })
-
-    socket.on('remote:pause', () => {
-      controllerRef.current?.togglePause()
-    })
-
-    return () => {
-      socket.disconnect()
-    }
-  }, [mode])
-
-  // Hardware mode: poll schedule.json with optional Socket.IO relay
-  useEffect(() => {
-    if (mode !== 'hardware') return
-
-    loadSchedule()
-
-    const hardwareSocket = createHardwareSocket(window.location.origin, '')
-    socketRef.current = hardwareSocket
-
-    hardwareSocket.on('connect', () => {
-      loadSchedule()
-    })
-
-    hardwareSocket.on('remote:advance', () => {
-      controllerRef.current?.nextSlide()
-    })
-
-    hardwareSocket.on('remote:previous', () => {
-      controllerRef.current?.prevSlide()
-    })
-
-    hardwareSocket.on('remote:goto', (data) => {
-      controllerRef.current?.gotoSlide(data.slideIndex)
-    })
-
-    hardwareSocket.on('remote:program', (data) => {
-      controllerRef.current?.selectProgram(data.program?.id)
-    })
-
-    hardwareSocket.on('remote:menu', () => {
-      controllerRef.current?.openMenu()
-    })
-
-    hardwareSocket.on('remote:back', () => {
-      controllerRef.current?.exitProgram()
-    })
-
-    hardwareSocket.on('remote:select', () => {
-      controllerRef.current?.selectItem()
-    })
-
-    hardwareSocket.on('remote:pause', () => {
-      controllerRef.current?.togglePause()
-    })
-
-    hardwareSocket.on('schedule:update', () => {
       loadSchedule()
     })
 
     return () => {
-      hardwareSocket.disconnect()
+      provider.disconnect()
+      socketRef.current = null
     }
-  }, [mode, loadSchedule])
+  }, [provider, loadSchedule])
 
   // Poll as fallback
   useEffect(() => {
+    if (!provider) return
     const interval = setInterval(loadSchedule, POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [loadSchedule])
+  }, [provider, loadSchedule])
+
+  if (!provider) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', background: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+        Missing device configuration (id and token required)
+      </div>
+    )
+  }
 
   return (
     <PlayerController

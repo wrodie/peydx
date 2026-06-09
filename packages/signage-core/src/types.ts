@@ -120,3 +120,11 @@ export const DEFAULT_KEY_CONFIG: KeyConfig = {
   exit: 'Escape',
   pause: 'KeyP',
 }
+
+export interface DeviceProvider {
+  connectSocket(): any
+  fetchSchedule(): Promise<ResolvedSchedule>
+  resolveMediaUrl(url: string): string
+  getDeviceId(): string | number
+  disconnect(): void
+}

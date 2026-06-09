@@ -104,6 +104,15 @@ export const Devices: CollectionConfig = {
       },
     },
     {
+      name: 'currentSlideIndex',
+      type: 'number',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description: 'Current slide index, reported by the device.',
+      },
+    },
+    {
       name: 'status',
       type: 'select',
       defaultValue: 'offline',
