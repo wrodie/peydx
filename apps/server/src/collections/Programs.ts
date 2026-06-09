@@ -296,6 +296,38 @@ export const Programs: CollectionConfig = {
         },
       },
     },
+    {
+      name: 'availableFrom',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+        date: {
+          pickerAppearance: 'dayOnly',
+        },
+        description: 'Program becomes available for manual selection on this date.',
+      },
+    },
+    {
+      name: 'availableUntil',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+        date: {
+          pickerAppearance: 'dayOnly',
+        },
+        description: 'Leave blank for indefinite availability.',
+      },
+    },
+    {
+      name: 'availableDevices',
+      type: 'relationship',
+      relationTo: 'devices',
+      hasMany: true,
+      admin: {
+        position: 'sidebar',
+        description: 'Devices that can manually select this program.',
+      },
+    },
   ],
 }
 

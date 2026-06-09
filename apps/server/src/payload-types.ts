@@ -473,6 +473,18 @@ export interface Program {
    */
   autoBlackEndSlide?: boolean | null;
   folder?: (number | null) | Folder;
+  /**
+   * Program becomes available for manual selection on this date.
+   */
+  availableFrom?: string | null;
+  /**
+   * Leave blank for indefinite availability.
+   */
+  availableUntil?: string | null;
+  /**
+   * Devices that can manually select this program.
+   */
+  availableDevices?: (number | Device)[] | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -506,31 +518,6 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "schedule".
- */
-export interface Schedule {
-  id: number;
-  program: number | Program;
-  devices: (number | Device)[];
-  /**
-   * Auto-Play starts automatically at the scheduled time. Availability makes the program selectable on the device for that date.
-   */
-  scheduleType: 'autoplay' | 'availability';
-  /**
-   * For Auto-Play, select date and time. For Availability, select the date (time is ignored — sets to midnight UTC).
-   */
-  startTime: string;
-  /**
-   * Defaults to 1 hour after start time. Required for Auto-Play, optional for Availability.
-   */
-  endTime?: string | null;
-  department?: (number | null) | Department;
-  createdBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "devices".
  */
 export interface Device {
@@ -556,6 +543,39 @@ export interface Device {
   apiKey?: string | null;
   apiKeyIndex?: string | null;
   collection: 'devices';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "schedule".
+ */
+export interface Schedule {
+  id: number;
+  program: number | Program;
+  devices: (number | Device)[];
+  /**
+   * Leave empty for a one-off event. Select days for weekly recurrence.
+   */
+  daysOfWeek?: ('mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun')[] | null;
+  /**
+   * For a one-off event, select the exact date and time. For recurring, the date sets the first occurrence (time-of-day is used each week).
+   */
+  startTime: string;
+  /**
+   * Defaults to 1 hour after start time.
+   */
+  endTime?: string | null;
+  /**
+   * Schedule becomes active on this date. Leave blank to use the startTime date.
+   */
+  startDate?: string | null;
+  /**
+   * Schedule ends on this date. Leave blank for indefinite recurrence.
+   */
+  untilDate?: string | null;
+  department?: (number | null) | Department;
+  createdBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -852,6 +872,9 @@ export interface ProgramsSelect<T extends boolean = true> {
   loop?: T;
   autoBlackEndSlide?: T;
   folder?: T;
+  availableFrom?: T;
+  availableUntil?: T;
+  availableDevices?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -862,9 +885,11 @@ export interface ProgramsSelect<T extends boolean = true> {
 export interface ScheduleSelect<T extends boolean = true> {
   program?: T;
   devices?: T;
-  scheduleType?: T;
+  daysOfWeek?: T;
   startTime?: T;
   endTime?: T;
+  startDate?: T;
+  untilDate?: T;
   department?: T;
   createdBy?: T;
   updatedAt?: T;

@@ -3,6 +3,25 @@ import { getIO } from '../websocket/io'
 
 const ONE_HOUR = 60 * 60 * 1000
 
+function timeOfDayMinutes(iso: string): number {
+  const d = new Date(iso)
+  return d.getUTCHours() * 60 + d.getUTCMinutes()
+}
+
+function dateOnly(iso: string): string {
+  return new Date(iso).toISOString().split('T')[0]
+}
+
+function dateRangesOverlap(sdA: string | null, untilA: string | null, sdB: string | null, untilB: string | null): boolean {
+  const sa = sdA ? new Date(sdA).getTime() : 0
+  const sb = sdB ? new Date(sdB).getTime() : 0
+  const ea = untilA ? new Date(untilA).getTime() : Infinity
+  const eb = untilB ? new Date(untilB).getTime() : Infinity
+  return sa <= eb && sb <= ea
+}
+
+const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+
 export const Schedule: CollectionConfig = {
   slug: 'schedule',
   admin: {
@@ -61,7 +80,6 @@ export const Schedule: CollectionConfig = {
       async ({ data, req, originalDoc, operation }) => {
         const user = req.user as any
         if (!data.department && data.program) {
-          // Infer department from the selected program's folder department
           const programId = typeof data.program === 'object' && data.program !== null
             ? (data.program as any).id
             : data.program
@@ -114,15 +132,8 @@ export const Schedule: CollectionConfig = {
           }
         }
 
-        const scheduleType = data.scheduleType || 'autoplay'
-
-        if (scheduleType === 'availability') {
-          if (data.startTime) {
-            const d = new Date(data.startTime)
-            data.startTime = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString()
-          }
-          return data
-        }
+        const daysOfWeek: string[] = Array.isArray(data.daysOfWeek) ? data.daysOfWeek : []
+        const isOneOff = daysOfWeek.length === 0
 
         const startA = new Date(data.startTime).getTime()
         if (isNaN(startA)) return data
@@ -142,19 +153,63 @@ export const Schedule: CollectionConfig = {
             where: {
               and: [
                 { devices: { contains: deviceId } },
-                { scheduleType: { equals: 'autoplay' } },
                 ...(currentId ? [{ id: { not_equals: currentId } }] : []),
               ],
             },
           })
+
           for (const entry of existing.docs) {
+            const entryDaysOfWeek: string[] = Array.isArray(entry.daysOfWeek) ? entry.daysOfWeek : []
+            const entryIsOneOff = entryDaysOfWeek.length === 0
+
+            const daysIntersect =
+              isOneOff || entryIsOneOff ||
+              daysOfWeek.some((d: string) => entryDaysOfWeek.includes(d))
+            if (!daysIntersect) continue
+
             const startB = new Date(entry.startTime).getTime()
             if (isNaN(startB)) continue
             const endB = new Date(entry.endTime || entry.startTime).getTime()
             if (isNaN(endB)) continue
-            if (startA < endB && endA > startB) {
-              throw new Error('This entry overlaps with an existing schedule on one of the selected devices.')
+
+            const startMinA = timeOfDayMinutes(data.startTime)
+            const endMinA = timeOfDayMinutes(data.endTime || data.startTime)
+            const startMinB = timeOfDayMinutes(entry.startTime)
+            const endMinB = timeOfDayMinutes(entry.endTime || entry.startTime)
+            const timesOverlap = startMinA < endMinB && endMinA > startMinB
+            if (!timesOverlap) continue
+
+            const sdA = data.startDate || null
+            const untilA = data.untilDate || null
+            const sdB = entry.startDate || null
+            const untilB = entry.untilDate || null
+            const datesOverlap = dateRangesOverlap(sdA, untilA, sdB, untilB)
+            if (!datesOverlap) continue
+
+            if (isOneOff || entryIsOneOff) {
+              if (isOneOff) {
+                const dateA = dateOnly(data.startTime)
+                const dateATs = new Date(dateA).getTime()
+                if (sdB && dateATs < new Date(sdB).getTime()) continue
+                if (untilB && dateATs > new Date(untilB).getTime()) continue
+                if (!entryIsOneOff) {
+                  const dayName = DAY_NAMES[new Date(dateA).getUTCDay()]
+                  if (!entryDaysOfWeek.includes(dayName)) continue
+                }
+              }
+              if (entryIsOneOff) {
+                const dateB = dateOnly(entry.startTime)
+                const dateBTs = new Date(dateB).getTime()
+                if (sdA && dateBTs < new Date(sdA).getTime()) continue
+                if (untilA && dateBTs > new Date(untilA).getTime()) continue
+                if (!isOneOff) {
+                  const dayName = DAY_NAMES[new Date(dateB).getUTCDay()]
+                  if (!daysOfWeek.includes(dayName)) continue
+                }
+              }
             }
+
+            throw new Error('This entry overlaps with an existing schedule on one of the selected devices.')
           }
         }
         return data
@@ -169,9 +224,6 @@ export const Schedule: CollectionConfig = {
           ? doc.devices.map((d: any) => typeof d === 'object' ? d.id : d)
           : []
 
-        if (deviceIds.length === 0) return
-
-        // Build a schedule payload for each affected device
         for (const deviceId of deviceIds) {
           const scheduleForDevice = await req.payload.find({
             collection: 'schedule',
@@ -185,7 +237,9 @@ export const Schedule: CollectionConfig = {
             sort: 'startTime',
           })
 
-          io.to(`device:${deviceId}`).emit('schedule:update', { scheduleData: scheduleForDevice })
+          io.to(`device:${deviceId}`).emit('schedule:update', {
+            scheduleData: scheduleForDevice,
+          })
         }
       },
     ],
@@ -211,7 +265,9 @@ export const Schedule: CollectionConfig = {
             sort: 'startTime',
           })
 
-          io.to(`device:${deviceId}`).emit('schedule:update', { scheduleData: scheduleForDevice })
+          io.to(`device:${deviceId}`).emit('schedule:update', {
+            scheduleData: scheduleForDevice,
+          })
         }
       },
     ],
@@ -244,16 +300,20 @@ export const Schedule: CollectionConfig = {
       },
     },
     {
-      name: 'scheduleType',
+      name: 'daysOfWeek',
       type: 'select',
-      required: true,
-      defaultValue: 'autoplay',
+      hasMany: true,
       options: [
-        { label: 'Auto-Play', value: 'autoplay' },
-        { label: 'Availability', value: 'availability' },
+        { label: 'Monday', value: 'mon' },
+        { label: 'Tuesday', value: 'tue' },
+        { label: 'Wednesday', value: 'wed' },
+        { label: 'Thursday', value: 'thu' },
+        { label: 'Friday', value: 'fri' },
+        { label: 'Saturday', value: 'sat' },
+        { label: 'Sunday', value: 'sun' },
       ],
       admin: {
-        description: 'Auto-Play starts automatically at the scheduled time. Availability makes the program selectable on the device for that date.',
+        description: 'Leave empty for a one-off event. Select days for weekly recurrence.',
       },
     },
     {
@@ -265,7 +325,7 @@ export const Schedule: CollectionConfig = {
           pickerAppearance: 'dayAndTime',
           timeIntervals: 15,
         },
-        description: 'For Auto-Play, select date and time. For Availability, select the date (time is ignored — sets to midnight UTC).',
+        description: 'For a one-off event, select the exact date and time. For recurring, the date sets the first occurrence (time-of-day is used each week).',
       },
     },
     {
@@ -276,9 +336,27 @@ export const Schedule: CollectionConfig = {
           pickerAppearance: 'dayAndTime',
           timeIntervals: 15,
         },
-        description: 'Defaults to 1 hour after start time. Required for Auto-Play, optional for Availability.',
-        condition: ({ siblingData }: { siblingData?: { scheduleType?: string } }) =>
-          siblingData?.scheduleType !== 'availability',
+        description: 'Defaults to 1 hour after start time.',
+      },
+    },
+    {
+      name: 'startDate',
+      type: 'date',
+      admin: {
+        date: {
+          pickerAppearance: 'dayOnly',
+        },
+        description: 'Schedule becomes active on this date. Leave blank to use the startTime date.',
+      },
+    },
+    {
+      name: 'untilDate',
+      type: 'date',
+      admin: {
+        date: {
+          pickerAppearance: 'dayOnly',
+        },
+        description: 'Schedule ends on this date. Leave blank for indefinite recurrence.',
       },
     },
     {

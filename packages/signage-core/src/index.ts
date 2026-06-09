@@ -1,6 +1,6 @@
 export { SlideEngine } from './SlideEngine'
 export type { SlideEngineHandle } from './SlideEngine'
-export type { Program, Slide, Media, ScheduleType, PlayerState, ScheduleEntry, ResolvedSchedule, KeyConfig, Segment, SegmentContext, SlideOrSegment, FlattenedProgram, SegmentBoundary } from './types'
+export type { Program, Slide, Media, PlayerState, ScheduleEntry, AvailabilityEntry, ResolvedSchedule, KeyConfig, Segment, SegmentContext, SlideOrSegment, FlattenedProgram, SegmentBoundary } from './types'
 export { DEFAULT_KEY_CONFIG } from './types'
 export { flattenProgram } from './flattenProgram'
 export type { ClientToServerEvents, ServerToClientEvents } from './events'

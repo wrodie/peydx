@@ -25,6 +25,18 @@ function getDeviceConfig() {
   }
 }
 
+async function fetchScheduleAndPrograms(deviceId: string) {
+  const [scheduleRes, programsRes] = await Promise.all([
+    fetch(`/api/schedule?where[devices][contains]=${deviceId}&where[program.status][equals]=approved&depth=2&sort=startTime`),
+    fetch(`/api/programs?where[status][equals]=approved&depth=2`),
+  ])
+  const [scheduleData, programsData] = await Promise.all([
+    scheduleRes.json(),
+    programsRes.json(),
+  ])
+  return normalizeApiSchedule(scheduleData, programsData, null, deviceId)
+}
+
 export function App() {
   const controllerRef = useRef<PlayerControllerHandle>(null)
   const [scheduleData, setScheduleData] = useState<any>(null)
@@ -71,33 +83,26 @@ export function App() {
     socketRef.current = socket
 
     socket.on('connect', () => {
-      fetch(`/api/schedule?where[devices][contains]=${config.id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
-        .then((r) => r.json())
-        .then((data) => {
-          setScheduleData(normalizeApiSchedule(data))
-        })
+      fetchScheduleAndPrograms(config.id!)
+        .then(setScheduleData)
         .catch(console.error)
     })
 
-    socket.on('schedule:update', (data) => {
-      setScheduleData(normalizeApiSchedule(data.scheduleData))
+    socket.on('schedule:update', () => {
+      fetchScheduleAndPrograms(config.id!)
+        .then(setScheduleData)
+        .catch(console.error)
     })
 
     socket.on('program:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${config.id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
-        .then((r) => r.json())
-        .then((data) => {
-          setScheduleData(normalizeApiSchedule(data))
-        })
+      fetchScheduleAndPrograms(config.id!)
+        .then(setScheduleData)
         .catch(console.error)
     })
 
     socket.on('media:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${config.id}&where[program.status][equals]=approved&depth=2&sort=startTime`)
-        .then((r) => r.json())
-        .then((data) => {
-          setScheduleData(normalizeApiSchedule(data))
-        })
+      fetchScheduleAndPrograms(config.id!)
+        .then(setScheduleData)
         .catch(console.error)
     })
 

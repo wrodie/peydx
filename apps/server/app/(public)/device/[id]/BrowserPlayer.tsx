@@ -54,16 +54,43 @@ function normalizeSlide(slide: any): any {
   return result
 }
 
-function normalizeApiSchedule(apiData: any, defaultBackgroundUrl?: string | null, deviceName?: string | null) {
+function normalizeApiSchedule(apiData: any, programsData?: any, defaultBackgroundUrl?: string | null, deviceName?: string | null, deviceId?: string | number | null) {
+  const scheduleDocs = (apiData?.docs || [])
+    .filter((entry: any) => entry.program?.status === 'approved')
+
+  const programs = programsData?.docs || []
+  const availability = []
+  for (const program of programs) {
+    if (!program.availableFrom) continue
+    if (deviceId) {
+      const deviceIds = (program.availableDevices || []).map((d: any) => typeof d === 'object' ? d.id : d)
+      if (!deviceIds.includes(Number(deviceId))) continue
+    }
+    availability.push({
+      programId: program.id,
+      scheduleType: 'availability' as const,
+      startDate: program.availableFrom,
+      endDate: program.availableUntil || null,
+      program: {
+        id: program.id,
+        title: program.title,
+        loop: program.loop,
+        department: program.folder?.department?.name || null,
+        slides: (program.slides || []).map(normalizeSlide),
+      },
+    })
+  }
+
   return {
     lastUpdated: new Date().toISOString(),
-    schedule: (apiData.docs || [])
-      .filter((entry: any) => entry.program?.status === 'approved')
-      .map((entry: any) => ({
+    schedule: scheduleDocs.map((entry: any) => ({
       programId: entry.program?.id,
-      scheduleType: entry.scheduleType || 'autoplay',
+      scheduleType: 'autoplay' as const,
       startTime: entry.startTime,
       endTime: entry.endTime,
+      daysOfWeek: entry.daysOfWeek || [],
+      startDate: entry.startDate,
+      untilDate: entry.untilDate,
       program: {
         id: entry.program?.id,
         title: entry.program?.title,
@@ -72,6 +99,7 @@ function normalizeApiSchedule(apiData: any, defaultBackgroundUrl?: string | null
         slides: (entry.program?.slides || []).map(normalizeSlide),
       },
     })),
+    availability,
     defaultBackground: defaultBackgroundUrl || null,
     deviceName: deviceName || null,
   }
@@ -127,42 +155,42 @@ export function BrowserPlayer({ id, token }: Props) {
         `/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`
       ).then((r) => r.json())
 
-      Promise.all([devicePromise, schedulePromise])
-        .then(([{ bgUrl, deviceName }, data]) => {
-          setScheduleDataIfChanged(normalizeApiSchedule(data, bgUrl, deviceName))
+      const programsPromise = fetch(
+        `/api/programs?where[status][equals]=approved&depth=2&token=${token}`
+      ).then((r) => r.json())
+
+      Promise.all([devicePromise, schedulePromise, programsPromise])
+        .then(([{ bgUrl, deviceName }, scheduleData, programsData]) => {
+          setScheduleDataIfChanged(normalizeApiSchedule(scheduleData, programsData, bgUrl, deviceName, id))
         })
         .catch(console.error)
     })
 
-    socket.on('schedule:update', (data: any) => {
-      setScheduleDataIfChanged(normalizeApiSchedule(data.scheduleData, deviceBgRef.current, data.deviceName))
+    socket.on('schedule:update', () => {
+      Promise.all([
+        fetch(`/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`).then(r => r.json()),
+        fetch(`/api/programs?where[status][equals]=approved&depth=2&token=${token}`).then(r => r.json()),
+      ]).then(([scheduleData, programsData]) => {
+        setScheduleDataIfChanged(normalizeApiSchedule(scheduleData, programsData, deviceBgRef.current, null, id))
+      }).catch(console.error)
     })
 
     socket.on('program:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`)
-        .then((r) => r.json())
-        .then((data) => {
-          setScheduleDataIfChanged(normalizeApiSchedule(data, deviceBgRef.current))
-        })
-        .catch(console.error)
-    })
-
-    socket.on('program:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`)
-        .then((r) => r.json())
-        .then((data) => {
-          setScheduleDataIfChanged(normalizeApiSchedule(data, deviceBgRef.current))
-        })
-        .catch(console.error)
+      Promise.all([
+        fetch(`/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`).then(r => r.json()),
+        fetch(`/api/programs?where[status][equals]=approved&depth=2&token=${token}`).then(r => r.json()),
+      ]).then(([scheduleData, programsData]) => {
+        setScheduleDataIfChanged(normalizeApiSchedule(scheduleData, programsData, deviceBgRef.current, null, id))
+      }).catch(console.error)
     })
 
     socket.on('media:update', () => {
-      fetch(`/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`)
-        .then((r) => r.json())
-        .then((data) => {
-          setScheduleDataIfChanged(normalizeApiSchedule(data, deviceBgRef.current))
-        })
-        .catch(console.error)
+      Promise.all([
+        fetch(`/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`).then(r => r.json()),
+        fetch(`/api/programs?where[status][equals]=approved&depth=2&token=${token}`).then(r => r.json()),
+      ]).then(([scheduleData, programsData]) => {
+        setScheduleDataIfChanged(normalizeApiSchedule(scheduleData, programsData, deviceBgRef.current, null, id))
+      }).catch(console.error)
     })
 
     socket.on('remote:advance', () => {

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { SlideEngine } from './SlideEngine'
 import { MenuEngine } from './MenuEngine'
-import type { Program, PlayerState, ScheduleEntry, ResolvedSchedule, KeyConfig, Slide } from './types'
+import type { Program, PlayerState, ScheduleEntry, AvailabilityEntry, ResolvedSchedule, KeyConfig, Slide } from './types'
 import { flattenProgram } from './flattenProgram'
 import { mergeKeyConfig } from './keyConfig'
 import type { SlideEngineHandle } from './SlideEngine'
@@ -24,42 +24,92 @@ interface PlayerControllerProps {
   onStateChange?: (state: PlayerState, programId?: number, menuIndex?: number) => void
 }
 
-function resolveScheduleState(schedule: ScheduleEntry[]): {
+const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+
+function stripTime(iso: string): string {
+  return new Date(iso).toISOString().split('T')[0]
+}
+
+function timeOfDayMinutes(iso: string): number {
+  const d = new Date(iso)
+  return d.getUTCHours() * 60 + d.getUTCMinutes()
+}
+
+function resolveScheduleState(
+  scheduleEntries: ScheduleEntry[],
+  availabilityEntries: AvailabilityEntry[],
+): {
   activeAutoPlay: ScheduleEntry | null
-  availablePrograms: ScheduleEntry[]
+  availablePrograms: AvailabilityEntry[]
 } {
   const now = new Date()
+  const today = now.toISOString().split('T')[0]
+  const todayDayName = DAY_NAMES[now.getUTCDay()]
 
-  const availablePrograms = schedule.filter((e) => {
-    if (e.scheduleType !== 'availability') return false
-    if (!e.startTime) return false
-    const start = new Date(e.startTime)
-    const end = e.endTime ? new Date(e.endTime) : null
-    if (start > now) return false
-    if (end && now > new Date(end.getTime() + 24 * 60 * 60 * 1000)) return false
+  const availablePrograms = availabilityEntries.filter((e) => {
+    if (!e.startDate) return false
+    const start = new Date(e.startDate)
+    const end = e.endDate ? new Date(e.endDate) : null
+    const todayDate = new Date(today)
+    if (start > todayDate) return false
+    if (end) {
+      const endPlusGrace = new Date(end.getTime() + 24 * 60 * 60 * 1000)
+      if (now > endPlusGrace) return false
+    }
     return true
   })
 
   let activeAutoPlay: ScheduleEntry | null = null
-  for (const entry of schedule) {
-    if (entry.scheduleType !== 'autoplay') continue
-    const start = new Date(entry.startTime)
-    const end = entry.endTime ? new Date(entry.endTime) : null
-    if (start <= now && (!end || now < end)) {
-      if (!activeAutoPlay || new Date(entry.startTime) > new Date(activeAutoPlay.startTime)) {
-        activeAutoPlay = entry
-      }
+  for (const entry of scheduleEntries) {
+    if (!entry.startTime) continue
+
+    const daysOfWeek: string[] = entry.daysOfWeek || []
+    const isRecurring = daysOfWeek.length > 0
+
+    if (isRecurring) {
+      if (!daysOfWeek.includes(todayDayName)) continue
+    } else {
+      if (stripTime(entry.startTime) !== today) continue
+    }
+
+    if (entry.startDate && new Date(entry.startDate).toISOString().split('T')[0] > today) continue
+    if (entry.untilDate && new Date(entry.untilDate).toISOString().split('T')[0] < today) continue
+
+    const startMin = timeOfDayMinutes(entry.startTime)
+    const endMin = entry.endTime ? timeOfDayMinutes(entry.endTime) : startMin + 60
+    const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes()
+
+    if (nowMin < startMin || nowMin >= endMin) continue
+
+    if (!activeAutoPlay || new Date(entry.startTime) > new Date(activeAutoPlay.startTime)) {
+      activeAutoPlay = entry
     }
   }
 
   return { activeAutoPlay, availablePrograms }
 }
 
-function getNextAutoPlay(schedule: ScheduleEntry[]): ScheduleEntry | null {
+function getNextAutoPlay(scheduleEntries: ScheduleEntry[]): ScheduleEntry | null {
   const now = new Date()
+  const today = now.toISOString().split('T')[0]
+  const todayDayName = DAY_NAMES[now.getUTCDay()]
   let next: ScheduleEntry | null = null
-  for (const entry of schedule) {
-    if (entry.scheduleType !== 'autoplay') continue
+
+  for (const entry of scheduleEntries) {
+    if (!entry.startTime) continue
+
+    const daysOfWeek: string[] = entry.daysOfWeek || []
+    const isRecurring = daysOfWeek.length > 0
+
+    if (isRecurring) {
+      if (!daysOfWeek.includes(todayDayName)) continue
+    } else {
+      if (stripTime(entry.startTime) !== today) continue
+    }
+
+    if (entry.startDate && new Date(entry.startDate).toISOString().split('T')[0] > today) continue
+    if (entry.untilDate && new Date(entry.untilDate).toISOString().split('T')[0] < today) continue
+
     const start = new Date(entry.startTime)
     if (start > now) {
       if (!next || start < new Date(next.startTime)) {
@@ -78,8 +128,8 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const [pendingSlideIndex, setPendingSlideIndex] = useState<number>(0)
     const [menuIndex, setMenuIndex] = useState(0)
     const [showExitOverlay, setShowExitOverlay] = useState(false)
-    const [availableEntries, setAvailableEntries] = useState<ScheduleEntry[]>([])
-    const [currentScheduleEntry, setCurrentScheduleEntry] = useState<ScheduleEntry | null>(null)
+    const [availableEntries, setAvailableEntries] = useState<AvailabilityEntry[]>([])
+    const [currentScheduleEntry, setCurrentScheduleEntry] = useState<{ program?: Program; endTime?: string } | null>(null)
     const [showPaused, setShowPaused] = useState(false)
     const pausedRef = useRef(false)
     const flattenedSlidesRef = useRef<Slide[]>([])
@@ -89,8 +139,8 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const stateRef = useRef<PlayerState>(playerState)
     const activeProgramRef = useRef<Program | null>(activeProgram)
     const menuIndexRef = useRef(menuIndex)
-    const currentScheduleEntryRef = useRef<ScheduleEntry | null>(null)
-    const availableEntriesRef = useRef<ScheduleEntry[]>([])
+    const currentScheduleEntryRef = useRef<{ program?: Program; endTime?: string } | null>(null)
+    const availableEntriesRef = useRef<AvailabilityEntry[]>([])
     const scheduleDataRef = useRef<ResolvedSchedule | null>(null)
     const showExitOverlayRef = useRef(false)
 
@@ -130,7 +180,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }, [])
 
     const transitionTo = useCallback(
-      (state: PlayerState, program?: Program | null, entry?: ScheduleEntry | null, index?: number, availEntries?: ScheduleEntry[]) => {
+      (state: PlayerState, program?: Program | null, entry?: { program?: Program; endTime?: string } | null, index?: number, availEntries?: AvailabilityEntry[]) => {
         clearMenuTimeout()
         setPlayerState(state)
         setShowExitOverlay(false)
@@ -157,7 +207,8 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
 
     const getResolvedState = useCallback(() => {
       const sched = scheduleDataRef.current?.schedule ?? []
-      return resolveScheduleState(sched)
+      const avail = scheduleDataRef.current?.availability ?? []
+      return resolveScheduleState(sched, avail)
     }, [])
     const handleProgramEnd = useCallback(() => {
       const { availablePrograms } = getResolvedState()
@@ -233,6 +284,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const selectProgram = useCallback(
       (programId: number) => {
         const entry = scheduleDataRef.current?.schedule?.find((e) => e.programId === programId)
+          || scheduleDataRef.current?.availability?.find((e) => e.programId === programId)
         if (entry) {
           transitionTo('playing', entry.program, entry, 0)
         }
@@ -277,7 +329,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     useEffect(() => {
       if (!scheduleData) return
 
-      const { activeAutoPlay, availablePrograms } = resolveScheduleState(scheduleData.schedule)
+      const { activeAutoPlay, availablePrograms } = resolveScheduleState(scheduleData.schedule, scheduleData.availability ?? [])
       const currentState = stateRef.current
       const currentProgramId = activeProgramRef.current?.id
 
@@ -287,7 +339,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         }
       } else {
         setAvailableEntries(availablePrograms)
-        if (currentState === 'playing' && currentScheduleEntryRef.current?.scheduleType === 'autoplay') {
+        if (currentState === 'playing' && currentScheduleEntryRef.current) {
           if (availablePrograms.length > 0) {
             transitionTo('menu', null, null, 0, availablePrograms)
           } else {
@@ -347,11 +399,11 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }, [scheduleData, transitionTo, clearMenuTimeout])
 
     useEffect(() => {
-      if (playerState !== 'playing' || !currentScheduleEntry?.endTime || currentScheduleEntry.scheduleType !== 'autoplay') return
+      if (playerState !== 'playing' || !currentScheduleEntry?.endTime) return
 
       const interval = setInterval(() => {
         if (new Date() >= new Date(currentScheduleEntry.endTime!)) {
-          const { availablePrograms } = resolveScheduleState(scheduleDataRef.current?.schedule ?? [])
+          const { availablePrograms } = resolveScheduleState(scheduleDataRef.current?.schedule ?? [], scheduleDataRef.current?.availability ?? [])
           if (availablePrograms.length > 0) {
             setAvailableEntries(availablePrograms)
             setMenuIndex(0)

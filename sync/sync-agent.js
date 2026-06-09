@@ -24,7 +24,7 @@ console.log(ts('[sync] Sync agent starting...'));
 
 // Write empty schedule so player always has a file to fetch on startup
 if (!fs.existsSync(SCHEDULE_PATH)) {
-  const empty = JSON.stringify({ lastUpdated: new Date().toISOString(), schedule: [], defaultBackground: null }, null, 2) + '\n'
+  const empty = JSON.stringify({ lastUpdated: new Date().toISOString(), schedule: [], availability: [], defaultBackground: null }, null, 2) + '\n'
   const dir = path.dirname(SCHEDULE_PATH)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   const tmp = SCHEDULE_PATH + '.tmp'
@@ -176,12 +176,29 @@ function resolveSlideMedia(slide) {
   return resolved;
 }
 
-function buildScheduleJson(activeItems, backgroundUrl, deviceName) {
-  const schedule = activeItems.map(item => ({
+function buildScheduleJson(scheduleItems, availabilityItems, backgroundUrl, deviceName) {
+  const schedule = scheduleItems.map(item => ({
     programId: item.program?.id,
-    scheduleType: item.scheduleType || 'autoplay',
+    scheduleType: 'autoplay',
     startTime: item.startTime,
     endTime: item.endTime,
+    daysOfWeek: item.daysOfWeek || [],
+    startDate: item.startDate || null,
+    untilDate: item.untilDate || null,
+    program: {
+      id: item.program?.id,
+      title: item.program?.title,
+      loop: item.program?.loop,
+      department: item.program?.folder?.department?.name || null,
+      slides: (item.program?.slides || []).map(resolveSlideMedia),
+    },
+  }));
+
+  const availability = availabilityItems.map(item => ({
+    programId: item.program?.id,
+    scheduleType: 'availability',
+    startDate: item.startDate,
+    endDate: item.endDate || null,
     program: {
       id: item.program?.id,
       title: item.program?.title,
@@ -194,6 +211,7 @@ function buildScheduleJson(activeItems, backgroundUrl, deviceName) {
   return {
     lastUpdated: new Date().toISOString(),
     schedule,
+    availability,
     defaultBackground: backgroundUrl || null,
     deviceName: deviceName || null,
   };
@@ -255,33 +273,43 @@ async function sync() {
     const defaultBgId = device.defaultBackground;
 
     t0 = Date.now();
-    const res = await fetchWithRetry(
-      `${API_URL}/schedule?where[devices][contains]=${numericId}&where[program.status][equals]=approved&depth=3&sort=startTime`,
-      { headers: { Authorization: `devices API-Key ${API_KEY}` } }
-    );
-    console.log(ts(`[sync] fetch schedule: ${Date.now() - t0}ms`));
+    const auth = { headers: { Authorization: `devices API-Key ${API_KEY}` } };
 
-    const docs = res.data.docs || [];
-    if (docs.length === 0) {
-      console.log(ts(`[sync] No schedule entries found for device ${numericId}`));
-      return;
-    }
+    const [scheduleRes, programsRes] = await Promise.all([
+      fetchWithRetry(
+        `${API_URL}/schedule?where[devices][contains]=${numericId}&where[program.status][equals]=approved&depth=3&sort=startTime`,
+        auth
+      ),
+      fetchWithRetry(
+        `${API_URL}/programs?where[status][equals]=approved&depth=2`,
+        auth
+      ),
+    ]);
+    console.log(ts(`[sync] fetch schedule + programs: ${Date.now() - t0}ms`));
+
+    const scheduleDocs = scheduleRes.data.docs || [];
+    const programsDocs = programsRes.data.docs || [];
 
     const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const todayDayName = DAY_NAMES[now.getUTCDay()];
     const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
     const graceStart = new Date(now.getTime() - (6 * 60 * 60 * 1000));
 
-    const activeItems = docs.filter(item => {
-      const scheduleType = item.scheduleType || 'autoplay';
+    const activeSchedule = scheduleDocs.filter(item => {
+      if (!item.startTime) return false;
+      const daysOfWeek = item.daysOfWeek || [];
+      const isRecurring = daysOfWeek.length > 0;
 
-      if (scheduleType === 'availability') {
-        if (!item.startTime) return false;
-        const start = new Date(item.startTime);
-        const end = item.endTime ? new Date(item.endTime) : null;
-        if (start > now) return false;
-        if (end && now > new Date(end.getTime() + 24 * 60 * 60 * 1000)) return false;
-        return true;
+      if (isRecurring) {
+        if (!daysOfWeek.includes(todayDayName)) return false;
+      } else {
+        if (new Date(item.startTime).toISOString().split('T')[0] !== today) return false;
       }
+
+      if (item.startDate && new Date(item.startDate).toISOString().split('T')[0] > today) return false;
+      if (item.untilDate && new Date(item.untilDate).toISOString().split('T')[0] < today) return false;
 
       const start = new Date(item.startTime);
       const end = item.endTime ? new Date(item.endTime) : null;
@@ -291,22 +319,41 @@ async function sync() {
       return true;
     });
 
-    if (activeItems.length === 0) {
-      console.log(ts('[sync] No active schedule items after filtering'));
+    const activeAvailability = programsDocs
+      .filter(program => {
+        if (!program.availableFrom) return false;
+        const deviceIds = (program.availableDevices || []).map(d => typeof d === 'object' ? d.id : d);
+        if (!deviceIds.includes(numericId)) return false;
+        const start = new Date(program.availableFrom);
+        const end = program.availableUntil ? new Date(program.availableUntil) : null;
+        if (start > now) return false;
+        if (end && now > new Date(end.getTime() + 24 * 60 * 60 * 1000)) return false;
+        return true;
+      })
+      // Normalize to availability-entry shape (program sub-object)
+      .map(program => ({
+        startDate: program.availableFrom,
+        endDate: program.availableUntil || null,
+        program: program,
+      }));
+
+    if (activeSchedule.length === 0 && activeAvailability.length === 0) {
+      console.log(ts('[sync] No active schedule or availability entries after filtering'));
       return;
     }
 
+    const allActiveItems = [...activeSchedule, ...activeAvailability];
     const requiredFilenames = new Set();
     let shouldPowerOn = false;
 
-    for (const item of activeItems) {
+    for (const item of activeSchedule) {
       const start = new Date(item.startTime);
       const end = item.endTime ? new Date(item.endTime) : null;
       if (start <= new Date(now.getTime() + 30 * 60000)) shouldPowerOn = true;
       if (start <= now && (!end || now < end)) shouldPowerOn = true;
     }
 
-    console.log(ts(`[sync] Fetched schedule: ${activeItems.length} active program(s)`));
+    console.log(ts(`[sync] Fetched: ${activeSchedule.length} schedule(s), ${activeAvailability.length} availability entry(ies)`));
 
     // Phase 2: Download all media in parallel
     const downloads = [];
@@ -371,7 +418,7 @@ async function sync() {
       }
     }
 
-    for (const item of activeItems) {
+    for (const item of allActiveItems) {
       if (item.program?.slides) {
         for (const slide of item.program.slides) {
           collectSlideMedia(slide)
@@ -453,14 +500,14 @@ async function sync() {
     }
 
     // Phase 3: Rewrite schedule with local URLs
-    let scheduleChanged = writeScheduleAtomically(buildScheduleJson(activeItems, defaultBackgroundUrl, deviceName));
+    let scheduleChanged = writeScheduleAtomically(buildScheduleJson(activeSchedule, activeAvailability, defaultBackgroundUrl, deviceName));
     if (scheduleChanged) {
       console.log(ts('[sync] Schedule rewritten with local URLs'));
     }
 
     // Determine the currently-active program
     const checkNow = new Date();
-    const nowPlaying = activeItems.filter(i => (i.scheduleType || 'autoplay') === 'autoplay').reduce((best, item) => {
+    const nowPlaying = activeSchedule.reduce((best, item) => {
       const start = new Date(item.startTime);
       if (start > checkNow) return best;
       const end = item.endTime ? new Date(item.endTime) : null;

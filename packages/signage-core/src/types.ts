@@ -74,21 +74,31 @@ export interface Program {
   department?: string | null
 }
 
-export type ScheduleType = 'autoplay' | 'availability'
-
 export type PlayerState = 'idle' | 'menu' | 'playing'
 
 export interface ScheduleEntry {
   programId: number
-  scheduleType: ScheduleType
+  scheduleType: 'autoplay'
   startTime: string
   endTime?: string
+  daysOfWeek: string[]
+  startDate?: string
+  untilDate?: string
+  program: Program
+}
+
+export interface AvailabilityEntry {
+  programId: number
+  scheduleType: 'availability'
+  startDate: string
+  endDate?: string | null
   program: Program
 }
 
 export interface ResolvedSchedule {
   lastUpdated: string
   schedule: ScheduleEntry[]
+  availability: AvailabilityEntry[]
   defaultBackground?: string | null
   deviceName?: string | null
 }
