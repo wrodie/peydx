@@ -352,102 +352,104 @@ export interface Program {
             /**
              * Slides within this segment.
              */
-            slides: (
-              | {
-                  image: number | Media;
-                  transition?: ('fade' | 'cut' | 'slide') | null;
-                  /**
-                   * How should the player move to the next slide?
-                   */
-                  advanceMode: 'timed' | 'manual';
-                  duration?: number | null;
-                  /**
-                   * Move this slide to another segment or the top level on save.
-                   */
-                  _moveToSegment?: string | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'imageBlock';
-                }
-              | {
-                  video: number | Media;
-                  transition?: ('fade' | 'cut' | 'slide') | null;
-                  /**
-                   * How should the player move to the next slide?
-                   */
-                  advanceMode: 'timed' | 'manual' | 'onEnd';
-                  duration?: number | null;
-                  /**
-                   * Repeats the video until the slide transitions.
-                   */
-                  loop?: boolean | null;
-                  /**
-                   * Move this slide to another segment or the top level on save.
-                   */
-                  _moveToSegment?: string | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'videoBlock';
-                }
-              | {
-                  /**
-                   * Paste a YouTube link (e.g. youtube.com/watch?v=...) or just the video ID.
-                   */
-                  youtubeId: string;
-                  transition?: ('fade' | 'cut' | 'slide') | null;
-                  /**
-                   * How should the player move to the next slide?
-                   */
-                  advanceMode: 'timed' | 'manual' | 'onEnd';
-                  duration?: number | null;
-                  /**
-                   * Repeats the video until the slide transitions.
-                   */
-                  loop?: boolean | null;
-                  /**
-                   * Move this slide to another segment or the top level on save.
-                   */
-                  _moveToSegment?: string | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'youtubeBlock';
-                }
-              | {
-                  audio: number | Media;
-                  transition?: ('fade' | 'cut' | 'slide') | null;
-                  /**
-                   * How should the player move to the next slide?
-                   */
-                  advanceMode: 'timed' | 'manual' | 'onEnd';
-                  duration?: number | null;
-                  /**
-                   * Repeats the audio until the slide transitions.
-                   */
-                  loop?: boolean | null;
-                  /**
-                   * Move this slide to another segment or the top level on save.
-                   */
-                  _moveToSegment?: string | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'audioBlock';
-                }
-              | {
-                  transition?: ('fade' | 'cut' | 'slide') | null;
-                  /**
-                   * How should the player move to the next slide?
-                   */
-                  advanceMode: 'timed' | 'manual';
-                  duration?: number | null;
-                  /**
-                   * Move this slide to another segment or the top level on save.
-                   */
-                  _moveToSegment?: string | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'blackScreenBlock';
-                }
-            )[];
+            slides?:
+              | (
+                  | {
+                      image: number | Media;
+                      transition?: ('fade' | 'cut' | 'slide') | null;
+                      /**
+                       * How should the player move to the next slide?
+                       */
+                      advanceMode: 'timed' | 'manual';
+                      duration?: number | null;
+                      /**
+                       * Move this slide to another segment or the top level on save.
+                       */
+                      _moveToSegment?: string | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'imageBlock';
+                    }
+                  | {
+                      video: number | Media;
+                      transition?: ('fade' | 'cut' | 'slide') | null;
+                      /**
+                       * How should the player move to the next slide?
+                       */
+                      advanceMode: 'timed' | 'manual' | 'onEnd';
+                      duration?: number | null;
+                      /**
+                       * Repeats the video until the slide transitions.
+                       */
+                      loop?: boolean | null;
+                      /**
+                       * Move this slide to another segment or the top level on save.
+                       */
+                      _moveToSegment?: string | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'videoBlock';
+                    }
+                  | {
+                      /**
+                       * Paste a YouTube link (e.g. youtube.com/watch?v=...) or just the video ID.
+                       */
+                      youtubeId: string;
+                      transition?: ('fade' | 'cut' | 'slide') | null;
+                      /**
+                       * How should the player move to the next slide?
+                       */
+                      advanceMode: 'timed' | 'manual' | 'onEnd';
+                      duration?: number | null;
+                      /**
+                       * Repeats the video until the slide transitions.
+                       */
+                      loop?: boolean | null;
+                      /**
+                       * Move this slide to another segment or the top level on save.
+                       */
+                      _moveToSegment?: string | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'youtubeBlock';
+                    }
+                  | {
+                      audio: number | Media;
+                      transition?: ('fade' | 'cut' | 'slide') | null;
+                      /**
+                       * How should the player move to the next slide?
+                       */
+                      advanceMode: 'timed' | 'manual' | 'onEnd';
+                      duration?: number | null;
+                      /**
+                       * Repeats the audio until the slide transitions.
+                       */
+                      loop?: boolean | null;
+                      /**
+                       * Move this slide to another segment or the top level on save.
+                       */
+                      _moveToSegment?: string | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'audioBlock';
+                    }
+                  | {
+                      transition?: ('fade' | 'cut' | 'slide') | null;
+                      /**
+                       * How should the player move to the next slide?
+                       */
+                      advanceMode: 'timed' | 'manual';
+                      duration?: number | null;
+                      /**
+                       * Move this slide to another segment or the top level on save.
+                       */
+                      _moveToSegment?: string | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'blackScreenBlock';
+                    }
+                )[]
+              | null;
             /**
              * Drop files here to auto-generate slides inside this segment.
              */

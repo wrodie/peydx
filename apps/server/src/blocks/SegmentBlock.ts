@@ -69,7 +69,6 @@ export const SegmentBlock: Block = {
     {
       name: 'slides',
       type: 'blocks',
-      required: true,
       blocks: [
         ImageBlock, VideoBlock, YoutubeBlock,
         AudioBlock, BlackScreenBlock,

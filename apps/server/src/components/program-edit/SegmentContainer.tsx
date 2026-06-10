@@ -11,6 +11,7 @@ type SegmentContainerProps = {
   segment: any
   index: number
   mediaMap: Record<number, { url: string; thumbnailUrl: string | null; name: string; filename: string }>
+  activeSegmentId: string | null
   onEditSlide: (slide: any, idx: number, segmentId: string) => void
   onRemoveSlide: (idx: number, segmentId: string) => void
   onEditSegmentName: (name: string) => void
@@ -21,6 +22,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
   segment,
   index,
   mediaMap,
+  activeSegmentId,
   onEditSlide,
   onRemoveSlide,
   onEditSegmentName,
@@ -40,11 +42,16 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
     isDragging,
   } = useSortable({
     id: segmentId,
-    data: { type: 'segment', segment, index },
+    data: { type: 'segment', segment, index, segmentId },
   })
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `${segmentId}-drop`,
+    data: { type: 'segment-drop', segmentId },
+  })
+
+  const { setNodeRef: setBodyDropRef, isOver: isBodyOver } = useDroppable({
+    id: `${segmentId}-body`,
     data: { type: 'segment-drop', segmentId },
   })
 
@@ -64,15 +71,20 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
     }
   }
 
+  const combinedRef = (el: HTMLDivElement | null) => {
+    setNodeRef(el)
+    setBodyDropRef(el)
+  }
+
   return (
     <div
-      ref={setNodeRef}
+      ref={combinedRef}
       style={{
         ...style,
         marginBottom: 8,
-        border: `1px solid ${isOver ? 'var(--theme-primary-300, #93c5fd)' : 'var(--theme-elevation-300, #d1d5db)'}`,
+        border: `2px solid ${activeSegmentId === segmentId ? 'var(--theme-primary-400, #60a5fa)' : isOver || isBodyOver ? 'var(--theme-primary-300, #93c5fd)' : 'var(--theme-elevation-300, #d1d5db)'}`,
         borderRadius: 8,
-        background: isDragging ? 'var(--theme-elevation-50, #f9fafb)' : 'white',
+        background: activeSegmentId === segmentId ? 'var(--theme-primary-50, #eff6ff)' : isDragging ? 'var(--theme-elevation-50, #f9fafb)' : 'white',
         opacity: isDragging ? 0.5 : 1,
       }}
     >
@@ -234,13 +246,14 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
                 style={{
                   padding: '20px 12px',
                   textAlign: 'center',
-                  color: 'var(--theme-elevation-400, #9ca3af)',
+                  color: isBodyOver ? 'var(--theme-primary-500, #3b82f6)' : 'var(--theme-elevation-400, #9ca3af)',
                   fontSize: '0.8rem',
-                  border: '1px dashed var(--theme-elevation-200, #e5e7eb)',
+                  border: `2px dashed ${isBodyOver ? 'var(--theme-primary-300, #93c5fd)' : 'var(--theme-elevation-200, #e5e7eb)'}`,
                   borderRadius: 6,
+                  background: isBodyOver ? 'var(--theme-primary-50, #eff6ff)' : 'transparent',
                 }}
               >
-                Drag media here or use + Add Slide
+                {isBodyOver ? 'Drop slide here' : 'Drag media here or use + Add Slide'}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

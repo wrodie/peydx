@@ -4,7 +4,9 @@ import {
   DndContext,
   type DragEndEvent,
   type DragStartEvent,
+  type DragOverEvent,
   DragOverlay,
+  closestCorners,
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useField, useDocumentInfo, useForm } from '@payloadcms/ui'
@@ -160,6 +162,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   const [editingSlideIndex, setEditingSlideIndex] = useState(-1)
   const [editingSegmentId, setEditingSegmentId] = useState<string | undefined>(undefined)
   const [activeDrag, setActiveDrag] = useState<any>(null)
+  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null)
   const [mediaMap, setMediaMap] = useState<MediaMap>({})
 
   const rawSlides = (getDataByPath(path) as any[]) || []
@@ -230,7 +233,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           subFieldState: buildRowState(updatedSlide.blockType, updatedSlide),
         })
       } else if (segmentId) {
-        const segIdx = findSegmentIndex(slides, segmentId)
+        const segIdx = segmentId != null ? rawSlides.findIndex((s: any) => s && s.id === segmentId) : -1
         if (segIdx < 0) return
         const rowPath = `${path}.${segIdx}.slides`
         replaceFieldRow({
@@ -252,14 +255,14 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       setEditingSlideIndex(-1)
       setEditingSegmentId(undefined)
     },
-    [path, addFieldRow, replaceFieldRow, slides]
+    [path, addFieldRow, replaceFieldRow, rawSlides]
   )
 
   const handleRemoveSlide = useCallback(
     (index: number, segmentId?: string) => {
       if (!confirm('Remove this slide?')) return
       if (segmentId) {
-        const segIdx = findSegmentIndex(slides, segmentId)
+        const segIdx = rawSlides.findIndex((s: any) => s && s.id === segmentId)
         if (segIdx >= 0) {
           removeFieldRow({ path: `${path}.${segIdx}.slides`, rowIndex: index })
         }
@@ -267,7 +270,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         removeFieldRow({ path, rowIndex: index })
       }
     },
-    [path, removeFieldRow, slides]
+    [path, removeFieldRow, rawSlides]
   )
 
   const handleEditSegmentName = useCallback(
@@ -293,9 +296,20 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     setActiveDrag(event.active.data.current)
   }, [])
 
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { over } = event
+    const overData = over?.data?.current as any
+    setActiveSegmentId(
+      overData?.type === 'segment-drop' || overData?.type === 'segment' || (overData?.type === 'slide' && overData?.segmentId)
+        ? (overData.segmentId ?? null)
+        : null
+    )
+  }, [])
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       setActiveDrag(null)
+      setActiveSegmentId(null)
       const { active, over } = event
       if (!over) return
 
@@ -308,7 +322,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         return
       }
 
-      if (activeData.type === 'slide') {
+      if (activeData.type === 'slide' || activeData.type === 'segment') {
         handleSlideMove(activeData, overData)
       }
     },
@@ -333,7 +347,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       }
 
       if (overData.type === 'segment-drop') {
-        const segIdx = findSegmentIndex(slides, overData.segmentId)
+        const segIdx = overData.segmentId != null ? rawSlides.findIndex((s: any) => s && s.id === overData.segmentId) : -1
         if (segIdx >= 0) {
           addFieldRow({
             path: `${path}.${segIdx}.slides`,
@@ -351,7 +365,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           subFieldState: buildRowState(blockType, slideData),
         })
       } else if (overData.type === 'slide' && overData.segmentId) {
-        const segIdx = findSegmentIndex(slides, overData.segmentId)
+        const segIdx = overData.segmentId != null ? rawSlides.findIndex((s: any) => s && s.id === overData.segmentId) : -1
         if (segIdx >= 0) {
           addFieldRow({
             path: `${path}.${segIdx}.slides`,
@@ -370,7 +384,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         })
       }
     },
-    [path, addFieldRow, slides]
+    [path, addFieldRow, rawSlides]
   )
 
   const handleSlideMove = useCallback(
@@ -378,20 +392,65 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       const activeSegId = activeData.segmentId
       const overSegId = overData.segmentId
 
+      if (activeData.type === 'segment') {
+        const activeId = activeData.segment?.id
+        const activeRawIdx = rawSlides.findIndex((s: any) => s && s.id === activeId)
+        if (activeRawIdx < 0) return
+
+        let targetRawIdx: number | null = null
+        if (overData.type === 'segment-drop' || (overData.type === 'slide' && overData.segmentId)) {
+          targetRawIdx = rawSlides.findIndex((s: any) => s && s.id === overData.segmentId)
+        } else if (overData.type === 'segment') {
+          const overId = (overData as any).segment?.id
+          targetRawIdx = overId != null ? rawSlides.findIndex((s: any) => s && s.id === overId) : null
+        } else if (overData.type === 'slide' && overData.isTopLevel) {
+          const overId = overData.slide?.id
+          targetRawIdx = overId != null ? rawSlides.findIndex((s: any) => s && s.id === overId) : overData.index
+        }
+        if (targetRawIdx != null && rawSlides.length > 1 && targetRawIdx !== activeRawIdx) {
+          moveFieldRow({ path, moveFromIndex: activeRawIdx, moveToIndex: targetRawIdx })
+        }
+        return
+      }
+
+      if (activeData.type === 'slide' && overData.type === 'segment-drop' && overData.segmentId) {
+        const segSlides = getDataByPath(path) as any[]
+        const segIdx = segSlides != null ? findSegmentIndex(segSlides, overData.segmentId) : -1
+        if (segIdx >= 0) {
+          const movedSlide = segSlides[activeData.index]
+          if (movedSlide) {
+            removeFieldRow({ path, rowIndex: activeData.index })
+            addFieldRow({
+              path: `${path}.${segIdx}.slides`,
+              blockType: movedSlide.blockType,
+              schemaPath: `${path}.${movedSlide.blockType}`,
+              subFieldState: buildRowState(movedSlide.blockType, movedSlide),
+            })
+            return
+          }
+        }
+      }
+
       const sameLevel = !activeSegId && !overSegId
       const sameSegment = activeSegId && overSegId && activeSegId === overSegId
 
       if (sameLevel) {
-        if (slides.length > 1) {
-          moveFieldRow({ path, moveFromIndex: activeData.index, moveToIndex: overData.index })
+        if (rawSlides.length > 1) {
+          const overId = overData.slide?.id
+          const targetRawIdx = overId != null ? rawSlides.findIndex((s: any) => s && s.id === overId) : overData.index
+          const activeId = activeData.slide?.id
+          const activeRawIdx = activeId != null ? rawSlides.findIndex((s: any) => s && s.id === activeId) : activeData.index
+          if (activeRawIdx >= 0 && targetRawIdx >= 0 && targetRawIdx !== activeRawIdx) {
+            moveFieldRow({ path, moveFromIndex: activeRawIdx, moveToIndex: targetRawIdx })
+          }
         }
         return
       }
 
       if (sameSegment) {
-        const segIdx = findSegmentIndex(slides, activeSegId)
+        const segIdx = activeSegId != null ? rawSlides.findIndex((s: any) => s && s.id === activeSegId) : -1
         if (segIdx < 0) return
-        const segSlides = slides[segIdx]?.slides || []
+        const segSlides = slides[findSegmentIndex(slides, activeSegId)]?.slides || []
         if (segSlides.length > 1) {
           moveFieldRow({
             path: `${path}.${segIdx}.slides`,
@@ -433,6 +492,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         addFieldRow({
           path: `${path}.${segIdx}.slides`,
           blockType: movedSlide.blockType,
+          rowIndex: overData.type === 'slide' ? overData.index : undefined,
           schemaPath: `${path}.${movedSlide.blockType}`,
           subFieldState: buildRowState(movedSlide.blockType, movedSlide),
         })
@@ -455,11 +515,11 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         })
       }
     },
-    [path, slides, moveFieldRow, removeFieldRow, addFieldRow, getDataByPath]
+    [path, slides, rawSlides, moveFieldRow, removeFieldRow, addFieldRow, getDataByPath]
   )
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext collisionDetection={closestCorners} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div
         style={{
           display: 'flex',
@@ -529,6 +589,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           <ProgramTimeline
             slides={slides}
             mediaMap={mediaMap}
+            activeSegmentId={activeSegmentId}
             onAddSlide={handleAddSlide}
             onEditSlide={handleEditSlide}
             onRemoveSlide={handleRemoveSlide}
