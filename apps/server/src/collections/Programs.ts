@@ -264,11 +264,15 @@ export const Programs: CollectionConfig = {
       name: 'title',
       type: 'text',
       required: true,
+      admin: {
+        hidden: true,
+      },
     },
     {
       name: 'description',
       type: 'textarea',
       admin: {
+        hidden: true,
         description: 'Brief overview for other users.',
       },
     },
@@ -276,6 +280,11 @@ export const Programs: CollectionConfig = {
       name: 'slides',
       type: 'blocks',
       blocks: [ImageBlock, VideoBlock, YoutubeBlock, AudioBlock, BlackScreenBlock, SegmentBlock],
+      admin: {
+        components: {
+          Field: '/components/program-edit/ProgramTimelineField#ProgramTimelineField',
+        },
+      },
     },
     {
       name: 'status',
