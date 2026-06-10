@@ -199,20 +199,14 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     (blockType: string) => {
       const def = newSlideDefaults[blockType]
       if (!def) return
-      addFieldRow({
-        path,
-        blockType,
-        schemaPath: `${path}.${blockType}`,
-        subFieldState: buildRowState(blockType, def),
-      })
       if (blockType !== 'blackScreenBlock') {
-        setEditingSlide({ ...def })
+        setEditingSlide({ ...def, _isNew: true })
         setEditingSlideIndex(rawSlides.length)
         setEditingSegmentId(undefined)
         setDrawerOpen(true)
       }
     },
-    [path, addFieldRow, rawSlides]
+    [rawSlides]
   )
 
   const handleEditSlide = useCallback(
@@ -227,7 +221,15 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
   const handleSaveSlide = useCallback(
     (updatedSlide: any, index: number, segmentId?: string) => {
-      if (segmentId) {
+      if (updatedSlide._isNew) {
+        delete updatedSlide._isNew
+        addFieldRow({
+          path,
+          blockType: updatedSlide.blockType,
+          schemaPath: `${path}.${updatedSlide.blockType}`,
+          subFieldState: buildRowState(updatedSlide.blockType, updatedSlide),
+        })
+      } else if (segmentId) {
         const segIdx = findSegmentIndex(slides, segmentId)
         if (segIdx < 0) return
         const rowPath = `${path}.${segIdx}.slides`
@@ -250,7 +252,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       setEditingSlideIndex(-1)
       setEditingSegmentId(undefined)
     },
-    [path, slides]
+    [path, addFieldRow, replaceFieldRow, slides]
   )
 
   const handleRemoveSlide = useCallback(

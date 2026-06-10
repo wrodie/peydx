@@ -238,6 +238,9 @@ export const Programs: CollectionConfig = {
     ],
     afterRead: [
       ({ doc, req }) => {
+        if (doc.slides && Array.isArray(doc.slides)) {
+          doc.slides = doc.slides.filter((s: any) => s && s.blockType)
+        }
         if ((doc as any).autoBlackEndSlide
           && !(doc as any).loop
           && doc.slides

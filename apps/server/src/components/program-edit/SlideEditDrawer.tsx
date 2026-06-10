@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, type FC } from 'react'
+import { useState, useEffect, useMemo, type FC } from 'react'
 import { useListDrawer } from '@payloadcms/ui'
 
 type SlideEditDrawerProps = {
@@ -27,9 +27,28 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
   const [localSlide, setLocalSlide] = useState<any>(null)
   const [dirty, setDirty] = useState(false)
   const [browseField, setBrowseField] = useState<string | null>(null)
+
+  const filterOptions = useMemo(
+    () =>
+      browseField === 'image' ? { media: { mimeType: { contains: 'image' } } } :
+      browseField === 'video' ? { media: { mimeType: { contains: 'video' } } } :
+      browseField === 'audio' ? { media: { mimeType: { contains: 'audio' } } } :
+      undefined,
+    [browseField]
+  )
+
   const [ListDrawer, , { openDrawer, closeDrawer }] = useListDrawer({
     collectionSlugs: ['media'],
+    filterOptions,
   })
+
+  const handleListSelect = ({ doc }: { doc: any }) => {
+    if (browseField) {
+      updateField(browseField, doc.id)
+      setBrowseField(null)
+      closeDrawer()
+    }
+  }
 
   useEffect(() => {
     if (slide) {
@@ -37,6 +56,10 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
       setDirty(false)
     }
   }, [slide, isOpen])
+
+  useEffect(() => {
+    if (browseField) openDrawer()
+  }, [browseField, openDrawer])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -83,7 +106,7 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
     const thumbnailUrl = mediaFromMap?.thumbnailUrl || null
     const name = mediaFromMap ? (mediaFromMap.name || mediaFromMap.filename || '') : (mediaId ? 'Loading...' : '')
 
-    const openBrowser = () => { setBrowseField(fieldName); openDrawer() }
+    const openBrowser = () => { setBrowseField(fieldName) }
 
     return (
       <div style={{ marginBottom: 16 }}>
@@ -378,15 +401,7 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
           </button>
         </div>
 
-        <ListDrawer
-          onSelect={({ doc }: { doc: any }) => {
-            if (browseField) {
-              updateField(browseField, doc.id)
-              setBrowseField(null)
-              closeDrawer()
-            }
-          }}
-        />
+        <ListDrawer onSelect={handleListSelect} />
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
           {renderContent()}
