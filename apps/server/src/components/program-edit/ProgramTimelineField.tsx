@@ -162,7 +162,8 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   const [activeDrag, setActiveDrag] = useState<any>(null)
   const [mediaMap, setMediaMap] = useState<MediaMap>({})
 
-  const slides = ((getDataByPath(path) as any[]) || []).filter(
+  const rawSlides = (getDataByPath(path) as any[]) || []
+  const slides = rawSlides.filter(
     (s: any) => s && s.blockType && !String(s.id).startsWith('auto')
   )
 
@@ -206,12 +207,12 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       })
       if (blockType !== 'blackScreenBlock') {
         setEditingSlide({ ...def })
-        setEditingSlideIndex(slides.length)
+        setEditingSlideIndex(rawSlides.length)
         setEditingSegmentId(undefined)
         setDrawerOpen(true)
       }
     },
-    [path, addFieldRow, slides]
+    [path, addFieldRow, rawSlides]
   )
 
   const handleEditSlide = useCallback(
