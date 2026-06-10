@@ -340,6 +340,27 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
       case 'blackScreenBlock':
         return renderAdvanceSettings()
 
+      case 'segmentBlock':
+        return (
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: 4, fontSize: '0.825rem' }}>
+              Segment Name
+            </label>
+            <input
+              value={localSlide.name || ''}
+              onChange={(e) => updateField('name', e.target.value)}
+              placeholder="Enter segment name"
+              style={{
+                width: '100%',
+                padding: '6px 8px',
+                fontSize: '0.8rem',
+                border: '1px solid var(--theme-elevation-300, #d1d5db)',
+                borderRadius: 4,
+              }}
+            />
+          </div>
+        )
+
       default:
         return (
           <div style={{ color: 'var(--theme-elevation-500, #9ca3af)', padding: '16px 0' }}>
