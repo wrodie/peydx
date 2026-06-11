@@ -577,6 +577,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             mediaMap={mediaMap}
             onAddSlide={handleAddSlide}
             onEditSlide={handleEditSlide}
+            onEditSegment={handleEditSlide}
             onRemoveSlide={handleRemoveSlide}
             onEditSegmentName={handleEditSegmentName}
             onRemoveSegment={handleRemoveSegment}

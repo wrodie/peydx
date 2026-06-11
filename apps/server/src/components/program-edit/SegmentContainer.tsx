@@ -12,6 +12,7 @@ type SegmentContainerProps = {
   index: number
   mediaMap: Record<number, { url: string; thumbnailUrl: string | null; name: string; filename: string }>
   onEditSlide: (slide: any, idx: number, segmentId: string) => void
+  onEditSegment: (slide: any, index: number) => void
   onRemoveSlide: (idx: number, segmentId: string) => void
   onEditSegmentName: (name: string) => void
   onRemoveSegment: () => void
@@ -22,6 +23,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
   index,
   mediaMap,
   onEditSlide,
+  onEditSegment,
   onRemoveSlide,
   onEditSegmentName,
   onRemoveSegment,
@@ -191,9 +193,26 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
               Loop
             </span>
           )}
+          {segment.advanceMode && segment.advanceMode !== 'slides' && (
+            <span
+              style={{
+                background: 'var(--theme-elevation-100, #f3f4f6)',
+                padding: '2px 8px',
+                borderRadius: 10,
+                color: 'var(--theme-elevation-600, #4b5563)',
+              }}
+            >
+              {segment.advanceMode === 'timed'
+                ? (segment.duration ? `${segment.duration} min` : 'Timed')
+                : 'Manual'}
+            </span>
+          )}
           {!editingName && (
             <button
-              onClick={() => setEditingName(true)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onEditSegment(segment, index)
+              }}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -201,7 +220,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
                 padding: '2px 6px',
                 fontSize: '0.75rem',
               }}
-              title="Rename segment"
+              title="Edit segment properties"
             >
               ✏️
             </button>

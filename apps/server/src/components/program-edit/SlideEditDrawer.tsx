@@ -32,7 +32,7 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
     () =>
       browseField === 'image' ? { media: { mimeType: { contains: 'image' } } } :
       browseField === 'video' ? { media: { mimeType: { contains: 'video' } } } :
-      browseField === 'audio' ? { media: { mimeType: { contains: 'audio' } } } :
+      browseField === 'backgroundAudio' || browseField === 'audio' ? { media: { mimeType: { contains: 'audio' } } } :
       undefined,
     [browseField]
   )
@@ -111,7 +111,7 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
     return (
       <div style={{ marginBottom: 16 }}>
         <label style={{ display: 'block', fontWeight: 600, marginBottom: 4, fontSize: '0.825rem' }}>
-          {fieldName === 'image' ? 'Image' : fieldName === 'video' ? 'Video' : 'Audio'}
+          {fieldName === 'image' ? 'Image' : fieldName === 'video' ? 'Video' : fieldName === 'backgroundAudio' ? 'Background Audio' : 'Audio'}
         </label>
         {mediaId ? (
           <div
@@ -342,23 +342,79 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
 
       case 'segmentBlock':
         return (
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: 4, fontSize: '0.825rem' }}>
-              Segment Name
-            </label>
-            <input
-              value={localSlide.name || ''}
-              onChange={(e) => updateField('name', e.target.value)}
-              placeholder="Enter segment name"
-              style={{
-                width: '100%',
-                padding: '6px 8px',
-                fontSize: '0.8rem',
-                border: '1px solid var(--theme-elevation-300, #d1d5db)',
-                borderRadius: 4,
-              }}
-            />
-          </div>
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 4, fontSize: '0.825rem' }}>
+                Segment Name
+              </label>
+              <input
+                value={localSlide.name || ''}
+                onChange={(e) => updateField('name', e.target.value)}
+                placeholder="Enter segment name"
+                style={{
+                  width: '100%',
+                  padding: '6px 8px',
+                  fontSize: '0.8rem',
+                  border: '1px solid var(--theme-elevation-300, #d1d5db)',
+                  borderRadius: 4,
+                }}
+              />
+            </div>
+
+            {renderMediaField('backgroundAudio', 'audio')}
+
+            <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                id="seg-loop"
+                checked={localSlide.loop || false}
+                onChange={(e) => updateField('loop', e.target.checked)}
+              />
+              <label htmlFor="seg-loop" style={{ fontSize: '0.825rem' }}>Loop segment</label>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 4, fontSize: '0.825rem' }}>
+                How to exit this segment
+              </label>
+              <select
+                value={localSlide.advanceMode || 'slides'}
+                onChange={(e) => updateField('advanceMode', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '6px 8px',
+                  fontSize: '0.8rem',
+                  border: '1px solid var(--theme-elevation-300, #d1d5db)',
+                  borderRadius: 4,
+                }}
+              >
+                <option value="slides">Follow slides</option>
+                <option value="timed">Timer</option>
+                <option value="manual">Manual</option>
+              </select>
+            </div>
+
+            {localSlide.advanceMode === 'timed' && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 4, fontSize: '0.825rem' }}>
+                  Duration (minutes)
+                </label>
+                <input
+                  type="number"
+                  value={localSlide.duration || ''}
+                  onChange={(e) => updateField('duration', Number(e.target.value))}
+                  min={1}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    fontSize: '0.8rem',
+                    border: '1px solid var(--theme-elevation-300, #d1d5db)',
+                    borderRadius: 4,
+                  }}
+                />
+              </div>
+            )}
+          </>
         )
 
       default:

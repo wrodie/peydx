@@ -12,6 +12,7 @@ type ProgramTimelineProps = {
   mediaMap: Record<number, { url: string; thumbnailUrl: string | null; name: string; filename: string }>
   onAddSlide: (blockType: string) => void
   onEditSlide: (slide: any, index: number, segmentId?: string) => void
+  onEditSegment: (slide: any, index: number, segmentId?: string) => void
   onRemoveSlide: (index: number, segmentId?: string) => void
   onEditSegmentName: (segmentId: string, name: string, segmentIndex: number) => void
   onRemoveSegment: (segmentIndex: number) => void
@@ -22,6 +23,7 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
   mediaMap,
   onAddSlide,
   onEditSlide,
+  onEditSegment,
   onRemoveSlide,
   onEditSegmentName,
   onRemoveSegment,
@@ -112,6 +114,7 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
                       index={i}
                       mediaMap={mediaMap}
                       onEditSlide={handleEditSlideWrapper}
+                      onEditSegment={(s, idx) => onEditSegment(s, idx)}
                       onRemoveSlide={handleRemoveSlideWrapper}
                       onEditSegmentName={(name) => handleEditSegmentNameWrapper(name, segId)}
                       onRemoveSegment={() => handleRemoveSegmentWrapper(i)}
