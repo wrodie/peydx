@@ -249,7 +249,7 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
   return (
     <div
       style={{
-        width: 260,
+        width: 360,
         flexShrink: 0,
         borderRight: '1px solid var(--theme-elevation-200, #e5e7eb)',
         display: 'flex',
@@ -286,7 +286,7 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
         </button>
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px', minHeight: 0 }}>
+      <div style={{ overflow: 'auto', padding: '8px 12px' }}>
         <div
           onClick={() => setSelectedFolder(null)}
           style={{
