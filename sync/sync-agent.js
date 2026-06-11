@@ -152,11 +152,11 @@ async function sync() {
 
     const [scheduleRes, programsRes] = await Promise.all([
       fetchWithRetry(
-        `${API_URL}/schedule?where[devices][contains]=${numericId}&where[program.status][equals]=approved&depth=3&sort=startTime`,
+        `${API_URL}/schedule?where[devices][contains]=${numericId}&depth=3&sort=startTime`,
         auth
       ),
       fetchWithRetry(
-        `${API_URL}/programs?where[status][equals]=approved&depth=2`,
+        `${API_URL}/programs?depth=2`,
         auth
       ),
     ]);

@@ -31,9 +31,7 @@ export function normalizeApiSchedule(
   const { deviceId, defaultBackgroundUrl, deviceName, resolveMediaUrl } = options
   const resolveUrl = resolveMediaUrl ?? ((url: string) => url)
 
-  const scheduleDocs = (apiData?.docs || []).filter(
-    (entry: any) => entry.program?.status === 'approved',
-  )
+  const scheduleDocs = apiData?.docs || []
 
   const programs = programsData?.docs || []
   const availability = []

@@ -23,8 +23,8 @@ export function createCmsProvider(deviceId: string, token: string): DeviceProvid
 
     async fetchSchedule(): Promise<ResolvedSchedule> {
       const [scheduleRes, programsRes] = await Promise.all([
-        fetch(`/api/schedule?where[devices][contains]=${deviceId}&where[program.status][equals]=approved&depth=3&sort=startTime&token=${token}`),
-        fetch(`/api/programs?where[status][equals]=approved&depth=2&token=${token}`),
+        fetch(`/api/schedule?where[devices][contains]=${deviceId}&depth=3&sort=startTime&token=${token}`),
+        fetch(`/api/programs?depth=2&token=${token}`),
       ])
       const [scheduleData, programsData] = await Promise.all([
         scheduleRes.json(),

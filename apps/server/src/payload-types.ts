@@ -460,7 +460,6 @@ export interface Program {
           }
       )[]
     | null;
-  status?: ('draft' | 'approved') | null;
   folder?: (number | null) | Folder;
   /**
    * Drop files here to auto-generate slides.
@@ -872,7 +871,6 @@ export interface ProgramsSelect<T extends boolean = true> {
               blockName?: T;
             };
       };
-  status?: T;
   folder?: T;
   bulkMedia?: T;
   loop?: T;

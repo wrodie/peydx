@@ -300,18 +300,6 @@ export const Programs: CollectionConfig = {
       },
     },
     {
-      name: 'status',
-      type: 'select',
-      defaultValue: 'draft',
-      options: [
-        { label: 'Draft', value: 'draft' },
-        { label: 'Approved / Ready', value: 'approved' },
-      ],
-      admin: {
-        position: 'sidebar',
-      },
-    },
-    {
       name: 'folder',
       type: 'relationship',
       relationTo: 'folders',
