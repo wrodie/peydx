@@ -32,6 +32,7 @@ const newSlideDefaults: Record<string, any> = {
   youtubeBlock: {
     blockType: 'youtubeBlock',
     youtubeId: '',
+    videoTitle: null,
     transition: 'fade',
     advanceMode: 'onEnd',
     loop: false,
@@ -77,6 +78,7 @@ function buildRowState(blockType: string, data?: any): Record<string, any> {
       break
     case 'youtubeBlock':
       s.youtubeId = { value: data?.youtubeId ?? '', initialValue: data?.youtubeId ?? '', valid: true }
+      s.videoTitle = { value: data?.videoTitle ?? null, initialValue: data?.videoTitle ?? null, valid: true }
       s.transition = { value: data?.transition ?? 'fade', initialValue: data?.transition ?? 'fade', valid: true }
       s.advanceMode = { value: data?.advanceMode ?? 'onEnd', initialValue: data?.advanceMode ?? 'onEnd', valid: true }
       s.duration = { value: data?.duration ?? null, initialValue: data?.duration ?? null, valid: true }

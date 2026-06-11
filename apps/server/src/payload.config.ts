@@ -13,6 +13,7 @@ import { Schedule } from './collections/Schedule'
 import { Departments } from './collections/Departments'
 import { Folders } from './collections/Folders'
 import { heartbeat } from './endpoints/heartbeat'
+import { youtubeInfo } from './endpoints/youtubeInfo'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -41,7 +42,7 @@ export default buildConfig({
     Users,
     Devices,
   ],
-  endpoints: [heartbeat],
+  endpoints: [heartbeat, youtubeInfo],
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {

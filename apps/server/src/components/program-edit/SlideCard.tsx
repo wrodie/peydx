@@ -15,10 +15,14 @@ type SlideCardProps = {
   segmentId?: string
 }
 
-const blockIcons: Record<string, string> = {
+const blockIcons: Record<string, any> = {
   imageBlock: '🖼',
   videoBlock: '🎬',
-  youtubeBlock: '▶️',
+  youtubeBlock: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="#FF0000">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    </svg>
+  ),
   audioBlock: '🎵',
   blackScreenBlock: '◼',
   segmentBlock: '📁',
@@ -45,6 +49,12 @@ function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
   return s > 0 ? `${m}m ${s}s` : `${m}m`
+}
+
+function extractYouTubeId(input: string): string | null {
+  if (!input) return null
+  const m = input.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})|^([a-zA-Z0-9_-]{11})$/)
+  return m?.[1] || m?.[2] || null
 }
 
 export const SlideCard: FC<SlideCardProps> = ({
@@ -87,13 +97,14 @@ export const SlideCard: FC<SlideCardProps> = ({
 
   const mediaId = getMediaId(slide)
   const mediaItem = mediaId != null ? mediaMap[mediaId] : null
+  const ytId = slide.blockType === 'youtubeBlock' ? extractYouTubeId(slide.youtubeId || '') : null
   const thumbnail = mediaItem?.thumbnailUrl || (
-    slide.blockType === 'youtubeBlock' && slide.youtubeId
-      ? `https://img.youtube.com/vi/${slide.youtubeId}/mqdefault.jpg`
+    ytId
+      ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`
       : null
   )
   const icon = blockIcons[slide.blockType] || '📄'
-  const name = mediaItem?.name || mediaItem?.filename || blockLabels[slide.blockType] || slide.blockType
+  const name = mediaItem?.name || mediaItem?.filename || slide.videoTitle || ytId || blockLabels[slide.blockType] || slide.blockType
   const modeLabel =
     slide.advanceMode === 'timed'
       ? formatDuration(slide.duration)

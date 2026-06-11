@@ -1,7 +1,13 @@
 'use client'
 
-import { useState, useEffect, useMemo, type FC } from 'react'
+import { useState, useEffect, useMemo, useRef, type FC } from 'react'
 import { useListDrawer } from '@payloadcms/ui'
+
+function extractYouTubeId(input: string): string | null {
+  if (!input) return null
+  const m = input.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})|^([a-zA-Z0-9_-]{11})$/)
+  return m?.[1] || m?.[2] || null
+}
 
 type SlideEditDrawerProps = {
   isOpen: boolean
@@ -27,6 +33,8 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
   const [localSlide, setLocalSlide] = useState<any>(null)
   const [dirty, setDirty] = useState(false)
   const [browseField, setBrowseField] = useState<string | null>(null)
+  const [videoTitle, setVideoTitle] = useState<string | null>(null)
+  const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const filterOptions = useMemo(
     () =>
@@ -71,6 +79,30 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [isOpen, dirty, onClose])
+
+  useEffect(() => {
+    const ytId = localSlide?.blockType === 'youtubeBlock' ? extractYouTubeId(localSlide.youtubeId || '') : null
+    if (!ytId) { setVideoTitle(null); return }
+    if (titleTimerRef.current) clearTimeout(titleTimerRef.current)
+    titleTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/youtube-info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ videoId: ytId }),
+        })
+        if (!res.ok) { setVideoTitle(null); return }
+        const data = await res.json()
+        if (data.title) {
+          setVideoTitle(data.title)
+          setLocalSlide((prev: any) => prev ? { ...prev, videoTitle: data.title } : prev)
+        }
+      } catch {
+        setVideoTitle(null)
+      }
+    }, 500)
+    return () => { if (titleTimerRef.current) clearTimeout(titleTimerRef.current) }
+  }, [localSlide?.youtubeId, localSlide?.blockType])
 
   if (!isOpen || !localSlide) return null
 
@@ -286,8 +318,29 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
         )
 
       case 'youtubeBlock':
+        const ytId = extractYouTubeId(localSlide.youtubeId || '')
         return (
           <>
+            {ytId && (
+              <div style={{ marginBottom: 16 }}>
+                <img
+                  src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
+                  alt="YouTube thumbnail"
+                  style={{
+                    width: '100%',
+                    maxHeight: 180,
+                    objectFit: 'contain',
+                    borderRadius: 6,
+                    background: 'var(--theme-elevation-100, #f3f4f6)',
+                  }}
+                />
+                {videoTitle && (
+                  <div style={{ fontSize: '0.825rem', fontWeight: 600, marginTop: 4 }}>
+                    {videoTitle}
+                  </div>
+                )}
+              </div>
+            )}
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontWeight: 600, marginBottom: 4, fontSize: '0.825rem' }}>
                 YouTube URL or ID

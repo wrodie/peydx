@@ -143,6 +143,14 @@ export const YoutubeBlock: Block = {
         description: 'Paste a YouTube link (e.g. youtube.com/watch?v=...) or just the video ID.',
       },
     },
+    {
+      name: 'videoTitle',
+      type: 'text',
+      label: 'Video Title',
+      admin: {
+        hidden: true,
+      },
+    },
     ...getAdvanceSettings(true),
     {
       name: 'loop',

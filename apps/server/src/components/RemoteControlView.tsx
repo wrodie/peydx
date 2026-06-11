@@ -5,6 +5,12 @@ import { io, type Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
 import { flattenProgram } from 'signage-core'
 
+function extractYouTubeId(input: string): string | null {
+  if (!input) return null
+  const m = input.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})|^([a-zA-Z0-9_-]{11})$/)
+  return m?.[1] || m?.[2] || null
+}
+
 function getThumbnailUrl(slide: any): string | null {
   if (!slide) return null
   if (slide.blockType === 'imageBlock' && slide.image) {
@@ -17,7 +23,8 @@ function getThumbnailUrl(slide: any): string | null {
     return vid?.sizes?.thumbnail?.url || null
   }
   if (slide.blockType === 'youtubeBlock' && slide.youtubeId) {
-    return `https://img.youtube.com/vi/${slide.youtubeId}/mqdefault.jpg`
+    const ytId = extractYouTubeId(slide.youtubeId)
+    if (ytId) return `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`
   }
   return null
 }
