@@ -287,6 +287,63 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     [path, removeFieldRow]
   )
 
+  const handleImportProgram = useCallback(
+    (importedSlides: any[]) => {
+      const currentLen = rawSlides.length
+      const filtered = importedSlides.filter(
+        (s: any) => s && s.blockType && !String(s.id).startsWith('auto')
+      )
+      console.log(`[ImportProgram] importing ${filtered.length} slides (current=${currentLen})`)
+
+      for (let i = 0; i < filtered.length; i++) {
+        const slide = filtered[i]
+        if (!slide || !slide.blockType) continue
+
+        const slideData = { ...slide }
+        delete slideData.id
+        delete slideData._moveToSegment
+        slideData.bulkMedia = null
+
+        if (slideData.blockType === 'segmentBlock') {
+          const childSlides = (slideData.slides || [])
+            .filter((s: any) => s && s.blockType && !String(s.id).startsWith('auto'))
+            .map((s: any) => {
+              const cs = { ...s }
+              delete cs.id
+              delete cs._moveToSegment
+              return cs
+            })
+          slideData.slides = []
+
+          addFieldRow({
+            path,
+            blockType: slideData.blockType,
+            schemaPath: `${path}.${slideData.blockType}`,
+            subFieldState: buildRowState(slideData.blockType, slideData),
+          })
+
+          const segIdx = currentLen + i
+          for (const childSlide of childSlides) {
+            addFieldRow({
+              path: `${path}.${segIdx}.slides`,
+              blockType: childSlide.blockType,
+              schemaPath: `${path}.${childSlide.blockType}`,
+              subFieldState: buildRowState(childSlide.blockType, childSlide),
+            })
+          }
+        } else {
+          addFieldRow({
+            path,
+            blockType: slideData.blockType,
+            schemaPath: `${path}.${slideData.blockType}`,
+            subFieldState: buildRowState(slideData.blockType, slideData),
+          })
+        }
+      }
+    },
+    [path, rawSlides.length, addFieldRow]
+  )
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveDrag(event.active.data.current)
   }, [])
@@ -524,6 +581,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             slides={slides}
             mediaMap={mediaMap}
             onAddSlide={handleAddSlide}
+            onImportProgram={handleImportProgram}
             onEditSlide={handleEditSlide}
             onEditSegment={handleEditSlide}
             onRemoveSlide={handleRemoveSlide}

@@ -2,8 +2,9 @@
 
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import type { FC } from 'react'
+import { useState, type FC } from 'react'
 import { AddSlideMenu } from './AddSlideMenu'
+import { ImportProgramModal } from './ImportProgramModal'
 import { SlideCard } from './SlideCard'
 import { SegmentContainer } from './SegmentContainer'
 
@@ -11,6 +12,7 @@ type ProgramTimelineProps = {
   slides: any[]
   mediaMap: Record<number, { url: string; thumbnailUrl: string | null; name: string; filename: string }>
   onAddSlide: (blockType: string) => void
+  onImportProgram: (slides: any[]) => void
   onEditSlide: (slide: any, index: number, segmentId?: string) => void
   onEditSegment: (slide: any, index: number, segmentId?: string) => void
   onRemoveSlide: (index: number, segmentId?: string) => void
@@ -22,12 +24,15 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
   slides,
   mediaMap,
   onAddSlide,
+  onImportProgram,
   onEditSlide,
   onEditSegment,
   onRemoveSlide,
   onEditSegmentName,
   onRemoveSegment,
 }) => {
+  const [importModalOpen, setImportModalOpen] = useState(false)
+
   const { setNodeRef, isOver } = useDroppable({
     id: 'timeline-drop',
     data: { type: 'timeline' },
@@ -76,6 +81,21 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
           -- Program Timeline --
         </span>
         <AddSlideMenu onAddSlide={onAddSlide} />
+        <button
+          onClick={() => setImportModalOpen(true)}
+          style={{
+            padding: '6px 14px',
+            background: 'transparent',
+            color: 'var(--theme-primary-500, #3b82f6)',
+            border: '1px solid var(--theme-primary-500, #3b82f6)',
+            borderRadius: 4,
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            fontWeight: 500,
+          }}
+        >
+          Import Program
+        </button>
       </div>
 
       <SortableContext items={topLevelIds} strategy={verticalListSortingStrategy}>
@@ -137,6 +157,12 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
           )}
         </div>
       </SortableContext>
+
+      <ImportProgramModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImport={onImportProgram}
+      />
     </div>
   )
 }
