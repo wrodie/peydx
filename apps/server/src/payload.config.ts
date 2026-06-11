@@ -28,6 +28,9 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    toast: {
+      position: 'top-right',
+    },
   },
   collections: [
     Media,

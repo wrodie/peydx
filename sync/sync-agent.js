@@ -12,6 +12,7 @@ const { sanitizeFilename, resolveSlideMedia, buildScheduleJson, writeScheduleAto
 const API_KEY = process.env.DEVICE_API_KEY;
 const API_URL = process.env.API_URL;
 const PLUG_IP = process.env.PLUG_IP;
+const TIMEZONE = process.env.TIMEZONE || 'UTC';
 
 if (!API_KEY) throw new Error('Missing required env: DEVICE_API_KEY');
 if (!API_URL) throw new Error('Missing required env: API_URL');
@@ -39,6 +40,15 @@ let userSelectedProgramId = null;
 
 function ts(msg) {
   return `[${new Date().toISOString().slice(11, 19)}] ${msg}`
+}
+
+function getDateStr(timeZone) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date())
+}
+
+function getWeekday(timeZone) {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'long' }).format(new Date())
+  return name.toLowerCase().slice(0, 3)
 }
 
 async function fetchWithRetry(url, opts, retries = 3) {
@@ -166,9 +176,9 @@ async function sync() {
     const programsDocs = programsRes.data.docs || [];
 
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const todayDateStr = getDateStr(TIMEZONE);
     const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    const todayDayName = DAY_NAMES[now.getUTCDay()];
+    const todayDayName = getWeekday(TIMEZONE);
     const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
     const graceStart = new Date(now.getTime() - (6 * 60 * 60 * 1000));
 
@@ -180,11 +190,12 @@ async function sync() {
       if (isRecurring) {
         if (!daysOfWeek.includes(todayDayName)) return false;
       } else {
-        if (new Date(item.startTime).toISOString().split('T')[0] !== today) return false;
+        const startDateInTZ = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date(item.startTime))
+        if (startDateInTZ !== todayDateStr) return false;
       }
 
-      if (item.startDate && new Date(item.startDate).toISOString().split('T')[0] > today) return false;
-      if (item.untilDate && new Date(item.untilDate).toISOString().split('T')[0] < today) return false;
+      if (item.startDate && item.startDate.slice(0, 10) > todayDateStr) return false;
+      if (item.untilDate && item.untilDate.slice(0, 10) < todayDateStr) return false;
 
       const start = new Date(item.startTime);
       const end = item.endTime ? new Date(item.endTime) : null;
@@ -199,10 +210,8 @@ async function sync() {
         if (!program.availableFrom) return false;
         const deviceIds = (program.availableDevices || []).map(d => typeof d === 'object' ? d.id : d);
         if (!deviceIds.includes(numericId)) return false;
-        const start = new Date(program.availableFrom);
-        const end = program.availableUntil ? new Date(program.availableUntil) : null;
-        if (start > now) return false;
-        if (end && now > new Date(end.getTime() + 24 * 60 * 60 * 1000)) return false;
+        if (program.availableFrom.slice(0, 10) > todayDateStr) return false;
+        if (program.availableUntil && program.availableUntil.slice(0, 10) < todayDateStr) return false;
         return true;
       })
       // Normalize to availability-entry shape (program sub-object)

@@ -21,8 +21,7 @@ const newSlideDefaults: Record<string, any> = {
   imageBlock: {
     blockType: 'imageBlock',
     transition: 'fade',
-    advanceMode: 'timed',
-    duration: 5,
+    advanceMode: 'manual',
   },
   videoBlock: {
     blockType: 'videoBlock',
@@ -66,7 +65,7 @@ function buildRowState(blockType: string, data?: any): Record<string, any> {
     case 'imageBlock':
       s.image = { value: data?.image ?? null, initialValue: data?.image ?? null, valid: true }
       s.transition = { value: data?.transition ?? 'fade', initialValue: data?.transition ?? 'fade', valid: true }
-      s.advanceMode = { value: data?.advanceMode ?? 'timed', initialValue: data?.advanceMode ?? 'timed', valid: true }
+      s.advanceMode = { value: data?.advanceMode ?? 'manual', initialValue: data?.advanceMode ?? 'manual', valid: true }
       s.duration = { value: data?.duration ?? null, initialValue: data?.duration ?? null, valid: true }
       break
     case 'videoBlock':
@@ -390,7 +389,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       const slideData = {
         blockType,
         transition: 'fade',
-        advanceMode: blockType === 'imageBlock' ? 'timed' : 'onEnd',
+        advanceMode: blockType === 'imageBlock' ? 'manual' : 'onEnd',
         image: blockType === 'imageBlock' ? mediaId : undefined,
         video: blockType === 'videoBlock' ? mediaId : undefined,
         audio: blockType === 'audioBlock' ? mediaId : undefined,

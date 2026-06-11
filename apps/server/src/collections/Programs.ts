@@ -136,7 +136,6 @@ export const Programs: CollectionConfig = {
       async (args) => {
         if (args.context?.preventSync) return
         const { doc, operation, req } = args
-        if (operation === 'create') return
 
         const io = getIO()
         if (!io) return
