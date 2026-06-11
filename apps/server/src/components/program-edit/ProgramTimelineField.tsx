@@ -141,6 +141,7 @@ function extractMediaIds(slides: any[]): number[] {
       if (s.image && typeof s.image === 'number') ids.add(s.image)
       if (s.video && typeof s.video === 'number') ids.add(s.video)
       if (s.audio && typeof s.audio === 'number') ids.add(s.audio)
+      if (s.backgroundAudio && typeof s.backgroundAudio === 'number') ids.add(s.backgroundAudio)
       if (s.blockType === 'segmentBlock' && s.slides) walk(s.slides)
     }
   }
@@ -237,6 +238,15 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           schemaPath: `${path}.${updatedSlide.blockType}`,
           subFieldState: buildRowState(updatedSlide.blockType, updatedSlide),
         })
+      } else if (updatedSlide.blockType === 'segmentBlock') {
+        const segFields = ['name', 'backgroundAudio', 'loop', 'advanceMode', 'duration']
+        for (const field of segFields) {
+          dispatchFields({
+            type: 'UPDATE',
+            path: `${path}.${index}.${field}`,
+            value: updatedSlide[field] ?? null,
+          })
+        }
       } else {
         replaceFieldRow({
           path,
@@ -250,7 +260,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       setEditingSlideIndex(-1)
       setEditingSegmentId(undefined)
     },
-    [path, addFieldRow, replaceFieldRow, rawSlides]
+    [path, addFieldRow, replaceFieldRow, rawSlides, dispatchFields]
   )
 
   const handleRemoveSlide = useCallback(
