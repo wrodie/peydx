@@ -1,7 +1,7 @@
 'use client'
 
 import { useDraggable } from '@dnd-kit/core'
-import { useCallback, useEffect, useState, type FC } from 'react'
+import { useCallback, useEffect, useRef, useState, type FC } from 'react'
 
 interface Folder {
   id: number
@@ -128,6 +128,10 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
   const [media, setMedia] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [mediaLoading, setMediaLoading] = useState(false)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchFolders = useCallback(async () => {
     setLoading(true)
@@ -145,23 +149,54 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
     fetchFolders()
   }, [fetchFolders])
 
-  const fetchMedia = useCallback(async (folderId: number | null) => {
+  const buildUrl = useCallback((folderId: number | null, searchTerm: string, pageNum: number) => {
+    let url = `/api/media?depth=0&limit=50&sort=name&page=${pageNum}`
+    if (folderId) url += `&where[folder][equals]=${folderId}`
+    if (searchTerm) url += `&where[name][like]=${encodeURIComponent(searchTerm)}`
+    return url
+  }, [])
+
+  const fetchMedia = useCallback(async (folderId: number | null, searchTerm: string, pageNum: number, append: boolean) => {
     setMediaLoading(true)
     try {
-      let url = '/api/media?depth=0&limit=50&sort=-createdAt'
-      if (folderId) url += `&where[folder][equals]=${folderId}`
+      const url = buildUrl(folderId, searchTerm, pageNum)
       const res = await fetch(url)
       const data = await res.json()
-      setMedia(data.docs || [])
+      const docs = data.docs || []
+      if (append) {
+        setMedia(prev => [...prev, ...docs])
+      } else {
+        setMedia(docs)
+      }
+      setTotalPages(data.totalPages || 1)
     } catch (err) {
       console.error('Failed to fetch media', err)
     }
     setMediaLoading(false)
-  }, [])
+  }, [buildUrl])
+
+  const loadInitial = useCallback((folderId: number | null, searchTerm: string) => {
+    setPage(1)
+    fetchMedia(folderId, searchTerm, 1, false)
+  }, [fetchMedia])
 
   useEffect(() => {
-    fetchMedia(selectedFolder)
-  }, [selectedFolder, fetchMedia])
+    loadInitial(selectedFolder, search)
+  }, [selectedFolder, loadInitial])
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(() => {
+      fetchMedia(selectedFolder, value, 1, false)
+    }, 300)
+  }
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1
+    setPage(nextPage)
+    fetchMedia(selectedFolder, search, nextPage, true)
+  }
 
   const toggleExpand = (id: number) => {
     setExpanded((prev) => {
@@ -332,6 +367,20 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
         >
           Media ({media.length})
         </div>
+        <input
+          value={search}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="Search media..."
+          style={{
+            width: '100%',
+            padding: '4px 8px',
+            fontSize: '0.75rem',
+            border: '1px solid var(--theme-elevation-300, #d1d5db)',
+            borderRadius: 4,
+            marginBottom: 8,
+            boxSizing: 'border-box',
+          }}
+        />
         {mediaLoading ? (
           <div style={{ fontSize: '0.75rem', color: 'var(--theme-elevation-400, #9ca3af)' }}>
             Loading...
@@ -341,6 +390,7 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
             No media found
           </div>
         ) : (
+          <>
           <div
             style={{
               display: 'flex',
@@ -352,6 +402,26 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
               <DraggableMediaItem key={item.id} media={item} />
             ))}
           </div>
+          {page < totalPages && (
+            <button
+              onClick={handleLoadMore}
+              disabled={mediaLoading}
+              style={{
+                marginTop: 8,
+                padding: '4px 12px',
+                fontSize: '0.75rem',
+                background: 'var(--theme-elevation-100, #f3f4f6)',
+                border: '1px solid var(--theme-elevation-300, #d1d5db)',
+                borderRadius: 4,
+                cursor: mediaLoading ? 'default' : 'pointer',
+                color: 'var(--theme-elevation-600, #4b5563)',
+                width: '100%',
+              }}
+            >
+              {mediaLoading ? 'Loading...' : `Load more (${media.length} / ${totalPages * 50})`}
+            </button>
+          )}
+          </>
         )}
       </div>
     </div>
