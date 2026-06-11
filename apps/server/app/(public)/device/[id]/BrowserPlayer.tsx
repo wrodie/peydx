@@ -59,7 +59,7 @@ export function BrowserPlayer({ id, token }: Props) {
       ).then((r) => r.json())
 
       const programsPromise = fetch(
-        `/api/programs?where[status][equals]=approved&depth=2&token=${token}`
+        `/api/programs?depth=2&token=${token}`
       ).then((r) => r.json())
 
       Promise.all([devicePromise, schedulePromise, programsPromise])
@@ -72,7 +72,7 @@ export function BrowserPlayer({ id, token }: Props) {
     socket.on('schedule:update', () => {
       Promise.all([
         fetch(`/api/schedule?where[devices][contains]=${id}&depth=3&sort=startTime&token=${token}`).then(r => r.json()),
-        fetch(`/api/programs?where[status][equals]=approved&depth=2&token=${token}`).then(r => r.json()),
+        fetch(`/api/programs?depth=2&token=${token}`).then(r => r.json()),
       ]).then(([scheduleData, programsData]) => {
         setScheduleDataIfChanged(normalizeApiSchedule(scheduleData, programsData, { defaultBackgroundUrl: deviceBgRef.current, deviceId: id }))
       }).catch(console.error)

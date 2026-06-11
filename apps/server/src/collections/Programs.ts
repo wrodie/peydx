@@ -238,6 +238,9 @@ export const Programs: CollectionConfig = {
     ],
     afterRead: [
       ({ doc, req }) => {
+        if (doc.slides && Array.isArray(doc.slides)) {
+          doc.slides = doc.slides.filter((s: any) => s && s.blockType)
+        }
         if ((doc as any).autoBlackEndSlide
           && !(doc as any).loop
           && doc.slides
@@ -261,14 +264,28 @@ export const Programs: CollectionConfig = {
 
   fields: [
     {
+      name: 'previewLink',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '/components/PreviewLink#PreviewLink',
+        },
+      },
+    },
+    {
       name: 'title',
       type: 'text',
       required: true,
+      admin: {
+        position: 'sidebar',
+      },
     },
     {
       name: 'description',
       type: 'textarea',
       admin: {
+        hidden: true,
         description: 'Brief overview for other users.',
       },
     },
@@ -276,26 +293,23 @@ export const Programs: CollectionConfig = {
       name: 'slides',
       type: 'blocks',
       blocks: [ImageBlock, VideoBlock, YoutubeBlock, AudioBlock, BlackScreenBlock, SegmentBlock],
-    },
-    {
-      name: 'status',
-      type: 'select',
-      defaultValue: 'draft',
-      options: [
-        { label: 'Draft', value: 'draft' },
-        { label: 'Approved / Ready', value: 'approved' },
-      ],
       admin: {
-        position: 'sidebar',
-      }
+        components: {
+          Field: '/components/program-edit/ProgramTimelineField#ProgramTimelineField',
+        },
+      },
     },
     {
-      name: 'createdBy',
+      name: 'folder',
       type: 'relationship',
-      relationTo: 'users',
+      relationTo: 'folders',
+      required: false,
+      filterOptions: {
+        type: { equals: 'programs' },
+      },
       admin: {
-        readOnly: true,
         position: 'sidebar',
+        condition: (data) => !!data?.id,
       },
     },
     {
@@ -324,29 +338,6 @@ export const Programs: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Automatically adds a black screen at the end of the program.',
-      },
-    },
-    {
-      name: 'folder',
-      type: 'relationship',
-      relationTo: 'folders',
-      required: false,
-      filterOptions: {
-        type: { equals: 'programs' },
-      },
-      admin: {
-        position: 'sidebar',
-        condition: (data) => !!data?.id,
-      },
-    },
-    {
-      name: 'previewLink',
-      type: 'ui',
-      admin: {
-        position: 'sidebar',
-        components: {
-          Field: '/components/PreviewLink#PreviewLink',
-        },
       },
     },
     {
@@ -379,6 +370,15 @@ export const Programs: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Devices that can manually select this program.',
+      },
+    },
+    {
+      name: 'createdBy',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: {
+        readOnly: true,
+        hidden: true,
       },
     },
   ],

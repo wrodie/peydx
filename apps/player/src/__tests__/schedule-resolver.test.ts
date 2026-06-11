@@ -11,7 +11,6 @@ describe('normalizeApiSchedule', () => {
         program: {
           id: 101,
           title: 'Morning Service',
-          status: 'approved',
           loop: false,
           slides: [
             { blockType: 'imageBlock', advanceMode: 'timed', duration: 5, image: { id: 1, url: '/media/img1.jpg', alt: 'Slide 1' } },
@@ -37,15 +36,6 @@ describe('normalizeApiSchedule', () => {
     expect(result.schedule[0].program.slides).toHaveLength(2)
   })
 
-  it('filters out non-approved programs', () => {
-    const data = {
-      docs: [
-        { ...baseApiData.docs[0], program: { ...baseApiData.docs[0].program, status: 'draft' } },
-      ],
-    }
-    const result = normalizeApiSchedule(data)
-    expect(result.schedule).toHaveLength(0)
-  })
 
   it('extracts availability from programs data', () => {
     const programsData = {
@@ -53,7 +43,6 @@ describe('normalizeApiSchedule', () => {
         {
           id: 201,
           title: 'On Demand',
-          status: 'approved',
           availableFrom: '2024-01-15T00:00:00Z',
           availableUntil: '2024-01-20T00:00:00Z',
           availableDevices: [{ id: 5 }],
@@ -74,7 +63,6 @@ describe('normalizeApiSchedule', () => {
         {
           id: 201,
           title: 'On Demand',
-          status: 'approved',
           availableFrom: '2024-01-15T00:00:00Z',
           availableDevices: [{ id: 5 }],
           slides: [],
@@ -82,7 +70,6 @@ describe('normalizeApiSchedule', () => {
         {
           id: 202,
           title: 'Other',
-          status: 'approved',
           availableFrom: '2024-01-15T00:00:00Z',
           availableDevices: [{ id: 10 }],
           slides: [],
@@ -113,7 +100,6 @@ describe('normalizeApiSchedule', () => {
           program: {
             id: 101,
             title: 'Test',
-            status: 'approved',
             loop: false,
             slides: [
               {
@@ -144,7 +130,7 @@ describe('normalizeApiSchedule', () => {
         {
           id: 1,
           program: {
-            id: 101, title: 'Test', status: 'approved', loop: false,
+            id: 101, title: 'Test', loop: false,
             slides: [{ blockType: 'youtubeBlock', advanceMode: 'onEnd', youtubeId: 'abc123' }],
           },
           startTime: '2024-01-15T09:00:00Z',
@@ -162,7 +148,7 @@ describe('normalizeApiSchedule', () => {
         {
           id: 1,
           program: {
-            id: 101, title: 'Test', status: 'approved', loop: false,
+            id: 101, title: 'Test', loop: false,
             slides: [{
               blockType: 'audioBlock', advanceMode: 'onEnd',
               audio: { id: 1, url: '/media/song.mp3', alt: 'Song' },
