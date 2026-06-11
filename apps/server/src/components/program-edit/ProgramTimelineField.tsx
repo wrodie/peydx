@@ -4,9 +4,7 @@ import {
   DndContext,
   type DragEndEvent,
   type DragStartEvent,
-  type DragOverEvent,
   DragOverlay,
-  closestCorners,
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useField, useDocumentInfo, useForm } from '@payloadcms/ui'
@@ -162,7 +160,6 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   const [editingSlideIndex, setEditingSlideIndex] = useState(-1)
   const [editingSegmentId, setEditingSegmentId] = useState<string | undefined>(undefined)
   const [activeDrag, setActiveDrag] = useState<any>(null)
-  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null)
   const [mediaMap, setMediaMap] = useState<MediaMap>({})
 
   const rawSlides = (getDataByPath(path) as any[]) || []
@@ -296,20 +293,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     setActiveDrag(event.active.data.current)
   }, [])
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    const { over } = event
-    const overData = over?.data?.current as any
-    setActiveSegmentId(
-      overData?.type === 'segment-drop' || overData?.type === 'segment' || (overData?.type === 'slide' && overData?.segmentId)
-        ? (overData.segmentId ?? null)
-        : null
-    )
-  }, [])
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       setActiveDrag(null)
-      setActiveSegmentId(null)
       const { active, over } = event
       if (!over) return
 
@@ -519,7 +505,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   )
 
   return (
-    <DndContext collisionDetection={closestCorners} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div
         style={{
           display: 'flex',
@@ -589,7 +575,6 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           <ProgramTimeline
             slides={slides}
             mediaMap={mediaMap}
-            activeSegmentId={activeSegmentId}
             onAddSlide={handleAddSlide}
             onEditSlide={handleEditSlide}
             onRemoveSlide={handleRemoveSlide}
