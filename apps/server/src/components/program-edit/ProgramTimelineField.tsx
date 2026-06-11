@@ -12,7 +12,6 @@ import { useState, useCallback, useMemo, useEffect, type FC } from 'react'
 import { MediaBrowser } from './MediaBrowser'
 import { ProgramTimeline } from './ProgramTimeline'
 import { SlideEditDrawer } from './SlideEditDrawer'
-import { SidebarTabs } from './SidebarTabs'
 
 type ProgramTimelineFieldProps = {
   path: string
@@ -533,7 +532,6 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           />
         </div>
 
-        <SidebarTabs />
       </div>
 
       <SlideEditDrawer
