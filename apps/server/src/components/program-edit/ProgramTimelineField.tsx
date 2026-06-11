@@ -7,7 +7,7 @@ import {
   DragOverlay,
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { useField, useDocumentInfo, useForm } from '@payloadcms/ui'
+import { useDocumentInfo, useForm } from '@payloadcms/ui'
 import { useState, useCallback, useMemo, useEffect, type FC } from 'react'
 import { MediaBrowser } from './MediaBrowser'
 import { ProgramTimeline } from './ProgramTimeline'
@@ -152,7 +152,6 @@ function extractMediaIds(slides: any[]): number[] {
 export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) => {
   const { id } = useDocumentInfo()
   const { getDataByPath, addFieldRow, removeFieldRow, moveFieldRow, replaceFieldRow, dispatchFields } = useForm()
-  const titleField = useField<string>({ path: 'title' })
 
   const [mediaBrowserOpen, setMediaBrowserOpen] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -517,61 +516,11 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '10px 16px',
-            borderBottom: '1px solid var(--theme-elevation-200, #e5e7eb)',
-            background: 'var(--theme-elevation-50, #f9fafb)',
-          }}
-        >
-          <button
-            onClick={() => setMediaBrowserOpen(!mediaBrowserOpen)}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--theme-elevation-300, #d1d5db)',
-              borderRadius: 4,
-              cursor: 'pointer',
-              padding: '6px 10px',
-              fontSize: '1rem',
-              lineHeight: 1,
-            }}
-            title="Toggle Media Browser"
-          >
-            {mediaBrowserOpen ? '◀' : '▶'}
-          </button>
-
-          <input
-            value={titleField.value || ''}
-            onChange={(e) => titleField.setValue(e.target.value)}
-            placeholder="Program Title"
-            style={{
-              flex: 1,
-              padding: '6px 10px',
-              fontSize: '1rem',
-              fontWeight: 600,
-              border: '1px solid transparent',
-              borderRadius: 4,
-              background: 'transparent',
-            }}
-            onFocus={(e) => {
-              e.target.style.border = '1px solid var(--theme-elevation-300, #d1d5db)'
-              e.target.style.background = 'white'
-            }}
-            onBlur={(e) => {
-              e.target.style.border = '1px solid transparent'
-              e.target.style.background = 'transparent'
-            }}
-          />
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
             flex: 1,
             overflow: 'hidden',
           }}
         >
-          <MediaBrowser collapsed={!mediaBrowserOpen} />
+          <MediaBrowser collapsed={!mediaBrowserOpen} onToggle={() => setMediaBrowserOpen(v => !v)} />
           <ProgramTimeline
             slides={slides}
             mediaMap={mediaMap}

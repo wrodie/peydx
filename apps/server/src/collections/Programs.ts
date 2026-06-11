@@ -268,7 +268,7 @@ export const Programs: CollectionConfig = {
       type: 'text',
       required: true,
       admin: {
-        hidden: true,
+        position: 'sidebar',
       },
     },
     {

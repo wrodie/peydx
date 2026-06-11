@@ -121,7 +121,7 @@ const DraggableMediaItem: FC<{ media: MediaItem }> = ({ media }) => {
   )
 }
 
-export const MediaBrowser: FC<{ collapsed: boolean }> = ({ collapsed }) => {
+export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({ collapsed, onToggle }) => {
   const [folders, setFolders] = useState<Folder[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null)
@@ -231,12 +231,29 @@ export const MediaBrowser: FC<{ collapsed: boolean }> = ({ collapsed }) => {
         style={{
           padding: '10px 12px',
           borderBottom: '1px solid var(--theme-elevation-200, #e5e7eb)',
-          fontSize: '0.8rem',
-          fontWeight: 600,
-          color: 'var(--theme-elevation-600, #4b5563)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
-        📁 Media Browser
+        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--theme-elevation-600, #4b5563)' }}>
+          📁 Media Browser
+        </span>
+        <button
+          onClick={onToggle}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--theme-elevation-300, #d1d5db)',
+            borderRadius: 4,
+            cursor: 'pointer',
+            padding: '4px 8px',
+            fontSize: '0.85rem',
+            lineHeight: 1,
+          }}
+          title="Toggle Media Browser"
+        >
+          ◀
+        </button>
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px', minHeight: 0 }}>
