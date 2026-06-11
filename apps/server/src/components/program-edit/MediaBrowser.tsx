@@ -214,7 +214,37 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
     )
   }
 
-  if (collapsed) return null
+  if (collapsed) {
+    return (
+      <div
+        style={{
+          width: 32,
+          flexShrink: 0,
+          borderRight: '1px solid var(--theme-elevation-200, #e5e7eb)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          paddingTop: 10,
+        }}
+      >
+        <button
+          onClick={onToggle}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--theme-elevation-300, #d1d5db)',
+            borderRadius: 4,
+            cursor: 'pointer',
+            padding: '4px 8px',
+            fontSize: '0.85rem',
+            lineHeight: 1,
+          }}
+          title="Open Media Browser"
+        >
+          ▶
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div
