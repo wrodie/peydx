@@ -233,11 +233,15 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
               if (hasChildren) toggleExpand(folder.id)
             }}
             style={{
-              width: 14,
+              width: 24,
               flexShrink: 0,
-              fontSize: '0.7rem',
+              fontSize: '1rem',
               color: 'var(--theme-elevation-400, #9ca3af)',
               cursor: hasChildren ? 'pointer' : 'default',
+              padding: '4px 6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             {hasChildren ? (isExpanded ? '▾' : '▸') : ' '}
@@ -321,7 +325,7 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
         </button>
       </div>
 
-      <div style={{ overflow: 'auto', padding: '8px 12px' }}>
+      <div style={{ overflow: 'auto', maxHeight: '40%', padding: '8px 12px' }}>
         <div
           onClick={() => setSelectedFolder(null)}
           style={{

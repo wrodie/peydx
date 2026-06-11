@@ -574,7 +574,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         style={{
           display: 'flex',
           flexDirection: 'column',
-          height: '100%',
+          height: 'calc(100vh - var(--app-header-height) - var(--doc-controls-height))',
           minHeight: 400,
         }}
       >

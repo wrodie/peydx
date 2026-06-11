@@ -118,7 +118,7 @@ export const SlideCard: FC<SlideCardProps> = ({
             : 'white',
         border: `1px solid ${isDragging ? 'var(--theme-primary-300, #93c5fd)' : 'var(--theme-elevation-200, #e5e7eb)'}`,
         borderRadius: 6,
-        cursor: isAutoEnd ? 'default' : 'grab',
+        cursor: 'default',
         opacity: isAutoEnd ? 0.5 : 1,
         transition: 'border-color 0.15s, box-shadow 0.15s',
         position: 'relative',
@@ -131,7 +131,7 @@ export const SlideCard: FC<SlideCardProps> = ({
           cursor: isAutoEnd ? 'default' : 'grab',
           color: 'var(--theme-elevation-400, #9ca3af)',
           fontSize: '1.1rem',
-          padding: '2px',
+          padding: '2px 12px',
           flexShrink: 0,
         }}
       >
