@@ -461,7 +461,7 @@ export interface Program {
       )[]
     | null;
   status?: ('draft' | 'approved') | null;
-  createdBy?: (number | null) | User;
+  folder?: (number | null) | Folder;
   /**
    * Drop files here to auto-generate slides.
    */
@@ -474,7 +474,6 @@ export interface Program {
    * Automatically adds a black screen at the end of the program.
    */
   autoBlackEndSlide?: boolean | null;
-  folder?: (number | null) | Folder;
   /**
    * Program becomes available for manual selection on this date.
    */
@@ -487,36 +486,9 @@ export interface Program {
    * Devices that can manually select this program.
    */
   availableDevices?: (number | Device)[] | null;
+  createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  name: string;
-  role: 'admin' | 'basic';
-  departments?: (number | Department)[] | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -549,6 +521,34 @@ export interface Device {
   apiKey?: string | null;
   apiKeyIndex?: string | null;
   collection: 'devices';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name: string;
+  role: 'admin' | 'basic';
+  departments?: (number | Department)[] | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -873,14 +873,14 @@ export interface ProgramsSelect<T extends boolean = true> {
             };
       };
   status?: T;
-  createdBy?: T;
+  folder?: T;
   bulkMedia?: T;
   loop?: T;
   autoBlackEndSlide?: T;
-  folder?: T;
   availableFrom?: T;
   availableUntil?: T;
   availableDevices?: T;
+  createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }

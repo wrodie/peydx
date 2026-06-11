@@ -264,6 +264,16 @@ export const Programs: CollectionConfig = {
 
   fields: [
     {
+      name: 'previewLink',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '/components/PreviewLink#PreviewLink',
+        },
+      },
+    },
+    {
       name: 'title',
       type: 'text',
       required: true,
@@ -299,15 +309,19 @@ export const Programs: CollectionConfig = {
       ],
       admin: {
         position: 'sidebar',
-      }
+      },
     },
     {
-      name: 'createdBy',
+      name: 'folder',
       type: 'relationship',
-      relationTo: 'users',
+      relationTo: 'folders',
+      required: false,
+      filterOptions: {
+        type: { equals: 'programs' },
+      },
       admin: {
-        readOnly: true,
         position: 'sidebar',
+        condition: (data) => !!data?.id,
       },
     },
     {
@@ -336,29 +350,6 @@ export const Programs: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Automatically adds a black screen at the end of the program.',
-      },
-    },
-    {
-      name: 'folder',
-      type: 'relationship',
-      relationTo: 'folders',
-      required: false,
-      filterOptions: {
-        type: { equals: 'programs' },
-      },
-      admin: {
-        position: 'sidebar',
-        condition: (data) => !!data?.id,
-      },
-    },
-    {
-      name: 'previewLink',
-      type: 'ui',
-      admin: {
-        position: 'sidebar',
-        components: {
-          Field: '/components/PreviewLink#PreviewLink',
-        },
       },
     },
     {
@@ -391,6 +382,15 @@ export const Programs: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Devices that can manually select this program.',
+      },
+    },
+    {
+      name: 'createdBy',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: {
+        readOnly: true,
+        hidden: true,
       },
     },
   ],
