@@ -37,6 +37,7 @@ export function RemoteControlView() {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
   const [playerState, setPlayerState] = useState<string>('unknown')
   const [availableSchedules, setAvailableSchedules] = useState<any[]>([])
+  const [availablePrograms, setAvailablePrograms] = useState<any[]>([])
   const [selectedProgramId, setSelectedProgramId] = useState<string>('')
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null)
   const selectedDeviceRef = useRef<any>(null)
@@ -147,12 +148,37 @@ export function RemoteControlView() {
       .then((r) => r.json())
       .then((data) => setAvailableSchedules(data.docs || []))
       .catch(console.error)
+
+    fetch(`/api/programs?depth=2&where[availableDevices][contains]=${id}&limit=100`)
+      .then((r) => r.json())
+      .then((data) => setAvailablePrograms(data.docs || []))
+      .catch(console.error)
   }, [selectedDeviceId, devices])
 
   const { slides: flatSlides } = useMemo(
     () => currentProgram ? flattenProgram(currentProgram) : { slides: [] },
     [currentProgram]
   )
+
+  const programOptions = useMemo(() => {
+    const seen = new Set<number>()
+    const items: { id: number; title: string }[] = []
+    for (const s of availableSchedules) {
+      const pid = s.program?.id
+      if (pid && !seen.has(pid)) {
+        seen.add(pid)
+        items.push({ id: pid, title: s.program?.title || `Program ${pid}` })
+      }
+    }
+    for (const p of availablePrograms) {
+      const pid = p.id
+      if (!seen.has(pid)) {
+        seen.add(pid)
+        items.push({ id: pid, title: p.title || `Program ${pid}` })
+      }
+    }
+    return items
+  }, [availableSchedules, availablePrograms])
   const currentSlide = flatSlides[currentSlideIndex] || flatSlides[0]
   const isLastSlide = flatSlides.length > 0 && currentSlideIndex >= flatSlides.length - 1
   const thumbnailUrl = getThumbnailUrl(currentSlide)
@@ -283,9 +309,9 @@ export function RemoteControlView() {
               }}
             >
               <option value="">Select a program...</option>
-              {availableSchedules.map((s: any) => (
-                <option key={s.id} value={s.program?.id}>
-                  {s.program?.title || `Program ${s.program?.id}`}
+              {programOptions.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
                 </option>
               ))}
             </select>
