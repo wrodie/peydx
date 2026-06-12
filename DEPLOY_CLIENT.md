@@ -52,19 +52,35 @@ sudo usermod -aG docker $USER
 
 Log out and back in for the group change to take effect.
 
-### 4. Clone and Configure
+### 4. Configure Docker for the Registry
 
-```bash
-git clone <your-repo-url> /opt/peydx
-cd /opt/peydx
+The client pulls images from the server's local Docker registry. Docker must be configured to trust the insecure registry:
+
+```json
+// /etc/docker/daemon.json
+{ "insecure-registries": ["<server-ip>:5050"] }
 ```
 
-Create a `.env` file with the required variables:
+Then restart Docker:
+
+```bash
+sudo systemctl restart docker
+```
+
+### 5. Set Up the Client
+
+```bash
+sudo mkdir -p /opt/peydx
+```
+
+Create `/opt/peydx/.env` with the required variables:
 
 ```env
 API_URL=https://cms.yourchurch.org/api
 DEVICE_API_KEY=your-device-api-key
 TIMEZONE=America/New_York
+REGISTRY_URL=<server-ip>:5050
+CLIENT_VERSION=latest
 ```
 
 | Variable | Description |
@@ -72,21 +88,48 @@ TIMEZONE=America/New_York
 | `API_URL` | Payload CMS API base URL (e.g. `https://cms.yourchurch.org/api`) |
 | `DEVICE_API_KEY` | API key generated when you created the device record in the CMS admin panel |
 | `TIMEZONE` | IANA timezone string for schedule evaluation (default: `UTC`) |
+| `REGISTRY_URL` | Server IP + registry port (e.g. `192.168.1.100:5050`) |
+| `CLIENT_VERSION` | Image tag to pull (default: `latest`; set to a specific version for pinning) |
 
-### 5. Start the Sync Agent
+Copy the client compose file and update scripts to `/opt/peydx/`:
 
 ```bash
-docker compose -f docker-compose.client.yaml up -d --build
+# From the repo on the server, or download from URL
+scp docker-compose.client.yaml user@client:/opt/peydx/
+scp sync/update.sh sync/update-listener.py sync/update-listener.service user@client:/opt/peydx/
 ```
 
-This builds the player app and runs the sync agent in a Docker container. The sync agent will:
+### 6. Set Up the Update Listener
+
+The update listener runs on the host and handles remote update commands from the CMS:
+
+```bash
+sudo cp /opt/peydx/update-listener.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable update-listener --now
+```
+
+Create the log file:
+
+```bash
+sudo touch /var/log/peydx-update.log
+```
+
+### 7. Start the Sync Agent
+
+```bash
+cd /opt/peydx
+docker compose -f docker-compose.client.yaml up -d
+```
+
+This pulls the pre-built sync-agent image from the server's registry and runs it. No local build is required. The sync agent will:
 - Connect to the CMS via WebSocket for real-time schedule updates
 - Fall back to polling every 60 seconds if WebSocket disconnects
 - Download media files and write `schedule.json` atomically
 - Serve the player on port 5000
 - Send heartbeats to the CMS for the health dashboard
 
-Media files are stored in a named Docker volume (`media_data`) that persists across container restarts and rebuilds.
+Media files are stored in a named Docker volume (`media_data`) that persists across container restarts.
 
 Check that it's running:
 
@@ -213,17 +256,40 @@ A browser device can mirror a hardware player's display in real time. When creat
 
 ---
 
-## Updating
+## Remote Updates
 
-### Hardware Player
+Client updates are triggered remotely from the CMS admin panel. No manual access to the client device is needed after initial setup.
+
+### How It Works
+
+1. A developer builds and pushes a new image to the server's local registry:
+   ```bash
+   ./scripts/build-client.sh v1.2.0
+   ```
+2. An admin updates the **Client Version** in CMS → **Settings** and clicks **Push Update** (to all devices or a specific device).
+3. The CMS sends a `remote:update` command to the device(s) via WebSocket.
+4. The sync agent forwards this to the host's update listener (port 5555).
+5. The update listener runs `update.sh`, which:
+   - Rewrites `CLIENT_VERSION` in `/opt/peydx/.env`
+   - Pulls the new image from the registry
+   - Restarts the sync-agent container
+
+### Safety Properties
+
+- **Failed pull = no change**: If the pull fails (network error, registry unreachable), the existing container keeps running. The script exits before restarting.
+- **Rollback**: Set `clientVersion` to a previous tag in CMS Settings and push again.
+- **Localhost only**: The update listener binds to `127.0.0.1:5555` — not accessible from other machines.
+
+### Manual Update (Fallback)
+
+If remote updates are unavailable, you can manually update a client:
 
 ```bash
 cd /opt/peydx
-git pull
-docker compose -f docker-compose.client.yaml up -d --build
+# Edit CLIENT_VERSION in .env
+docker compose -f docker-compose.client.yaml pull sync-agent
+docker compose -f docker-compose.client.yaml up -d sync-agent
 ```
-
-The `--build` flag rebuilds the player app with the latest code. The sync agent container is restarted automatically. No Chromium restart is needed — the player will pick up schedule changes from the sync agent.
 
 ### Browser Device
 

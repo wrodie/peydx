@@ -484,6 +484,18 @@ function connectToCMS() {
     localIO?.emit('remote:pause');
   });
 
+  socket.on('remote:update', async (data) => {
+    console.log(ts(`[sync] Received remote update command: version ${data.version}`));
+    try {
+      await axios.post(
+        process.env.UPDATE_LISTENER_URL || 'http://host.docker.internal:5555/update',
+        { version: data.version },
+      );
+    } catch (err) {
+      console.error(ts(`[sync] Update trigger failed: ${err.message}`));
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('Disconnected from CMS WebSocket');
   });

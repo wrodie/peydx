@@ -12,7 +12,9 @@ import { Devices } from './collections/Devices'
 import { Schedule } from './collections/Schedule'
 import { Departments } from './collections/Departments'
 import { Folders } from './collections/Folders'
+import { Config as ConfigGlobal } from './globals/Config'
 import { heartbeat } from './endpoints/heartbeat'
+import { pushUpdate } from './endpoints/pushUpdate'
 import { youtubeInfo } from './endpoints/youtubeInfo'
 
 const filename = fileURLToPath(import.meta.url)
@@ -42,7 +44,8 @@ export default buildConfig({
     Users,
     Devices,
   ],
-  endpoints: [heartbeat, youtubeInfo],
+  globals: [ConfigGlobal],
+  endpoints: [heartbeat, pushUpdate, youtubeInfo],
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {

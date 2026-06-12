@@ -26,6 +26,7 @@ export interface ServerToClientEvents {
   'remote:pause': () => void
   'device:status': (data: { id: number; slideIndex: number; programId: number | null; status: string }) => void
   'device:stateChange': (data: { id: number; state: 'idle' | 'menu' | 'playing'; programId?: number }) => void
+  'remote:update': (data: { version: string }) => void
 }
 
 // Inter-server events (for emitting from hooks)
@@ -36,4 +37,5 @@ export interface SocketEventData {
   'remote:back': { targetDeviceIds: number[] }
   'remote:select': { targetDeviceIds: number[] }
   'remote:pause': { targetDeviceIds: number[] }
+  'remote:update': { version: string; deviceId?: number }
 }

@@ -1,8 +1,6 @@
 services:
   sync-agent:
-    build:
-      context: .
-      dockerfile: sync/Dockerfile
+    image: ${REGISTRY_URL}/sync-agent:${CLIENT_VERSION:-latest}
     restart: always
     ports:
       - "5000:5000"
@@ -12,8 +10,11 @@ services:
       - TIMEZONE=${TIMEZONE:-UTC}
       - LOCAL_DIR=/app/media
       - SCHEDULE_PATH=/app/media/schedule.json
+      - UPDATE_LISTENER_URL=http://host.docker.internal:5555/update
     volumes:
       - media_data:/app/media
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   media_data:

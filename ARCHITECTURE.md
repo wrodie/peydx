@@ -6,11 +6,12 @@ System architecture for peydx — a multi-tenant church digital signage and clas
 
 ```mermaid
 graph TB
-    subgraph LocalServer["Local Server (Docker)"]
+        subgraph LocalServer["Local Server (Docker)"]
         PG["PostgreSQL 16"]
         CMS["Payload CMS v3<br/>(Next.js :3000)"]
         NX["Nginx<br/>(:80/:443)"]
         WS["Socket.IO Server<br/>/api/ws"]
+        REG["Docker Registry<br/>:5050"]
         PG --- CMS
         CMS --- NX
         CMS --- WS
@@ -168,6 +169,11 @@ sequenceDiagram
     CMS->>DEV: schedule:update
     CMS->>BR: schedule:update (if affected)
     DEV->>CMS: Re-sync (full HTTP sync cycle)
+
+    Note over DEV,ADM: Remote Client Updates
+    ADM->>CMS: POST /api/push-update (update all)
+    CMS->>DEV: remote:update { version }
+    DEV->>CMS: Pull new image from registry, restart container
 ```
 
 ## Authentication Flow
@@ -333,6 +339,7 @@ graph TB
             PG["PostgreSQL 16<br/>:5432 (internal)"]
             CMS["Payload CMS<br/>:3000 (internal)"]
             NX["Nginx<br/>:80 / :443"]
+            REG["Docker Registry<br/>:5050"]
             PG --- CMS
             CMS --- NX
         end
@@ -370,7 +377,40 @@ graph TB
 ```
 
 - **Server**: Runs Payload CMS + PostgreSQL + Nginx in Docker on a local machine (Intel Core i5 minimum). All inter-container communication is internal. A named Docker volume (`media_data`) stores uploaded media.
-- **Hardware players**: Mini PCs on the same local network. The sync agent runs in a Docker container (`docker compose -f docker-compose.client.yaml up -d`) — this eliminates manual Node.js/PM2 setup. Media is stored in a named Docker volume for persistence. The Chromium kiosk runs on the host OS for direct GPU access.
+- **Hardware players**: Mini PCs on the same local network. The sync agent runs in a Docker container (`docker compose -f docker-compose.client.yaml up -d`) pulling a pre-built image from the server's registry — no local build or git clone needed. Media is stored in a named Docker volume for persistence. The Chromium kiosk runs on the host OS for direct GPU access.
 - **Cloudflare Tunnel**: Provides secure external access to the CMS admin panel and WebSocket connections without opening inbound ports. Handles TLS termination and DDoS protection.
-- **Browser devices**: Connect directly to the CMS through the Cloudflare Tunnel. Require internet but no local software. A browser device can mirror a hardware player's display by setting the `controllingDevice` field.
+ - **Browser devices**: Connect directly to the CMS through the Cloudflare Tunnel. Require internet but no local software. A browser device can mirror a hardware player's display by setting the `controllingDevice` field.
 - **Admin access**: Volunteers and admins access the CMS dashboard through the Cloudflare Tunnel for managing media, programs, and schedules.
+- **Docker Registry**: A local registry on port 5050 stores pre-built sync-agent images. Client devices pull from this registry during remote updates.
+
+## Remote Updates
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Server as Server (Docker)
+    participant Reg as Registry :5050
+    participant CMS as CMS Admin UI
+    participant Device as Sync Agent (Docker)
+    participant Listener as Update Listener (Host)
+
+    Dev->>Server: ./scripts/build-client.sh v1.2.0
+    Server->>Reg: Push sync-agent:v1.2.0 + :latest
+
+    Admin->>CMS: Set clientVersion = v1.2.0 in Settings global
+    Admin->>CMS: Click "Push Update" (per-device or all)
+    CMS->>Device: remote:update { version: "v1.2.0" }
+    Device->>Listener: POST http://host.docker.internal:5555/update
+    Note over Listener: Rewrite CLIENT_VERSION in .env
+    Listener->>Reg: docker pull <registry>/sync-agent:v1.2.0
+    Reg-->>Listener: Image layers
+    Listener->>Listener: docker compose up -d
+    Note over Device: Container restarts with v1.2.0
+```
+
+Client updates are triggered remotely from the CMS admin panel. The flow:
+1. Developer runs `scripts/build-client.sh <version>` on the server to build and push a new sync-agent image to the local Docker registry
+2. Admin updates the `clientVersion` in the CMS Settings global and clicks "Push Update"
+3. CMS emits `remote:update` via WebSocket to the target device(s)
+4. The sync agent forwards the command to the update listener running on the host
+5. The update listener pulls the new image and restarts the container

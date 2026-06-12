@@ -228,6 +228,39 @@ The Nginx reverse proxy handles two critical paths:
 - **`/api/ws`** — WebSocket proxy for real-time communication (device heartbeats, remote control, schedule updates). The `proxy_read_timeout 86400` (24 hours) prevents long-lived WebSocket connections from being dropped.
 - **`/`** — Standard HTTP proxy to the Payload CMS application.
 
+## Docker Registry
+
+The server includes a local Docker registry on port 5050 for distributing sync-agent images to client devices. No authentication is configured since the registry is LAN-only and the source code is open.
+
+The registry is started automatically with `docker compose up -d` and persists images in the `registry_data` volume.
+
+### Building Client Images
+
+To build and push a new client image:
+
+```bash
+./scripts/build-client.sh v1.2.0
+```
+
+This builds the sync-agent image from `sync/Dockerfile`, tags it as both `v1.2.0` and `latest`, and pushes both tags to the local registry at `localhost:5050`.
+
+### Pushing Updates to Clients
+
+1. Open the CMS admin panel and navigate to **Settings**.
+2. Set the **Client Version** field to the new version (e.g. `v1.2.0`).
+3. Click **Push to All Devices** to broadcast the update, or navigate to a specific device in **Devices** and click **Push Update** in the sidebar.
+
+Each device will:
+- Receive the update command via WebSocket
+- Pull the new image from the registry
+- Restart the sync-agent container automatically
+
+### Verifying Registry Contents
+
+```bash
+curl http://localhost:5050/v2/sync-agent/tags/list
+```
+
 ## Updating
 
 To update the server to a new version:

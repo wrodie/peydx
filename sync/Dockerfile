@@ -22,5 +22,8 @@ ENV SCHEDULE_PATH=/app/media/schedule.json
 
 RUN mkdir -p /app/media
 
+ARG VERSION=dev
+ENV APP_VERSION=${VERSION}
+
 EXPOSE 5000
 CMD ["node", "sync/sync-agent.js"]

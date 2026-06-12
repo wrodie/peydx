@@ -6,7 +6,7 @@ import './src/load-env'
 import { getPayload as initPayload } from 'payload'
 
 import config from './src/payload.config'
-import { setPayload, getPayload } from './src/websocket/io'
+import { setPayload, getPayload, setIO } from './src/websocket/io'
 
 const dev = process.env.NODE_ENV !== 'production'
 const port = parseInt(process.env.PORT || '3000', 10)
@@ -366,6 +366,8 @@ app.prepare().then(async () => {
     transports: ['websocket', 'polling'],
   })
 
+  setIO(io)
+
   // Authentication middleware
   io.use(async (socket, next) => {
     try {
@@ -435,6 +437,7 @@ app.prepare().then(async () => {
 
     if (type === 'device') {
       socket.join(`device:${id}`)
+      socket.join('devices')
       for (const dep of departments || []) {
         socket.join(`department:${dep}`)
       }

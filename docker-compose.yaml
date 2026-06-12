@@ -43,7 +43,16 @@ services:
     depends_on:
       - payload-cms
 
+  registry:
+    image: registry:2
+    restart: always
+    ports:
+      - "5050:5000"
+    volumes:
+      - registry_data:/var/lib/registry
+
 volumes:
   postgres_data:
   media_data:
+  registry_data:
 

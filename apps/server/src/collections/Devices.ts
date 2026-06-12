@@ -172,5 +172,16 @@ export const Devices: CollectionConfig = {
         description: 'Image shown centered on black when no program is running.',
       },
     },
+    {
+      name: 'updateAction',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '/components/UpdateButton#UpdateButton',
+        },
+        position: 'sidebar',
+        condition: ({ user }) => user?.role === 'admin',
+      },
+    },
   ],
 }
