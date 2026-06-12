@@ -1,0 +1,19 @@
+services:
+  sync-agent:
+    build:
+      context: .
+      dockerfile: sync/Dockerfile
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - API_URL=${API_URL:?API_URL is required}
+      - DEVICE_API_KEY=${DEVICE_API_KEY:?DEVICE_API_KEY is required}
+      - TIMEZONE=${TIMEZONE:-UTC}
+      - LOCAL_DIR=/app/media
+      - SCHEDULE_PATH=/app/media/schedule.json
+    volumes:
+      - media_data:/app/media
+
+volumes:
+  media_data:

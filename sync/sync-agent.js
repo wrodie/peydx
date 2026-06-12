@@ -18,7 +18,7 @@ if (!API_KEY) throw new Error('Missing required env: DEVICE_API_KEY');
 if (!API_URL) throw new Error('Missing required env: API_URL');
 
 const LOCAL_DIR = process.env.LOCAL_DIR || path.join(__dirname, '..', 'apps', 'player', 'public', 'local-media');
-const SCHEDULE_PATH = path.join(__dirname, '..', 'apps', 'player', 'public', 'schedule.json');
+const SCHEDULE_PATH = process.env.SCHEDULE_PATH || path.join(__dirname, '..', 'apps', 'player', 'public', 'schedule.json');
 
 if (!fs.existsSync(LOCAL_DIR)) fs.mkdirSync(LOCAL_DIR, { recursive: true });
 
