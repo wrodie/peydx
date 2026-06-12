@@ -234,44 +234,83 @@ The server includes a local Docker registry on port 5050 for distributing sync-a
 
 The registry is started automatically with `docker compose up -d` and persists images in the `registry_data` volume.
 
-### Building Client Images
-
-To build and push a new client image:
-
-```bash
-./scripts/build-client.sh v1.2.0
-```
-
-This builds the sync-agent image from `sync/Dockerfile`, tags it as both `v1.2.0` and `latest`, and pushes both tags to the local registry at `localhost:5050`.
-
-### Pushing Updates to Clients
-
-1. Open the CMS admin panel and navigate to **Settings**.
-2. Set the **Client Version** field to the new version (e.g. `v1.2.0`).
-3. Click **Push to All Devices** to broadcast the update, or navigate to a specific device in **Devices** and click **Push Update** in the sidebar.
-
-Each device will:
-- Receive the update command via WebSocket
-- Pull the new image from the registry
-- Restart the sync-agent container automatically
-
 ### Verifying Registry Contents
 
 ```bash
 curl http://localhost:5050/v2/sync-agent/tags/list
 ```
 
-## Updating
+## Server Manager
 
-To update the server to a new version:
+The server manager is a host-level service that receives deploy commands from the CMS. It handles git checkout, client image builds, and server rebuilds — all triggered from the admin UI.
+
+### One-Time Setup
+
+```bash
+# Copy files to /opt/peydx if not already there
+cp scripts/deploy.sh /opt/peydx/scripts/
+cp scripts/server-manager.py /opt/peydx/scripts/
+cp scripts/server-manager.service /opt/peydx/scripts/
+
+# Add SERVER_MANAGER_TOKEN to /opt/peydx/.env
+echo "SERVER_MANAGER_TOKEN=$(openssl rand -hex 32)" >> /opt/peydx/.env
+
+# Create log file
+sudo touch /var/log/peydx-deploy.log
+
+# Install and start the service
+sudo cp /opt/peydx/scripts/server-manager.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable server-manager --now
+```
+
+The server manager listens on `127.0.0.1:5556` and authenticates requests using `SERVER_MANAGER_TOKEN`.
+
+## Remote Updates
+
+### Deploying a New Version
+
+When code is pushed and tagged (e.g. `git tag v1.2.0 && git push --tags`), deploy from the CMS:
+
+1. Open the admin panel and navigate to **Settings**.
+2. The page will show the current server version and whether an update is available.
+3. Click **Deploy v1.2.0** — this does three things:
+   - Checks out the git tag `v1.2.0` on the server
+   - Builds the client sync-agent image and pushes it to the local registry
+   - Rebuilds and restarts the CMS server
+4. The admin UI shows a reconnecting overlay and auto-refreshes when the server comes back.
+5. Once the server is back, click **Push v1.2.0 to All Devices** to update client devices.
+
+### Updating Individual Devices
+
+To update a specific device without pushing to all:
+1. Navigate to **Devices** in the admin panel.
+2. Open the device record.
+3. Click **Push Update** in the sidebar.
+
+Device updates trigger the sync agent to pull the new image from the registry and restart.
+
+## Updating (Manual)
+
+If remote deploy is unavailable, update the server manually:
 
 ```bash
 cd /opt/peydx
-git pull
+git fetch --tags
+git checkout v1.2.0  # or your target version
 docker compose up -d --build
 ```
 
-This rebuilds the Payload CMS container and restarts all services. Database data persists across updates via the `postgres_data` Docker volume.
+To manually build and push a client image:
+
+```bash
+cd /opt/peydx
+docker build --build-arg VERSION=v1.2.0 -f sync/Dockerfile \
+  -t localhost:5050/sync-agent:v1.2.0 \
+  -t localhost:5050/sync-agent:latest .
+docker push localhost:5050/sync-agent:v1.2.0
+docker push localhost:5050/sync-agent:latest
+```
 
 ## Troubleshooting
 

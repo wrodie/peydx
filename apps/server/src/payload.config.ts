@@ -13,8 +13,10 @@ import { Schedule } from './collections/Schedule'
 import { Departments } from './collections/Departments'
 import { Folders } from './collections/Folders'
 import { Config as ConfigGlobal } from './globals/Config'
+import { deploy } from './endpoints/deploy'
 import { heartbeat } from './endpoints/heartbeat'
 import { pushUpdate } from './endpoints/pushUpdate'
+import { serverStatus } from './endpoints/serverStatus'
 import { youtubeInfo } from './endpoints/youtubeInfo'
 
 const filename = fileURLToPath(import.meta.url)
@@ -45,7 +47,7 @@ export default buildConfig({
     Devices,
   ],
   globals: [ConfigGlobal],
-  endpoints: [heartbeat, pushUpdate, youtubeInfo],
+  endpoints: [deploy, heartbeat, pushUpdate, serverStatus, youtubeInfo],
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {

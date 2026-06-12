@@ -1,0 +1,17 @@
+[Unit]
+Description=PeydX Server Manager
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/peydx/scripts/server-manager.py
+Restart=on-failure
+RestartSec=5
+User=root
+EnvironmentFile=/opt/peydx/.env
+WorkingDirectory=/opt/peydx
+
+[Install]
+WantedBy=multi-user.target

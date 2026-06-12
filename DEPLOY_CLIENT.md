@@ -76,7 +76,7 @@ sudo mkdir -p /opt/peydx
 Create `/opt/peydx/.env` with the required variables:
 
 ```env
-API_URL=https://cms.yourchurch.org/api
+API_URL=http://192.168.1.100/api
 DEVICE_API_KEY=your-device-api-key
 TIMEZONE=America/New_York
 REGISTRY_URL=<server-ip>:5050
@@ -85,7 +85,7 @@ CLIENT_VERSION=latest
 
 | Variable | Description |
 |---|---|
-| `API_URL` | Payload CMS API base URL (e.g. `https://cms.yourchurch.org/api`) |
+| `API_URL` | Payload CMS API base URL (e.g. `http://192.168.1.100/api`) |
 | `DEVICE_API_KEY` | API key generated when you created the device record in the CMS admin panel |
 | `TIMEZONE` | IANA timezone string for schedule evaluation (default: `UTC`) |
 | `REGISTRY_URL` | Server IP + registry port (e.g. `192.168.1.100:5050`) |
@@ -235,7 +235,7 @@ No local software installation is required. Browser devices connect directly to 
 On the target device (smart TV, tablet, etc.), open a browser and navigate to the device URL:
 
 ```
-https://cms.yourchurch.org/player?id=<deviceId>&token=<browserToken>
+http://192.168.1.100/player?id=<deviceId>&token=<browserToken>
 ```
 
 The player will:
@@ -262,11 +262,9 @@ Client updates are triggered remotely from the CMS admin panel. No manual access
 
 ### How It Works
 
-1. A developer builds and pushes a new image to the server's local registry:
-   ```bash
-   ./scripts/build-client.sh v1.2.0
-   ```
-2. An admin updates the **Client Version** in CMS → **Settings** and clicks **Push Update** (to all devices or a specific device).
+1. Code is pushed and a git tag is created (`git tag v1.2.0 && git push --tags`).
+2. An admin clicks **Deploy v1.2.0** in CMS → **Settings**, which builds the client image, pushes to the registry, and rebuilds the server — all in one action.
+3. After the server is back, the admin clicks **Push v1.2.0** to all devices (or updates individual devices).
 3. The CMS sends a `remote:update` command to the device(s) via WebSocket.
 4. The sync agent forwards this to the host's update listener (port 5555).
 5. The update listener runs `update.sh`, which:

@@ -24,6 +24,10 @@ services:
     environment:
       DATABASE_URI: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@payload-db:5432/${POSTGRES_DB}
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      SERVER_MANAGER_URL: ${SERVER_MANAGER_URL:-http://host.docker.internal:5556}
+      SERVER_MANAGER_TOKEN: ${SERVER_MANAGER_TOKEN:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       payload-db:
         condition: service_healthy

@@ -391,14 +391,19 @@ sequenceDiagram
     participant Server as Server (Docker)
     participant Reg as Registry :5050
     participant CMS as CMS Admin UI
+    participant Manager as Server Manager (Host)
     participant Device as Sync Agent (Docker)
     participant Listener as Update Listener (Host)
 
-    Dev->>Server: ./scripts/build-client.sh v1.2.0
-    Server->>Reg: Push sync-agent:v1.2.0 + :latest
+    Dev->>Server: git tag v1.2.0 && git push --tags
+    Admin->>CMS: Click "Deploy v1.2.0" in Settings
+    CMS->>Manager: POST /deploy { version: "v1.2.0" }
+    Manager->>Server: git fetch --tags && git checkout v1.2.0
+    Manager->>Reg: Build & push sync-agent:v1.2.0 + :latest
+    Manager->>Server: docker compose up -d --build
+    Note over Server: CMS container restarts with v1.2.0
 
-    Admin->>CMS: Set clientVersion = v1.2.0 in Settings global
-    Admin->>CMS: Click "Push Update" (per-device or all)
+    Admin->>CMS: Click "Push v1.2.0 to All Devices"
     CMS->>Device: remote:update { version: "v1.2.0" }
     Device->>Listener: POST http://host.docker.internal:5555/update
     Note over Listener: Rewrite CLIENT_VERSION in .env
@@ -408,9 +413,7 @@ sequenceDiagram
     Note over Device: Container restarts with v1.2.0
 ```
 
-Client updates are triggered remotely from the CMS admin panel. The flow:
-1. Developer runs `scripts/build-client.sh <version>` on the server to build and push a new sync-agent image to the local Docker registry
-2. Admin updates the `clientVersion` in the CMS Settings global and clicks "Push Update"
-3. CMS emits `remote:update` via WebSocket to the target device(s)
-4. The sync agent forwards the command to the update listener running on the host
-5. The update listener pulls the new image and restarts the container
+Since this is a monorepo, a single git tag represents both server and client code. The deploy action handles everything in one step:
+1. Developer pushes a git tag (e.g. `v1.2.0`)
+2. Admin clicks **Deploy v1.2.0** in the CMS Settings page — checks out the tag, builds the client image (pushed to local registry), and rebuilds the server
+3. After the server restarts, admin clicks **Push v1.2.0 to All Devices** to update client devices
