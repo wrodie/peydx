@@ -52,91 +52,49 @@ sudo usermod -aG docker $USER
 
 Log out and back in for the group change to take effect.
 
-### 4. Configure Docker for the Registry
+### 4. Create the Device in the CMS
 
-The client pulls images from the server's local Docker registry. Docker must be configured to trust the insecure registry:
+Before bootstrapping, create the device record:
 
-```json
-// /etc/docker/daemon.json
-{ "insecure-registries": ["<server-ip>:5050"] }
-```
+1. Navigate to **Devices** in the admin panel.
+2. Create a new device with **Device Type** set to `hardware`.
+3. Select the departments this device should display.
+4. Copy the generated **API Key** — you'll need it in the next step.
 
-Then restart Docker:
+### 5. Run the Bootstrap Script
 
-```bash
-sudo systemctl restart docker
-```
-
-### 5. Set Up the Client
+**Note:** This script requires `sudo`. It configures Docker, downloads the required files from GitHub, creates `.env`, installs the update listener service, and starts the sync agent — all in one step.
 
 ```bash
-sudo mkdir -p /opt/peydx
+curl -sL "https://raw.githubusercontent.com/wrodie/peydx/main/scripts/bootstrap-client.sh" \
+  | sudo bash -s -- \
+    --server-ip 192.168.1.100 \
+    --api-key <your-device-api-key> \
+    --timezone America/New_York
 ```
 
-Create `/opt/peydx/.env` with the required variables:
+| Flag | Required | Description |
+|---|---|---|
+| `--server-ip` | Yes | Server's LAN IP address |
+| `--api-key` | Yes | Device API key copied from the CMS in step 4 |
+| `--timezone` | No | IANA timezone (default: `UTC`) |
+| `--version` | No | Git tag to pull files from (default: auto-detects latest) |
 
-```env
-API_URL=http://192.168.1.100/api
-DEVICE_API_KEY=your-device-api-key
-TIMEZONE=America/New_York
-REGISTRY_URL=<server-ip>:5050
-CLIENT_VERSION=latest
-```
+What the bootstrap script does:
+1. Adds `insecure-registries: ["<server-ip>:5050"]` to Docker config and restarts Docker
+2. Creates `/opt/peydx/` and downloads `docker-compose.client.yaml`, `update-listener.py`, `update.sh`, and `update-listener.service` from the latest release tag
+3. Writes `/opt/peydx/.env` with `API_URL`, `DEVICE_API_KEY`, `TIMEZONE`, `REGISTRY_URL`, and `CLIENT_VERSION`
+4. Installs and starts the `update-listener` systemd service
+5. Pulls the sync-agent image from the registry and runs it
 
-| Variable | Description |
-|---|---|
-| `API_URL` | Payload CMS API base URL (e.g. `http://192.168.1.100/api`) |
-| `DEVICE_API_KEY` | API key generated when you created the device record in the CMS admin panel |
-| `TIMEZONE` | IANA timezone string for schedule evaluation (default: `UTC`) |
-| `REGISTRY_URL` | Server IP + registry port (e.g. `192.168.1.100:5050`) |
-| `CLIENT_VERSION` | Image tag to pull (default: `latest`; set to a specific version for pinning) |
-
-Copy the client compose file and update scripts to `/opt/peydx/`:
+After the script completes, verify the sync agent is running:
 
 ```bash
-# From the repo on the server, or download from URL
-scp docker-compose.client.yaml user@client:/opt/peydx/
-scp sync/update.sh sync/update-listener.py sync/update-listener.service user@client:/opt/peydx/
+docker compose -f /opt/peydx/docker-compose.client.yaml ps
+docker compose -f /opt/peydx/docker-compose.client.yaml logs -f
 ```
 
-### 6. Set Up the Update Listener
-
-The update listener runs on the host and handles remote update commands from the CMS:
-
-```bash
-sudo cp /opt/peydx/update-listener.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable update-listener --now
-```
-
-Create the log file:
-
-```bash
-sudo touch /var/log/peydx-update.log
-```
-
-### 7. Start the Sync Agent
-
-```bash
-cd /opt/peydx
-docker compose -f docker-compose.client.yaml up -d
-```
-
-This pulls the pre-built sync-agent image from the server's registry and runs it. No local build is required. The sync agent will:
-- Connect to the CMS via WebSocket for real-time schedule updates
-- Fall back to polling every 60 seconds if WebSocket disconnects
-- Download media files and write `schedule.json` atomically
-- Serve the player on port 5000
-- Send heartbeats to the CMS for the health dashboard
-
-Media files are stored in a named Docker volume (`media_data`) that persists across container restarts.
-
-Check that it's running:
-
-```bash
-docker compose -f docker-compose.client.yaml ps
-docker compose -f docker-compose.client.yaml logs -f
-```
+The device should appear as "online" in the CMS dashboard within 30 seconds.
 
 ### 6. Configure Kiosk Mode
 
@@ -327,7 +285,7 @@ To start fresh with media (e.g., after changing the device or fixing sync issues
 
 ```bash
 docker compose -f docker-compose.client.yaml down -v
-docker compose -f docker-compose.client.yaml up -d --build
+docker compose -f docker-compose.client.yaml up -d
 ```
 
 The `-v` flag removes the media volume. All media will be re-downloaded on the next sync cycle.
