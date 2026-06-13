@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PeydX External Integration API
   description: |
-    REST API for third-party systems (e.g. Home Assistant) to control PeydX
+    REST API for third-party systems to control PeydX
     digital signage devices remotely.
   version: 1.0.0
   contact:
