@@ -107,7 +107,7 @@ export function UpdateButton() {
       const version = clientVersion || (await fetchClientVersion())
       const body: { deviceId?: number } = {}
       if (isDeviceView && id) {
-        body.deviceId = id
+        body.deviceId = id as number
       }
       const res = await fetch('/api/push-update', {
         method: 'POST',

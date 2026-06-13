@@ -12,12 +12,14 @@ import { Devices } from './collections/Devices'
 import { Schedule } from './collections/Schedule'
 import { Departments } from './collections/Departments'
 import { Folders } from './collections/Folders'
+import { Integrations } from './collections/Integrations'
 import { Config as ConfigGlobal } from './globals/Config'
 import { deploy } from './endpoints/deploy'
 import { heartbeat } from './endpoints/heartbeat'
 import { pushUpdate } from './endpoints/pushUpdate'
 import { serverStatus } from './endpoints/serverStatus'
 import { youtubeInfo } from './endpoints/youtubeInfo'
+import { externalApiEndpoints } from './endpoints/integrations'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -45,9 +47,10 @@ export default buildConfig({
     Folders,
     Users,
     Devices,
+    Integrations,
   ],
   globals: [ConfigGlobal],
-  endpoints: [deploy, heartbeat, pushUpdate, serverStatus, youtubeInfo],
+  endpoints: [deploy, heartbeat, pushUpdate, serverStatus, youtubeInfo, ...externalApiEndpoints],
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {

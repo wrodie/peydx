@@ -65,6 +65,7 @@ export interface Config {
   auth: {
     users: UserAuthOperations;
     devices: DeviceAuthOperations;
+    integrations: IntegrationAuthOperations;
   };
   blocks: {};
   collections: {
@@ -75,6 +76,7 @@ export interface Config {
     folders: Folder;
     users: User;
     devices: Device;
+    integrations: Integration;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -89,6 +91,7 @@ export interface Config {
     folders: FoldersSelect<false> | FoldersSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     devices: DevicesSelect<false> | DevicesSelect<true>;
+    integrations: IntegrationsSelect<false> | IntegrationsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -108,7 +111,7 @@ export interface Config {
   widgets: {
     collections: CollectionsWidget;
   };
-  user: User | Device;
+  user: User | Device | Integration;
   jobs: {
     tasks: unknown;
     workflows: unknown;
@@ -133,6 +136,24 @@ export interface UserAuthOperations {
   };
 }
 export interface DeviceAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
+  };
+}
+export interface IntegrationAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -590,6 +611,31 @@ export interface Schedule {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "integrations".
+ */
+export interface Integration {
+  id: number;
+  /**
+   * Descriptive name (e.g. "Home Assistant")
+   */
+  name: string;
+  /**
+   * After this date, the API key will stop working.
+   */
+  expiresAt: string;
+  /**
+   * Leave empty for access to all departments. Select departments to restrict access.
+   */
+  departments?: (number | Department)[] | null;
+  updatedAt: string;
+  createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
+  collection: 'integrations';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -639,6 +685,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'devices';
         value: number | Device;
+      } | null)
+    | ({
+        relationTo: 'integrations';
+        value: number | Integration;
       } | null);
   globalSlug?: string | null;
   user:
@@ -649,6 +699,10 @@ export interface PayloadLockedDocument {
     | {
         relationTo: 'devices';
         value: number | Device;
+      }
+    | {
+        relationTo: 'integrations';
+        value: number | Integration;
       };
   updatedAt: string;
   createdAt: string;
@@ -667,6 +721,10 @@ export interface PayloadPreference {
     | {
         relationTo: 'devices';
         value: number | Device;
+      }
+    | {
+        relationTo: 'integrations';
+        value: number | Integration;
       };
   key?: string | null;
   value?:
@@ -969,6 +1027,20 @@ export interface DevicesSelect<T extends boolean = true> {
   status?: T;
   browserToken?: T;
   defaultBackground?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "integrations_select".
+ */
+export interface IntegrationsSelect<T extends boolean = true> {
+  name?: T;
+  expiresAt?: T;
+  departments?: T;
   updatedAt?: T;
   createdAt?: T;
   enableAPIKey?: T;

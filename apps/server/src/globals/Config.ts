@@ -7,7 +7,7 @@ export const Config: GlobalConfig = {
     group: 'Admin',
     components: {
       elements: {
-        afterEdit: ['/components/UpdateButton#UpdateButton'],
+        beforeDocumentControls: ['/components/UpdateButton#UpdateButton'],
       },
     },
   },
