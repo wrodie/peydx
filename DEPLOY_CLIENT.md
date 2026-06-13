@@ -263,6 +263,16 @@ On the target device (smart TV, tablet, etc.), open a browser and navigate to th
 http://192.168.1.100/player?id=<deviceId>&token=<browserToken>
 ```
 
+Optional URL parameters:
+- `program=<id>` — Load a specific program on startup (must be in the device's schedule or available programs list)
+- `slide=<index>` — Start at the given slide index (defaults to 0)
+
+Example with all params:
+
+```
+http://192.168.1.100/player?id=<deviceId>&token=<browserToken>&program=5&slide=0
+```
+
 The player will:
 - Connect to the CMS via WebSocket for real-time schedule updates
 - Fetch programs and media directly from the CMS

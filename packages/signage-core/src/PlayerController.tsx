@@ -14,7 +14,7 @@ export interface PlayerControllerHandle {
   prevSlide: () => void
   gotoSlide: (index: number) => void
   togglePause: () => void
-  selectProgram: (programId: number) => void
+  selectProgram: (programId: number, slideIndex?: number) => void
 }
 
 interface PlayerControllerProps {
@@ -143,6 +143,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const availableEntriesRef = useRef<AvailabilityEntry[]>([])
     const scheduleDataRef = useRef<ResolvedSchedule | null>(null)
     const showExitOverlayRef = useRef(false)
+    const initialUrlProgramConsumed = useRef(false)
 
     useEffect(() => { stateRef.current = playerState }, [playerState])
     useEffect(() => { activeProgramRef.current = activeProgram }, [activeProgram])
@@ -180,7 +181,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }, [])
 
     const transitionTo = useCallback(
-      (state: PlayerState, program?: Program | null, entry?: { program?: Program; endTime?: string } | null, index?: number, availEntries?: AvailabilityEntry[]) => {
+      (state: PlayerState, program?: Program | null, entry?: { program?: Program; endTime?: string } | null, index?: number, availEntries?: AvailabilityEntry[], slideIndex: number = 0) => {
         clearMenuTimeout()
         setPlayerState(state)
         setShowExitOverlay(false)
@@ -191,7 +192,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           setActiveProgram(program)
           flattenedSlidesRef.current = flattenProgram(program).slides
           setProgramKey((k) => k + 1)
-          setPendingSlideIndex(0)
+          setPendingSlideIndex(slideIndex)
           setCurrentScheduleEntry(entry ?? null)
         } else if (program === null) {
           setActiveProgram(null)
@@ -282,11 +283,11 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }, [playerState, transitionTo])
 
     const selectProgram = useCallback(
-      (programId: number) => {
+      (programId: number, slideIndex: number = 0) => {
         const entry = scheduleDataRef.current?.schedule?.find((e) => e.programId === programId)
           || scheduleDataRef.current?.availability?.find((e) => e.programId === programId)
         if (entry) {
-          transitionTo('playing', entry.program, entry, 0)
+          transitionTo('playing', entry.program, entry, 0, undefined, slideIndex)
         }
       },
       [transitionTo],
@@ -328,6 +329,22 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
 
     useEffect(() => {
       if (!scheduleData) return
+
+      if (typeof window !== 'undefined' && !initialUrlProgramConsumed.current) {
+        const params = new URLSearchParams(window.location.search)
+        const urlProgramId = parseInt(params.get('program') || '', 10)
+        if (!isNaN(urlProgramId)) {
+          const entry = scheduleData.schedule.find((e) => e.programId === urlProgramId)
+            || scheduleData.availability.find((e) => e.programId === urlProgramId)
+          if (entry) {
+            initialUrlProgramConsumed.current = true
+            const urlSlideIndex = Math.max(0, parseInt(params.get('slide') || '0', 10))
+            transitionTo('playing', entry.program, entry, 0, undefined, urlSlideIndex)
+            return
+          }
+        }
+        initialUrlProgramConsumed.current = true
+      }
 
       const { activeAutoPlay, availablePrograms } = resolveScheduleState(scheduleData.schedule, scheduleData.availability ?? [])
       const currentState = stateRef.current

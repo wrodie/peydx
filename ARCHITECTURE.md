@@ -67,6 +67,7 @@ Payload CMS v3 running inside Next.js, serving the admin dashboard and REST API.
 React + Vite single-page application. Detects its mode from URL parameters:
 - **Hardware mode** (default) — connects to the local sync agent via WebSocket and fetches `schedule.json` for fully offline playback.
 - **Browser mode** (`?id=X&token=Y`) — connects directly to the CMS via WebSocket and fetches programs from the API. Requires internet.
+  - Both modes accept optional `&program=<id>&slide=<index>` to automatically load an available program at a specific slide on startup.
 
 ### Signage Core (`packages/signage-core/`)
 
