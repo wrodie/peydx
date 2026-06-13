@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react'
-import type { Program, Slide, SegmentContext } from './types'
+import type { Program, Slide, SegmentContext, KeyConfig } from './types'
 import { flattenProgram } from './flattenProgram'
+import { mergeKeyConfig, normalizeKeyCode } from './keyConfig'
 import './transitions.css'
 
 const TRANSITION_DURATION = 2500
@@ -32,6 +33,7 @@ interface SlideEngineProps {
   onProgramEnd?: () => void
   onSlideChange?: (index: number) => void
   initialSlideIndex?: number
+  keyConfig?: Partial<KeyConfig>
 }
 
 function findSegmentStartIndex(slides: Slide[], currentIndex: number, segCtx?: SegmentContext | null): number {
@@ -51,7 +53,8 @@ function getSegmentEndIndex(slides: Slide[], currentIndex: number, segCtx?: Segm
 }
 
 export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
-  ({ program, onProgramEnd, onSlideChange, initialSlideIndex }, ref) => {
+  ({ program, onProgramEnd, onSlideChange, initialSlideIndex, keyConfig: userKeyConfig }, ref) => {
+    const keys = mergeKeyConfig(userKeyConfig)
     const flattened = useMemo(() => flattenProgram(program), [program])
 
     const [currentIndex, setCurrentIndex] = useState(initialSlideIndex ?? 0)
@@ -242,18 +245,20 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     }, [currentIndex, slides, segCtx, onProgramEnd, segmentLoopKey])
 
     useEffect(() => {
+      const nextCodes = normalizeKeyCode(keys.next)
+      const prevCodes = normalizeKeyCode(keys.prev)
       const handler = (e: KeyboardEvent) => {
-        if (e.code === 'Space' || e.code === 'ArrowRight') {
+        if (nextCodes.includes(e.code)) {
           e.preventDefault()
           doNextSlide()
-        } else if (e.code === 'ArrowLeft') {
+        } else if (prevCodes.includes(e.code)) {
           e.preventDefault()
           doPrevSlide()
         }
       }
       window.addEventListener('keydown', handler)
       return () => window.removeEventListener('keydown', handler)
-    }, [doNextSlide, doPrevSlide])
+    }, [doNextSlide, doPrevSlide, keys.next, keys.prev])
 
     useEffect(() => {
       if (!currentSlide || currentSlide.blockType !== 'youtubeBlock') return

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { PlayerController, useRemoteControl } from 'signage-core'
-import type { PlayerControllerHandle, PlayerState, DeviceProvider } from 'signage-core'
+import type { PlayerControllerHandle, PlayerState, DeviceProvider, KeyConfig } from 'signage-core'
 import type { Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
 import { createCmsProvider } from './providers/CmsProvider'
@@ -32,6 +32,7 @@ function createProvider(): DeviceProvider | null {
 export function App() {
   const controllerRef = useRef<PlayerControllerHandle>(null)
   const [scheduleData, setScheduleData] = useState<any>(null)
+  const [keyConfig, setKeyConfig] = useState<Partial<KeyConfig> | undefined>(undefined)
   const socketRef = useRef<TypedSocket | null>(null)
   const [provider] = useState(() => createProvider())
 
@@ -93,6 +94,32 @@ export function App() {
     return () => clearInterval(interval)
   }, [provider, loadSchedule])
 
+  // Load key config in hardware mode
+  useEffect(() => {
+    if (!provider || detectMode() === 'browser') return
+    fetch('/config.json')
+      .then(res => {
+        if (!res.ok) throw new Error('No config.json')
+        return res.json()
+      })
+      .then(config => {
+        if (config?.keys) setKeyConfig(config.keys)
+      })
+      .catch(() => {
+        // No config file — defaults will be used
+      })
+  }, [provider])
+
+  // Prevent browser back/forward navigation (e.g. BrowserBack key on remotes)
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href)
+    const handler = () => {
+      window.history.pushState(null, '', window.location.href)
+    }
+    window.addEventListener('popstate', handler)
+    return () => window.removeEventListener('popstate', handler)
+  }, [])
+
   if (!provider) {
     return (
       <div style={{ width: '100vw', height: '100vh', background: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
@@ -105,6 +132,7 @@ export function App() {
     <PlayerController
       ref={controllerRef}
       scheduleData={scheduleData}
+      keyConfig={keyConfig}
       onSlideChange={handleSlideChange}
       onStateChange={handleStateChange}
     />

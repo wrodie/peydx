@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState } from 'react'
 import type { KeyConfig } from './types'
+import { normalizeKeyCode } from './keyConfig'
 import './menu.css'
 
 export interface MenuEngineProps {
@@ -47,13 +48,19 @@ export function MenuEngine({
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.code === keyConfig.down) {
+      const downCodes = normalizeKeyCode(keyConfig.down)
+      const upCodes = normalizeKeyCode(keyConfig.up)
+      const enterCodes = normalizeKeyCode(keyConfig.enter)
+      const exitCodes = normalizeKeyCode(keyConfig.exit)
+      const menuCodes = normalizeKeyCode(keyConfig.menu)
+
+      if (downCodes.includes(e.code)) {
         e.preventDefault()
         setSelectedIndex((i) => (i + 1) % itemCount)
-      } else if (e.code === keyConfig.up) {
+      } else if (upCodes.includes(e.code)) {
         e.preventDefault()
         setSelectedIndex((i) => (i > 0 ? i - 1 : itemCount - 1))
-      } else if (e.code === keyConfig.enter) {
+      } else if (enterCodes.includes(e.code)) {
         e.preventDefault()
         if (isExitOverlay) {
           if (clampedIndex === 0) onExit?.()
@@ -61,7 +68,7 @@ export function MenuEngine({
         } else if (clampedIndex < programs.length) {
           onSelect(clampedIndex)
         }
-      } else if (e.code === keyConfig.exit || e.code === keyConfig.menu) {
+      } else if (exitCodes.includes(e.code) || menuCodes.includes(e.code)) {
         e.preventDefault()
         onBack()
       }

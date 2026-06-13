@@ -524,11 +524,14 @@ app.get('/config.json', (_, res) => {
   } catch {}
   res.json({
     keys: {
-      menu: 'KeyM',
+      menu: ['KeyM', 'ContextMenu'],
       up: 'ArrowUp',
       down: 'ArrowDown',
       enter: 'Enter',
-      exit: 'Escape',
+      exit: ['Escape', 'BrowserBack'],
+      pause: ['KeyP', 'MediaPlayPause'],
+      next: ['Space', 'ArrowRight'],
+      prev: 'ArrowLeft',
     },
   });
 });

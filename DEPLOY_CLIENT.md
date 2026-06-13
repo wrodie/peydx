@@ -177,6 +177,73 @@ docker compose -f docker-compose.client.yaml logs sync-agent
 
 ---
 
+## 9. Custom Key Mapping (Hardware Only)
+
+If you're using a 2.4 GHz remote control or presentation clicker that sends non-standard key codes, you can remap the buttons by creating a `key-config.json` file alongside the sync agent.
+
+### Default Mappings
+
+| Action | Default Key Code(s) |
+|---|---|
+| Next slide | `Space` or `ArrowRight` |
+| Previous slide | `ArrowLeft` |
+| Open menu / Exit program | `KeyM` or `ContextMenu` |
+| Navigate up | `ArrowUp` |
+| Navigate down | `ArrowDown` |
+| Select item | `Enter` |
+| Go back / Close menu | `Escape` or `BrowserBack` |
+| Pause / Play video | `KeyP` or `MediaPlayPause` |
+
+### Example `key-config.json`
+
+```json
+{
+  "keys": {
+    "next": ["Space", "ArrowRight", "Numpad6"],
+    "prev": ["ArrowLeft", "Numpad4"],
+    "menu": ["KeyM", "ContextMenu"],
+    "up": "ArrowUp",
+    "down": "ArrowDown",
+    "enter": "Enter",
+    "exit": ["Escape", "BrowserBack"],
+    "pause": ["KeyP", "MediaPlayPause"]
+  }
+}
+```
+
+Each value can be a single string or an array of strings. Use an array when you want multiple keys to trigger the same action.
+
+### Finding Key Codes
+
+Open the player in a browser, press F12 to open DevTools, and run this in the Console:
+
+```js
+window.addEventListener('keydown', e => console.log(e.code))
+```
+
+Press each button on your remote — the console will print the `e.code` value for each one. Use those values in your `key-config.json`.
+
+### Placement
+
+Place `key-config.json` in the sync agent's working directory. On a Docker-based deployment, mount it as a volume in `docker-compose.client.yaml`:
+
+```yaml
+volumes:
+  - ./key-config.json:/app/key-config.json
+```
+
+Or copy it into a running container:
+
+```bash
+docker cp key-config.json peydx-sync-agent:/app/key-config.json
+```
+
+The sync agent picks up the file on the next HTTP request — no restart needed.
+
+**Browser devices are not affected** — they use the built-in defaults and ignore `key-config.json`.
+
+---
+
 ## Tier 2: Browser Device Setup
 
 No local software installation is required. Browser devices connect directly to the CMS.
@@ -212,7 +279,6 @@ For a kiosk-like experience on a smart TV or streaming device, install **Fully K
 
 A browser device can mirror a hardware player's display in real time. When creating or editing a browser device, set the **Controlling Device** field to the hardware device it should mirror. The browser device will then display the same slides, advance at the same time, and respond to remote control commands sent to the hardware device.
 
----
 
 ## Remote Updates
 

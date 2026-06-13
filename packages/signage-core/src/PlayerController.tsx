@@ -3,7 +3,7 @@ import { SlideEngine } from './SlideEngine'
 import { MenuEngine } from './MenuEngine'
 import type { Program, PlayerState, ScheduleEntry, AvailabilityEntry, ResolvedSchedule, KeyConfig, Slide } from './types'
 import { flattenProgram } from './flattenProgram'
-import { mergeKeyConfig } from './keyConfig'
+import { mergeKeyConfig, normalizeKeyCode } from './keyConfig'
 import type { SlideEngineHandle } from './SlideEngine'
 
 export interface PlayerControllerHandle {
@@ -352,8 +352,10 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }, [scheduleData, transitionTo])
 
     useEffect(() => {
+      const menuCodes = normalizeKeyCode(keys.menu)
+      const pauseCodes = normalizeKeyCode(keys.pause || 'KeyP')
       const handler = (e: KeyboardEvent) => {
-        if (e.code === keys.menu) {
+        if (menuCodes.includes(e.code)) {
           e.preventDefault()
           if (showExitOverlayRef.current) {
             clearMenuTimeout()
@@ -362,7 +364,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           }
           openMenu()
         }
-        if (e.code === (keys.pause || 'KeyP')) {
+        if (pauseCodes.includes(e.code)) {
           e.preventDefault()
           togglePause()
         }
@@ -437,6 +439,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
             initialSlideIndex={pendingSlideIndex}
             onSlideChange={handleSlideChange}
             onProgramEnd={activeProgram.loop ? undefined : handleProgramEnd}
+            keyConfig={userKeyConfig}
           />
           {showExitOverlay && (
             <MenuEngine

@@ -4,7 +4,7 @@ export type { Program, Slide, Media, PlayerState, ScheduleEntry, AvailabilityEnt
 export { DEFAULT_KEY_CONFIG } from './types'
 export { flattenProgram } from './flattenProgram'
 export type { ClientToServerEvents, ServerToClientEvents } from './events'
-export { mergeKeyConfig } from './keyConfig'
+export { mergeKeyConfig, normalizeKeyCode } from './keyConfig'
 export { MenuEngine } from './MenuEngine'
 export { PlayerController, resolveScheduleState } from './PlayerController'
 export type { PlayerControllerHandle } from './PlayerController'

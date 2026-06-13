@@ -2,6 +2,11 @@
 
 Multi-tenant church digital signage and classroom presentation system. Manage media, build programs, schedule content to screens, and play it back — online or offline.
 
+The concept here is that the church (or other organisation) can run a local server (or potentially cloud host). They can then use inexpensive devices behing their tv/screens to run their children's ministry content or digital signage.  
+
+There are commercial cloud based (or hybrid) offerings such as https://www.playlister.app/ that do similar things.  If you are wanting the ease of setup and the support that comes with a commerical product I would suggest you look at those products instead.  While I have tried to make the install of peydx as easy as possible it does require someone with technical skills.  Also because you are self hosting there are system maintenance tasks that need to be attended to.
+On the flip side, if you are willing to put in some work, one off purchases of cheap (or reconditioned) machines can certainly end up cheaper than monthly charges on a per screen basis.
+
 ## Features
 
 - **Multi-department isolation** — Users are scoped to their departments. Admins see everything; volunteers only see their own media, programs, and schedules.

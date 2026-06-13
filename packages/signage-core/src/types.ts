@@ -104,21 +104,25 @@ export interface ResolvedSchedule {
 }
 
 export interface KeyConfig {
-  menu: string
-  up: string
-  down: string
-  enter: string
-  exit: string
-  pause?: string
+  menu: string | string[]
+  up: string | string[]
+  down: string | string[]
+  enter: string | string[]
+  exit: string | string[]
+  pause?: string | string[]
+  next: string | string[]
+  prev: string | string[]
 }
 
 export const DEFAULT_KEY_CONFIG: KeyConfig = {
-  menu: 'KeyM',
+  menu: ['KeyM', 'ContextMenu'],
   up: 'ArrowUp',
   down: 'ArrowDown',
   enter: 'Enter',
-  exit: 'Escape',
-  pause: 'KeyP',
+  exit: ['Escape', 'BrowserBack'],
+  pause: ['KeyP', 'MediaPlayPause'],
+  next: ['Space', 'ArrowRight'],
+  prev: 'ArrowLeft',
 }
 
 export interface DeviceProvider {
