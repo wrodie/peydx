@@ -1,0 +1,318 @@
+asyncapi: 2.6.0
+info:
+  title: PeydX WebSocket API
+  version: 1.0.0
+  description: |
+    WebSocket API for real-time device communication. Integrations can connect
+    to receive device status updates and send remote control commands.
+
+defaultContentType: application/json
+
+servers:
+  production:
+    url: '{host}/api/ws'
+    protocol: socketio
+    variables:
+      host:
+        default: localhost:3000
+        description: PeydX server hostname
+
+channels:
+  device:heartbeat:
+    description: |
+      Devices periodically emit this to report their current state.
+      **Restricted to device connections only. Integrations cannot emit this.**
+    publish:
+      summary: Device heartbeat
+      operationId: deviceHeartbeat
+      message:
+        $ref: '#/components/messages/HeartbeatData'
+      bindings:
+        socketio:
+          rooms:
+            - description: No room targeting; handled server-side for authenticated device
+
+  device:slideChange:
+    description: |
+      Devices emit this when the active slide changes.
+      **Restricted to device connections only.**
+    publish:
+      summary: Device slide change
+      operationId: deviceSlideChange
+      message:
+        $ref: '#/components/messages/SlideChangeData'
+
+  device:stateChange:
+    description: |
+      Devices emit this when their state changes (idle/menu/playing).
+      **Restricted to device connections only.** Server broadcasts to
+      department and admin rooms.
+    publish:
+      summary: Device state change (client to server)
+      operationId: deviceStateChangeClient
+      message:
+        $ref: '#/components/messages/StateChangeData'
+    subscribe:
+      summary: Device state change (server to clients)
+      operationId: deviceStateChangeServer
+      description: |
+        Broadcast to `department:{id}` and `admin` rooms when a device's
+        state changes. Integration sockets receive this for permitted depts.
+      message:
+        $ref: '#/components/messages/StateChangeBroadcast'
+
+  remote:advance:
+    description: Next slide command. **User and integration connections can emit.**
+    publish:
+      summary: Remote advance
+      operationId: remoteAdvance
+      message:
+        $ref: '#/components/messages/RemoteTarget'
+    subscribe:
+      summary: Remote advance (forwarded to device)
+      operationId: remoteAdvanceForward
+      message:
+        $ref: '#/components/messages/RemoteForward'
+
+  remote:previous:
+    description: Previous slide command. **User and integration connections can emit.**
+    publish:
+      summary: Remote previous
+      operationId: remotePrevious
+      message:
+        $ref: '#/components/messages/RemoteTarget'
+    subscribe:
+      summary: Remote previous (forwarded to device)
+      operationId: remotePreviousForward
+      message:
+        $ref: '#/components/messages/RemoteForward'
+
+  remote:goto:
+    description: Jump to specific slide index. **User and integration connections can emit.**
+    publish:
+      summary: Remote goto
+      operationId: remoteGoto
+      message:
+        $ref: '#/components/messages/RemoteGotoData'
+    subscribe:
+      summary: Remote goto (forwarded to device)
+      operationId: remoteGotoForward
+      message:
+        $ref: '#/components/messages/RemoteGotoForward'
+
+  remote:program:
+    description: Load program on device. **User and integration connections can emit.**
+    publish:
+      summary: Remote program load
+      operationId: remoteProgram
+      message:
+        $ref: '#/components/messages/RemoteProgramData'
+    subscribe:
+      summary: Remote program load (forwarded to device)
+      operationId: remoteProgramForward
+      message:
+        $ref: '#/components/messages/RemoteProgramForward'
+
+  remote:menu:
+    description: Send to menu command. **User and integration connections can emit.**
+    publish:
+      summary: Remote menu
+      operationId: remoteMenu
+      message:
+        $ref: '#/components/messages/RemoteTarget'
+    subscribe:
+      summary: Remote menu (forwarded to device)
+      operationId: remoteMenuForward
+      message:
+        $ref: '#/components/messages/RemoteForward'
+
+  remote:back:
+    description: Exit program / return to idle. **User and integration connections can emit.**
+    publish:
+      summary: Remote back
+      operationId: remoteBack
+      message:
+        $ref: '#/components/messages/RemoteTarget'
+    subscribe:
+      summary: Remote back (forwarded to device)
+      operationId: remoteBackForward
+      message:
+        $ref: '#/components/messages/RemoteForward'
+
+  remote:select:
+    description: Select/enter command. **User and integration connections can emit.**
+    publish:
+      summary: Remote select
+      operationId: remoteSelect
+      message:
+        $ref: '#/components/messages/RemoteTarget'
+    subscribe:
+      summary: Remote select (forwarded to device)
+      operationId: remoteSelectForward
+      message:
+        $ref: '#/components/messages/RemoteForward'
+
+  remote:pause:
+    description: Pause/resume command. **User and integration connections can emit.**
+    publish:
+      summary: Remote pause
+      operationId: remotePause
+      message:
+        $ref: '#/components/messages/RemoteTarget'
+    subscribe:
+      summary: Remote pause (forwarded to device)
+      operationId: remotePauseForward
+      message:
+        $ref: '#/components/messages/RemoteForward'
+
+  schedule:update:
+    description: Server broadcasts when schedules change. Devices re-fetch their schedule data.
+    subscribe:
+      summary: Schedule updated
+      operationId: scheduleUpdate
+      message:
+        $ref: '#/components/messages/ScheduleUpdate'
+
+  device:status:
+    description: |
+      Server broadcasts device status (online/offline, slide index, program ID)
+      to `department:{id}` and `admin` rooms.
+    subscribe:
+      summary: Device status
+      operationId: deviceStatus
+      message:
+        $ref: '#/components/messages/DeviceStatus'
+
+  remote:update:
+    description: Server broadcasts remote control state updates.
+    subscribe:
+      summary: Remote control update
+      operationId: remoteUpdate
+      message:
+        $ref: '#/components/messages/RemoteUpdate'
+
+components:
+  messages:
+    HeartbeatData:
+      summary: Heartbeat payload from device
+      payload:
+        type: object
+        properties:
+          programId:
+            type: integer
+            nullable: true
+          slideIndex:
+            type: integer
+
+    SlideChangeData:
+      summary: Slide change payload from device
+      payload:
+        type: object
+        properties:
+          slideIndex:
+            type: integer
+
+    StateChangeData:
+      summary: State change payload from device
+      payload:
+        type: object
+        properties:
+          state:
+            type: string
+            enum: [idle, menu, playing]
+          programId:
+            type: integer
+          menuIndex:
+            type: integer
+
+    StateChangeBroadcast:
+      summary: Server broadcast of state change
+      payload:
+        type: object
+        properties:
+          id:
+            type: integer
+          state:
+            type: string
+            enum: [idle, menu, playing]
+          programId:
+            type: integer
+            nullable: true
+
+    RemoteTarget:
+      summary: Remote command targeting a device
+      payload:
+        type: object
+        properties:
+          id:
+            type: integer
+            description: Target device ID
+
+    RemoteGotoData:
+      summary: Goto command with slide index
+      payload:
+        type: object
+        properties:
+          id:
+            type: integer
+          slideIndex:
+            type: integer
+
+    RemoteGotoForward:
+      summary: Goto command forwarded to device
+      payload:
+        type: object
+        properties:
+          slideIndex:
+            type: integer
+
+    RemoteProgramData:
+      summary: Program load command
+      payload:
+        type: object
+        properties:
+          id:
+            type: integer
+          programId:
+            type: integer
+
+    RemoteProgramForward:
+      summary: Program forwarded to device
+      payload:
+        type: object
+        properties:
+          program:
+            type: object
+          slideIndex:
+            type: integer
+
+    RemoteForward:
+      summary: Empty payload forwarded to device
+      payload:
+        type: object
+
+    ScheduleUpdate:
+      summary: Schedule change notification
+      payload:
+        type: object
+
+    DeviceStatus:
+      summary: Device status broadcast
+      payload:
+        type: object
+        properties:
+          id:
+            type: integer
+          slideIndex:
+            type: integer
+          programId:
+            type: integer
+            nullable: true
+          status:
+            type: string
+            enum: [online, offline, stale]
+
+    RemoteUpdate:
+      summary: Remote control state update
+      payload:
+        type: object

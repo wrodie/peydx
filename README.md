@@ -21,6 +21,7 @@ On the flip side, if you are willing to put in some work, one off purchases of c
 - **Video processing** — Automatic WebP conversion, 1080p size generation, video thumbnail extraction, and duration detection via ffmpeg/ffprobe.
 - **Health dashboard** — Real-time device status (online/offline/stale) with heartbeat tracking and current program/slide display.
 - **Web Base Remote Control** — Remote control each device via a web based panel.
+- **External API** - REST/Websocket API for external monitoring/control of display devices
 
 
 ## Monorepo Structure
@@ -111,3 +112,4 @@ Subtly massaged becomes *peydx* (Pronounced PAYED-X).
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — System architecture, data flow, and component diagrams
 - [DEPLOY_SERVER.md](./DEPLOY_SERVER.md) — Production server deployment (Docker + Cloudflare Tunnel)
 - [DEPLOY_CLIENT.md](./DEPLOY_CLIENT.md) — Hardware player and browser device deployment
+- [INTEGRATION.md](./INTEGRATION.md) — External API

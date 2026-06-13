@@ -7,6 +7,7 @@ import { getPayload as initPayload } from 'payload'
 
 import config from './src/payload.config'
 import { setPayload, getPayload, setIO } from './src/websocket/io'
+import { deviceStateStore } from './src/websocket/deviceState'
 
 const dev = process.env.NODE_ENV !== 'production'
 const port = parseInt(process.env.PORT || '3000', 10)
@@ -15,8 +16,6 @@ const app = next({ dev })
 const handle = app.getRequestHandler()
 
 const API_URL = process.env.API_URL || `http://localhost:${port}/api`
-
-const deviceStateStore = new Map<number, { state: string; programId: number | null; slideIndex: number }>()
 
 async function verifyDeviceApiKey(apiKey: string): Promise<{ id: number; departments: string[]; controllingDevice: number | null } | null> {
   try {
@@ -52,6 +51,28 @@ async function verifyBrowserToken(token: string): Promise<{ id: number; departme
   } catch {
     return null
   }
+}
+
+async function verifyIntegrationAccess(
+  socket: any,
+  deviceId: number,
+  payload: any
+): Promise<boolean> {
+  if (socket.data.type !== 'integration') return true
+  const depts = socket.data.departments || []
+  if (depts.length === 0) return true
+
+  const device = await payload.findByID({
+    collection: 'devices',
+    id: deviceId,
+    depth: 0,
+    overrideAccess: true,
+  })
+  if (!device) return false
+  const deviceDepts: number[] = (device.departments || []).map((d: any) =>
+    typeof d === 'object' ? d.id : d
+  )
+  return deviceDepts.some((d: number) => depts.includes(d))
 }
 
 async function handleDeviceHeartbeat(
@@ -399,6 +420,42 @@ app.prepare().then(async () => {
         }
       }
 
+      // Integration API key auth
+      const authIntegrationKey = authHeader?.startsWith('integrations API-Key ')
+        ? authHeader.slice('integrations API-Key '.length)
+        : null
+
+      if (authIntegrationKey) {
+        try {
+          const res = await fetch(`${API_URL}/integrations?depth=0&limit=1`, {
+            headers: { Authorization: `integrations API-Key ${authIntegrationKey}` },
+          })
+          if (res.ok) {
+            const data = await res.json()
+            const integration = data.docs?.[0]
+            if (integration) {
+              if (new Date(integration.expiresAt) < new Date()) {
+                next(new Error('Integration API key has expired'))
+                return
+              }
+              const depts = (integration.departments || []).map((d: any) =>
+                typeof d === 'object' ? d.id : d
+              )
+              socket.data = {
+                type: 'integration',
+                id: integration.id,
+                name: integration.name,
+                departments: depts,
+              }
+              next()
+              return
+            }
+          }
+        } catch {
+          // Fall through
+        }
+      }
+
       // Try user JWT cookie auth (admin UI)
       const cookie = socket.handshake.headers.cookie || ''
       if (cookie) {
@@ -507,52 +564,90 @@ app.prepare().then(async () => {
         socket.join(`department:${dep}`)
       }
       if (socket.data.role === 'admin') socket.join('admin')
+    } else if (type === 'integration') {
+      const { departments: depts } = socket.data
+
+      socket.join(`integration:${id}`)
+
+      if (depts && depts.length > 0) {
+        for (const dep of depts) {
+          socket.join(`department:${dep}`)
+        }
+      } else {
+        const payload = getPayload()
+        if (payload) {
+          try {
+            const allDepts = await payload.find({
+              collection: 'departments',
+              depth: 0,
+              pagination: false,
+              overrideAccess: true,
+            })
+            for (const dep of allDepts.docs || []) {
+              socket.join(`department:${dep.id}`)
+            }
+          } catch (err) {
+            console.error('Failed to load departments for global integration:', err)
+          }
+        }
+      }
     }
 
     socket.on('device:heartbeat', async (data: any, callback: any) => {
+      if (type !== 'device') { callback?.({ ok: false }); return }
       await handleDeviceHeartbeat(io, socket, data)
       callback?.({ ok: true })
     })
 
     socket.on('device:slideChange', async (data: any, callback: any) => {
+      if (type !== 'device') { callback?.({ ok: false }); return }
       await handleDeviceSlideChange(io, socket, data)
       callback?.({ ok: true })
     })
 
     socket.on('device:stateChange', async (data: any, callback: any) => {
+      if (type !== 'device') { callback?.({ ok: false }); return }
       await handleDeviceStateChange(io, socket, data)
       callback?.({ ok: true })
     })
 
-    socket.on('remote:advance', (data: any) => {
+    socket.on('remote:advance', async (data: any) => {
+      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
       handleRemoteAdvance(io, socket, data)
     })
 
-    socket.on('remote:previous', (data: any) => {
+    socket.on('remote:previous', async (data: any) => {
+      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
       handleRemotePrevious(io, socket, data)
     })
 
-    socket.on('remote:goto', (data: any) => {
+    socket.on('remote:goto', async (data: any) => {
+      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
       handleRemoteGoto(io, socket, data)
     })
 
-    socket.on('remote:program', (data: any) => {
+    socket.on('remote:program', async (data: any) => {
+      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
       handleRemoteProgram(io, socket, data)
     })
 
-    socket.on('remote:menu', (data: any) => {
+    socket.on('remote:menu', async (data: any) => {
+      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
       handleRemoteMenu(io, socket, data)
     })
 
-    socket.on('remote:back', (data: any) => {
+    socket.on('remote:back', async (data: any) => {
+      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
       handleRemoteBack(io, socket, data)
     })
 
-    socket.on('remote:select', (data: any) => {
+    socket.on('remote:select', async (data: any) => {
+      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
       handleRemoteSelect(io, socket, data)
     })
 
-    socket.on('remote:pause', (data: any) => {
+    socket.on('remote:pause', async (data: any) => {
+      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
       handleRemotePause(io, socket, data)
     })
 

@@ -1,0 +1,773 @@
+openapi: 3.0.3
+info:
+  title: PeydX External Integration API
+  description: |
+    REST API for third-party systems (e.g. Home Assistant) to control PeydX
+    digital signage devices remotely.
+  version: 1.0.0
+  contact:
+    name: PeydX
+servers:
+  - url: '{host}/api'
+    variables:
+      host:
+        default: localhost:3000
+        description: PeydX server hostname
+security:
+  - integrationsApiKey: []
+
+paths:
+  /external/v1/devices:
+    get:
+      summary: List all devices
+      description: |
+        Returns all devices accessible to this API key along with real-time
+        status, current program info, and thumbnail URL.
+      operationId: listDevices
+      tags: [Devices]
+      responses:
+        '200':
+          description: Device list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceList'
+              example:
+                devices:
+                  - id: 1
+                    name: Sanctuary Left Screen
+                    deviceType: hardware
+                    status: online
+                    state: playing
+                    currentSlideIndex: 3
+                    departments:
+                      - id: 1
+                        name: Worship
+                    lastHeartbeat: '2026-06-13T10:30:00.000Z'
+                    currentProgram:
+                      id: 5
+                      title: Sunday Morning Worship
+                    totalSlides: 12
+                    currentSlideThumbnail: '/api/media/file/thumbnail_abc123.jpg'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /external/v1/devices/{id}:
+    get:
+      summary: Get device detail
+      description: Returns a single device with full current program data.
+      operationId: getDevice
+      tags: [Devices]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Device ID
+      responses:
+        '200':
+          description: Device detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /external/v1/devices/{id}/program:
+    post:
+      summary: Load program on device
+      description: Sends a program to the target device to start playing.
+      operationId: loadProgram
+      tags: [Device Control]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Device ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [programId]
+              properties:
+                programId:
+                  type: integer
+                  description: ID of the program to load
+            example:
+              programId: 5
+      responses:
+        '200':
+          description: Program sent to device
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+              example:
+                success: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /external/v1/devices/{id}/advance:
+    post:
+      summary: Next slide
+      description: Advance to the next slide on the device.
+      operationId: advanceSlide
+      tags: [Device Control]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Command sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /external/v1/devices/{id}/previous:
+    post:
+      summary: Previous slide
+      description: Go back to the previous slide on the device.
+      operationId: previousSlide
+      tags: [Device Control]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Command sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /external/v1/devices/{id}/goto:
+    post:
+      summary: Go to slide index
+      description: Jump to a specific slide index on the device.
+      operationId: gotoSlide
+      tags: [Device Control]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slideIndex]
+              properties:
+                slideIndex:
+                  type: integer
+                  minimum: 0
+                  description: Zero-based slide index
+            example:
+              slideIndex: 3
+      responses:
+        '200':
+          description: Command sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /external/v1/devices/{id}/pause:
+    post:
+      summary: Pause playback
+      description: Toggle pause/resume on the device.
+      operationId: pauseDevice
+      tags: [Device Control]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Command sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /external/v1/devices/{id}/back:
+    post:
+      summary: Exit program / return to idle
+      description: Send the device back to the menu or idle state.
+      operationId: backDevice
+      tags: [Device Control]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Command sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /external/v1/programs:
+    get:
+      summary: List programs
+      description: Returns programs accessible to this API key.
+      operationId: listPrograms
+      tags: [Programs]
+      responses:
+        '200':
+          description: Program list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /external/v1/programs/{id}:
+    get:
+      summary: Get program detail
+      description: Returns a single program with all slides populated.
+      operationId: getProgram
+      tags: [Programs]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Program detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /external/v1/schedules:
+    get:
+      summary: List active schedules
+      description: |
+        Returns schedules accessible to this API key, filtered to currently
+        active ones (matching day of week and date range). Use `?from` and
+        `?to` query params to adjust the time window.
+      operationId: listSchedules
+      tags: [Schedules]
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Start of time window (default 1 hour ago)
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: End of time window (default 24 hours from now)
+      responses:
+        '200':
+          description: Active schedule list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /external/v1/docs:
+    get:
+      summary: OpenAPI specification
+      description: Returns the full OpenAPI 3.0 spec for this API as YAML text. No authentication required.
+      operationId: getOpenApiSpec
+      tags: [Documentation]
+      security: []
+      responses:
+        '200':
+          description: OpenAPI YAML specification
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  spec:
+                    type: string
+                    description: Raw YAML content of the spec
+        '404':
+          description: Spec file not found
+
+  /external/v1/ws-docs:
+    get:
+      summary: AsyncAPI specification
+      description: Returns the AsyncAPI spec for WebSocket events as YAML text. No authentication required.
+      operationId: getAsyncApiSpec
+      tags: [Documentation]
+      security: []
+      responses:
+        '200':
+          description: AsyncAPI YAML specification
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  spec:
+                    type: string
+                    description: Raw YAML content of the spec
+        '404':
+          description: Spec file not found
+
+components:
+  securitySchemes:
+    integrationsApiKey:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: 'Format: "integrations API-Key {key}"'
+
+  schemas:
+    Device:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        deviceType:
+          type: string
+          enum: [hardware, browser]
+        status:
+          type: string
+          enum: [online, offline, stale]
+        state:
+          type: string
+          enum: [idle, menu, playing]
+        currentSlideIndex:
+          type: integer
+        departments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+        lastHeartbeat:
+          type: string
+          format: date-time
+          nullable: true
+        controllingDevice:
+          type: integer
+          nullable: true
+        currentProgram:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/Program'
+            - type: object
+              properties:
+                id:
+                  type: integer
+                title:
+                  type: string
+        totalSlides:
+          type: integer
+        currentSlideThumbnail:
+          type: string
+          nullable: true
+
+    DeviceList:
+      type: object
+      properties:
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+
+    Program:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        slides:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slide'
+        folder:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        loop:
+          type: boolean
+        autoBlackEndSlide:
+          type: boolean
+        availableFrom:
+          type: string
+          format: date
+          nullable: true
+        availableUntil:
+          type: string
+          format: date
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProgramList:
+      type: object
+      properties:
+        programs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Program'
+
+    Schedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        program:
+          $ref: '#/components/schemas/Program'
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+        daysOfWeek:
+          type: array
+          items:
+            type: string
+            enum: [mon, tue, wed, thu, fri, sat, sun]
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        startDate:
+          type: string
+          format: date
+          nullable: true
+        untilDate:
+          type: string
+          format: date
+          nullable: true
+        department:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ScheduleList:
+      type: object
+      properties:
+        schedules:
+          type: array
+          items:
+            $ref: '#/components/schemas/Schedule'
+
+    Slide:
+      description: Polymorphic slide type
+      oneOf:
+        - $ref: '#/components/schemas/ImageSlide'
+        - $ref: '#/components/schemas/VideoSlide'
+        - $ref: '#/components/schemas/YoutubeSlide'
+        - $ref: '#/components/schemas/AudioSlide'
+        - $ref: '#/components/schemas/BlackScreenSlide'
+        - $ref: '#/components/schemas/SegmentBlock'
+      discriminator:
+        propertyName: blockType
+
+    ImageSlide:
+      type: object
+      properties:
+        id:
+          type: string
+        blockType:
+          type: string
+          enum: [imageBlock]
+        image:
+          $ref: '#/components/schemas/MediaUpload'
+        advanceMode:
+          type: string
+          enum: [timed, manual]
+        transition:
+          type: string
+          enum: [fade, cut, slide]
+        duration:
+          type: number
+
+    VideoSlide:
+      type: object
+      properties:
+        id:
+          type: string
+        blockType:
+          type: string
+          enum: [videoBlock]
+        video:
+          $ref: '#/components/schemas/MediaUpload'
+        advanceMode:
+          type: string
+          enum: [timed, manual, onEnd]
+        transition:
+          type: string
+          enum: [fade, cut, slide]
+        duration:
+          type: number
+        loop:
+          type: boolean
+
+    YoutubeSlide:
+      type: object
+      properties:
+        id:
+          type: string
+        blockType:
+          type: string
+          enum: [youtubeBlock]
+        youtubeId:
+          type: string
+        videoTitle:
+          type: string
+        advanceMode:
+          type: string
+          enum: [timed, manual, onEnd]
+        transition:
+          type: string
+          enum: [fade, cut, slide]
+        duration:
+          type: number
+        loop:
+          type: boolean
+
+    AudioSlide:
+      type: object
+      properties:
+        id:
+          type: string
+        blockType:
+          type: string
+          enum: [audioBlock]
+        audio:
+          $ref: '#/components/schemas/MediaUpload'
+        advanceMode:
+          type: string
+          enum: [timed, manual, onEnd]
+        transition:
+          type: string
+          enum: [fade, cut, slide]
+        duration:
+          type: number
+        loop:
+          type: boolean
+
+    BlackScreenSlide:
+      type: object
+      properties:
+        id:
+          type: string
+        blockType:
+          type: string
+          enum: [blackScreenBlock]
+        advanceMode:
+          type: string
+          enum: [timed, manual]
+        transition:
+          type: string
+          enum: [fade, cut, slide]
+        duration:
+          type: number
+
+    SegmentBlock:
+      type: object
+      properties:
+        id:
+          type: string
+        blockType:
+          type: string
+          enum: [segmentBlock]
+        name:
+          type: string
+        slides:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slide'
+        backgroundAudio:
+          $ref: '#/components/schemas/MediaUpload'
+        loop:
+          type: boolean
+        advanceMode:
+          type: string
+          enum: [slides, timed, manual]
+        duration:
+          type: number
+
+    MediaUpload:
+      type: object
+      properties:
+        id:
+          type: integer
+        filename:
+          type: string
+        url:
+          type: string
+        sizes:
+          type: object
+          properties:
+            thumbnail:
+              type: object
+              properties:
+                url:
+                  type: string
+            card:
+              type: object
+              properties:
+                url:
+                  type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        expiredAt:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Invalid request body
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: API key expired or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: API key has expired
+            expiredAt: '2025-12-31T23:59:59.000Z'
+    Forbidden:
+      description: Wrong auth type or department not permitted
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Device not found or not accessible with this API key
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Device not found
