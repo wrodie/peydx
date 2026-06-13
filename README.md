@@ -93,6 +93,14 @@ The hardware player can be deployed in two ways:
 
 See [DEPLOY_CLIENT.md](./DEPLOY_CLIENT.md) for complete setup instructions.
 
+## Where does the name come from?
+From the Greek Paideuo (παιδεύω). The hard, action-oriented root is παιδευ- / παιδχ- (pronounced "payd-ex" or "paid-ick").
+In the New Testament, this means to train up a child, to guide their development, or to instruct the youth.
+Subtly massaged becomes *peydx* (Pronounced PAYED-X).
+
+> [!WARNING]
+> While I have worked through this project to design and build it properly, the vast majority of this code is written by AI agents under my guidance.  Take from that what you will.
+
 ## Further Reading
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — System architecture, data flow, and component diagrams

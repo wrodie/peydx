@@ -99,7 +99,7 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
-    settings: Settings;
+    settings: Setting;
   };
   globalsSelect: {
     settings: SettingsSelect<false> | SettingsSelect<true>;
@@ -227,16 +227,6 @@ export interface Department {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "settings".
- */
-export interface Settings {
-  id: number;
-  clientVersion: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "programs".
  */
 export interface Program {
@@ -289,6 +279,7 @@ export interface Program {
              * Paste a YouTube link (e.g. youtube.com/watch?v=...) or just the video ID.
              */
             youtubeId: string;
+            videoTitle?: string | null;
             transition?: ('fade' | 'cut' | 'slide') | null;
             /**
              * How should the player move to the next slide?
@@ -409,6 +400,7 @@ export interface Program {
                        * Paste a YouTube link (e.g. youtube.com/watch?v=...) or just the video ID.
                        */
                       youtubeId: string;
+                      videoTitle?: string | null;
                       transition?: ('fade' | 'cut' | 'slide') | null;
                       /**
                        * How should the player move to the next slide?
@@ -746,15 +738,6 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "settings_select".
- */
-export interface SettingsSelect<T extends boolean = true> {
-  clientVersion?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "programs_select".
  */
 export interface ProgramsSelect<T extends boolean = true> {
@@ -790,6 +773,7 @@ export interface ProgramsSelect<T extends boolean = true> {
           | T
           | {
               youtubeId?: T;
+              videoTitle?: T;
               transition?: T;
               advanceMode?: T;
               duration?: T;
@@ -858,6 +842,7 @@ export interface ProgramsSelect<T extends boolean = true> {
                       | T
                       | {
                           youtubeId?: T;
+                          videoTitle?: T;
                           transition?: T;
                           advanceMode?: T;
                           duration?: T;
@@ -1029,6 +1014,26 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "settings".
+ */
+export interface Setting {
+  id: number;
+  clientVersion: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "settings_select".
+ */
+export interface SettingsSelect<T extends boolean = true> {
+  clientVersion?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
