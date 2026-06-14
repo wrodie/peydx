@@ -2,8 +2,12 @@
 
 # dependencies
 /node_modules
+node_modules/
 /.pnp
 .pnp.js
+
+# vitest cache
+**/node_modules/.vite/
 
 # testing
 /coverage
