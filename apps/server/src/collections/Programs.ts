@@ -181,15 +181,19 @@ export const Programs: CollectionConfig = {
 
         // Department fallback if no specific devices
         if (deviceIds.size === 0) {
-          const program = await req.payload.findByID({
-            collection: 'programs',
-            id: doc.id,
-            depth: 1,
-          })
-          const deptId = (program as any)?.folder?.department
-          if (deptId) {
-            const deptIdNum = typeof deptId === 'object' ? deptId.id : deptId
-            io.to(`department:${deptIdNum}`).emit('schedule:update', {} as any)
+          try {
+            const program = await req.payload.findByID({
+              collection: 'programs',
+              id: doc.id,
+              depth: 1,
+            })
+            const deptId = (program as any)?.folder?.department
+            if (deptId) {
+              const deptIdNum = typeof deptId === 'object' ? deptId.id : deptId
+              io.to(`department:${deptIdNum}`).emit('schedule:update', {} as any)
+            }
+          } catch {
+            // Program not yet visible in this transaction — skip department fallback
           }
         }
       },
