@@ -4,6 +4,15 @@ import { usePathname } from 'next/navigation'
 import { useAuth, useConfig } from '@payloadcms/ui'
 import { useEffect, useRef, useState } from 'react'
 
+function HomeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  )
+}
+
 function MediaIcon() {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -92,11 +101,12 @@ export function TopNavHeader() {
 
   const isActive = (href: string) => {
     if (pathname === href) return true
-    if (pathname.startsWith(href + '/')) return true
+    if (href !== adminRoute && pathname.startsWith(href + '/')) return true
     return false
   }
 
   const mainLinks = [
+    { slug: 'home', label: 'Home', icon: HomeIcon, href: `${adminRoute}` },
     { slug: 'media', label: 'Media', icon: MediaIcon, href: `${adminRoute}/collections/media` },
     { slug: 'programs', label: 'Programs', icon: ProgramsIcon, href: `${adminRoute}/collections/programs` },
     { slug: 'schedule', label: 'Schedules', icon: SchedulesIcon, href: `${adminRoute}/collections/schedule` },

@@ -57,6 +57,18 @@ export function RemoteControlView() {
   }, [])
 
   useEffect(() => {
+    if (devices.length === 0) return
+    const params = new URLSearchParams(window.location.search)
+    const deviceId = params.get('device')
+    if (deviceId) {
+      const device = devices.find((d) => String(d.id) === deviceId)
+      if (device) {
+        setSelectedDeviceId(deviceId)
+      }
+    }
+  }, [devices])
+
+  useEffect(() => {
     const socket = io(window.location.origin, { path: '/api/ws' }) as Socket<
       ServerToClientEvents,
       ClientToServerEvents

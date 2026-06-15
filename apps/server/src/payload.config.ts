@@ -19,6 +19,7 @@ import { heartbeat } from './endpoints/heartbeat'
 import { pushUpdate } from './endpoints/pushUpdate'
 import { serverStatus } from './endpoints/serverStatus'
 import { youtubeInfo } from './endpoints/youtubeInfo'
+import { timezone } from './endpoints/timezone'
 import { externalApiEndpoints } from './endpoints/integrations'
 
 const filename = fileURLToPath(import.meta.url)
@@ -28,9 +29,17 @@ export default buildConfig({
   secret: process.env.PAYLOAD_SECRET || '',
   admin: {
     user: Users.slug,
+    timezones: {
+      defaultTimezone: process.env.TIMEZONE || 'UTC',
+    },
     components: {
       Nav: '/components/HiddenSidebar#HiddenSidebar',
       header: ['/components/TopNavHeader#TopNavHeader'],
+      views: {
+        dashboard: {
+          Component: '/components/DashboardView#DashboardView',
+        },
+      },
     },
     importMap: {
       baseDir: path.resolve(dirname),
@@ -50,7 +59,7 @@ export default buildConfig({
     Integrations,
   ],
   globals: [ConfigGlobal],
-  endpoints: [deploy, heartbeat, pushUpdate, serverStatus, youtubeInfo, ...externalApiEndpoints],
+  endpoints: [deploy, heartbeat, pushUpdate, serverStatus, youtubeInfo, timezone, ...externalApiEndpoints],
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {
