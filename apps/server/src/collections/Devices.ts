@@ -10,6 +10,28 @@ export const Devices: CollectionConfig = {
   auth: {
     useAPIKey: true,
     disableLocalStrategy: true,
+    strategies: [
+      {
+        name: 'browser-token',
+        authenticate: async ({ headers, payload }) => {
+          const token = headers.get('x-browser-token')
+          if (!token) return { user: null }
+          try {
+            const device = await payload.find({
+              collection: 'devices',
+              where: { browserToken: { equals: token } },
+              depth: 0,
+              limit: 1,
+              overrideAccess: true,
+            })
+            if (device.docs?.[0]?.deviceType === 'browser') {
+              return { user: { ...device.docs[0], collection: 'devices' } }
+            }
+          } catch {}
+          return { user: null }
+        },
+      },
+    ],
   },
   hooks: {
     beforeChange: [

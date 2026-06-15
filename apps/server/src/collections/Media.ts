@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { cleanupMediaReferences } from '../hooks/cleanupMediaReferences'
+import { verifyMediaToken } from '../utilities/mediaToken'
 import { getIO } from '../websocket/io'
 import path from 'path'
 import fs from 'fs'
@@ -251,9 +252,37 @@ export const Media: CollectionConfig = {
     ],
   },
   access: {
-    read: ({ req: { user: u } }) => {
+    read: async ({ req: { user: u, query, payload }, data }) => {
       const user = u as any
-      if (!user) return false;
+      if (!user) {
+        if ((query as any)?.mediaToken) {
+          if (
+            data?.filename &&
+            verifyMediaToken((query as any).mediaToken, data.filename, payload.config.secret)
+          ) {
+            return true
+          }
+          return false
+        }
+        if ((query as any)?.token) {
+          try {
+            const device = await payload.find({
+              collection: 'devices',
+              where: { browserToken: { equals: (query as any).token } },
+              depth: 0,
+              limit: 1,
+              overrideAccess: true,
+            })
+            if (device.docs?.[0]?.deviceType === 'browser') {
+              const deptIds = (device.docs[0].departments || []).map((d: any) =>
+                typeof d === 'object' ? d.id : d,
+              )
+              return { 'folder.department': { in: deptIds } }
+            }
+          } catch {}
+        }
+        return false
+      }
       if (user.collection === 'devices') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
         return { 'folder.department': { in: deptIds } }

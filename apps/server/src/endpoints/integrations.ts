@@ -5,6 +5,7 @@ import { flattenProgram } from 'signage-core/flatten'
 import { getIO } from '../websocket/io'
 import { deviceStateStore, getDeviceState } from '../websocket/deviceState'
 import { DAY_NAMES } from '../collections/schedule-utils'
+import { generateMediaToken } from '../utilities/mediaToken'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -65,6 +66,24 @@ function computeSlideThumbnail(slide: any): string | null {
     default:
       return null
   }
+}
+
+function tokenizeMedia(obj: any, secret: string): any {
+  if (!obj || typeof obj !== 'object') return obj
+  if (Array.isArray(obj)) return obj.map((item) => tokenizeMedia(item, secret))
+  const result: any = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === 'string' && value.startsWith('/api/media/file/')) {
+      const filename = value.replace('/api/media/file/', '').split('?')[0]
+      const token = generateMediaToken(filename, secret)
+      result[key] = `${value}${value.includes('?') ? '&' : '?'}mediaToken=${token}`
+    } else if (typeof value === 'object') {
+      result[key] = tokenizeMedia(value, secret)
+    } else {
+      result[key] = value
+    }
+  }
+  return result
 }
 
 export const externalApiEndpoints = [
@@ -209,7 +228,7 @@ export const externalApiEndpoints = [
         result.totalSlides = 0
       }
 
-      return Response.json(result)
+      return Response.json(tokenizeMedia(result, req.payload.config.secret))
     },
   },
 
@@ -516,7 +535,7 @@ export const externalApiEndpoints = [
         }
       }
 
-      return Response.json(program)
+      return Response.json(tokenizeMedia(program, req.payload.config.secret))
     },
   },
 
@@ -565,7 +584,7 @@ export const externalApiEndpoints = [
         return true
       })
 
-      return Response.json({ schedules: activeSchedules })
+      return Response.json(tokenizeMedia({ schedules: activeSchedules }, req.payload.config.secret))
     },
   },
 

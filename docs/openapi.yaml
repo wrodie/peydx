@@ -57,7 +57,10 @@ paths:
   /external/v1/devices/{id}:
     get:
       summary: Get device detail
-      description: Returns a single device with full current program data.
+      description: |
+        Returns a single device with full current program data. Media URLs
+        in the response include a short-lived `?mediaToken=` query parameter
+        for authenticated file access (valid for 1 hour).
       operationId: getDevice
       tags: [Devices]
       parameters:
@@ -310,7 +313,10 @@ paths:
   /external/v1/programs/{id}:
     get:
       summary: Get program detail
-      description: Returns a single program with all slides populated.
+      description: |
+        Returns a single program with all slides populated. Media URLs
+        in the response include a short-lived `?mediaToken=` query parameter
+        for authenticated file access (valid for 1 hour).
       operationId: getProgram
       tags: [Programs]
       parameters:
@@ -339,7 +345,9 @@ paths:
       description: |
         Returns schedules accessible to this API key, filtered to currently
         active ones (matching day of week and date range). Use `?from` and
-        `?to` query params to adjust the time window.
+        `?to` query params to adjust the time window. Media URLs in nested
+        program data include a short-lived `?mediaToken=` query parameter
+        for authenticated file access (valid for 1 hour).
       operationId: listSchedules
       tags: [Schedules]
       parameters:
@@ -467,6 +475,9 @@ components:
         currentSlideThumbnail:
           type: string
           nullable: true
+          description: |
+            URL to a thumbnail of the currently playing slide. Includes a
+            `?mediaToken=` query parameter for authenticated access.
 
     DeviceList:
       type: object
@@ -716,6 +727,10 @@ components:
           type: string
         url:
           type: string
+          description: |
+            Media file URL. May include a `?mediaToken=` query parameter for
+            short-lived authenticated access (valid for 1 hour). The token is
+            pre-authorized — no additional `Authorization` header is needed.
         sizes:
           type: object
           properties:
