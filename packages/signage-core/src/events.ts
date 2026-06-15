@@ -15,6 +15,7 @@ export interface ClientToServerEvents {
 
 // Server → Client events (to devices and admin UI)
 export interface ServerToClientEvents {
+  'request:state': () => void
   'schedule:update': (data: {}) => void
   'remote:advance': () => void
   'remote:previous': () => void

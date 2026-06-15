@@ -35,6 +35,7 @@ export function App() {
   const [keyConfig, setKeyConfig] = useState<Partial<KeyConfig> | undefined>(undefined)
   const socketRef = useRef<TypedSocket | null>(null)
   const [provider] = useState(() => createProvider())
+  const lastStateRef = useRef<{ state: PlayerState; programId?: number; menuIndex?: number } | null>(null)
 
   const loadSchedule = useCallback(async () => {
     if (!provider) return
@@ -58,6 +59,7 @@ export function App() {
 
   const handleStateChange = useCallback(
     (state: PlayerState, programId?: number, menuIndex?: number) => {
+      lastStateRef.current = { state, programId, menuIndex }
       socketRef.current?.emit('device:stateChange', { state, programId, menuIndex })
     },
     [],
@@ -79,6 +81,13 @@ export function App() {
 
     socket.on('schedule:update', () => {
       loadSchedule()
+    })
+
+    socket.on('request:state', () => {
+      const last = lastStateRef.current
+      if (last) {
+        socketRef.current?.emit('device:stateChange', { state: last.state, programId: last.programId, menuIndex: last.menuIndex })
+      }
     })
 
     return () => {

@@ -413,6 +413,8 @@ async function sync() {
       } catch (err) {
         console.error('Heartbeat failed:', err.message);
       }
+    } else {
+      cmsSocket.emit('device:heartbeat', { programId: activeProgramId, slideIndex: currentSlideIndex });
     }
 
     // Notify local player if schedule actually changed
@@ -548,6 +550,7 @@ localIO = new SocketIOServer(httpServer, {
 localIO.on('connection', (localPlayerSocket) => {
   console.log('Local player connected via WebSocket');
   localPlayerSocket.emit('schedule:update');
+  localPlayerSocket.emit('request:state');
 
   localPlayerSocket.on('device:slideChange', (data) => {
     currentSlideIndex = data.slideIndex;

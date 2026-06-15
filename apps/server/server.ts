@@ -84,15 +84,16 @@ async function handleDeviceHeartbeat(
   const payload = getPayload()
   if (!payload) return
   try {
+    const heartbeatUpdateData: Record<string, any> = {
+      lastHeartbeat: new Date().toISOString(),
+      currentSlideIndex: data.slideIndex,
+      status: 'online',
+    }
+    if (data.programId != null) heartbeatUpdateData.currentProgram = data.programId
     await payload.update({
       collection: 'devices',
       id: device.id,
-      data: {
-        lastHeartbeat: new Date().toISOString(),
-        currentProgram: data.programId ?? null,
-        currentSlideIndex: data.slideIndex,
-        status: 'online',
-      },
+      data: heartbeatUpdateData,
       overrideAccess: true,
     })
 
@@ -263,15 +264,20 @@ async function handleDeviceStateChange(
   if (!payload) return
   deviceStateStore.set(device.id, { state: data.state, programId: data.programId ?? null, slideIndex: data.menuIndex ?? 0 })
   try {
+    const stateChangeUpdateData: Record<string, any> = {
+      lastHeartbeat: new Date().toISOString(),
+      currentSlideIndex: data.menuIndex ?? 0,
+      status: 'online',
+    }
+    if (data.programId != null) {
+      stateChangeUpdateData.currentProgram = data.programId
+    } else if (data.state && data.state !== 'playing') {
+      stateChangeUpdateData.currentProgram = null
+    }
     await payload.update({
       collection: 'devices',
       id: device.id,
-      data: {
-        lastHeartbeat: new Date().toISOString(),
-        currentProgram: data.programId ?? null,
-        currentSlideIndex: data.menuIndex ?? 0,
-        status: 'online',
-      },
+      data: stateChangeUpdateData,
       overrideAccess: true,
     })
 
@@ -529,6 +535,9 @@ app.prepare().then(async () => {
         programId: null,
         status: 'online',
       })
+
+      // Ask device to report its current state
+      io.to(`device:${id}`).emit('request:state')
 
       socket.on('disconnect', async () => {
         const payload = getPayload()

@@ -13,15 +13,16 @@ export const heartbeat = {
       // body is optional
     }
 
+    const heartbeatData: Record<string, any> = {
+      lastHeartbeat: new Date().toISOString(),
+      currentSlideIndex: typeof body.slideIndex === 'number' ? body.slideIndex : req.user.currentSlideIndex ?? undefined,
+      status: 'online',
+    }
+    if (typeof body.programId === 'number') heartbeatData.currentProgram = body.programId
     await req.payload.update({
       collection: 'devices',
       id: req.user.id,
-      data: {
-        lastHeartbeat: new Date().toISOString(),
-        currentProgram: typeof body.programId === 'number' ? body.programId : null,
-        currentSlideIndex: typeof body.slideIndex === 'number' ? body.slideIndex : req.user.currentSlideIndex ?? undefined,
-        status: 'online',
-      },
+      data: heartbeatData,
     })
 
     return Response.json({ ok: true })

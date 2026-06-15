@@ -46,12 +46,6 @@ function getDayLabel(dayBits: number): string[] {
   return result
 }
 
-function fetchWithTimeout(url: string, ms = 10000): Promise<Response> {
-  const controller = new AbortController()
-  const id = setTimeout(() => controller.abort(), ms)
-  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(id))
-}
-
 function getDateInTimezone(iso: string, tz: string): Date {
   const fmt = new Intl.DateTimeFormat('en', {
     timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit'
@@ -71,7 +65,6 @@ export function DashboardView() {
   const [schedules, setSchedules] = useState<any[]>([])
   const [devices, setDevices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [tz, setTz] = useState('UTC')
 
   useEffect(() => {
     let cancelled = false
@@ -93,19 +86,30 @@ export function DashboardView() {
       ? '/api/devices?depth=2&limit=100'
       : `/api/devices?depth=2&limit=100&where[departments][in]=${deptIds.join(',')}`
 
+    const cacheKey = 'peydx_tz'
+    let tzPromise: Promise<{ timezone: string }>
+    const cached = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(cacheKey) : null
+    if (cached) {
+      tzPromise = Promise.resolve({ timezone: cached })
+    } else {
+      tzPromise = fetch('/api/timezone')
+        .then((r) => r.json())
+        .then((data) => {
+          if (typeof sessionStorage !== 'undefined' && data.timezone) sessionStorage.setItem(cacheKey, data.timezone)
+          return data
+        })
+    }
+
     ;(async () => {
       try {
-        const tzRes = await fetchWithTimeout('/api/timezone')
-        const tzData = await tzRes.json()
-        const serverTz = tzData.timezone || 'UTC'
-        if (!cancelled) setTz(serverTz)
-        if (cancelled) return
-
-        const [progData, schedData, devData] = await Promise.all([
+        const [tzRes, progData, schedData, devData] = await Promise.all([
+          tzPromise,
           fetch(programQuery).then((r) => r.json()),
           fetch(scheduleQuery).then((r) => r.json()),
           fetch(deviceQuery).then((r) => r.json()),
         ])
+        const serverTz = tzRes.timezone || 'UTC'
+        if (cancelled) return
 
         const now = new Date()
         const todayLocal = getDateInTimezone(now.toISOString(), serverTz)
@@ -135,10 +139,14 @@ export function DashboardView() {
           }
         }
 
+        const progMap = new Map(
+          (progData.docs || []).map((p: any) => [String(p.id), p.title])
+        )
+
         const stateResults = await Promise.all(
           (devData.docs || []).map(async (d: any) => {
             try {
-              const r = await fetchWithTimeout(`/api/device-state/${d.id}`)
+              const r = await fetch(`/api/device-state/${d.id}`)
               return r.ok ? await r.json() : null
             } catch { return null }
           })
@@ -155,12 +163,16 @@ export function DashboardView() {
               programId = typeof d.currentProgram === 'object' ? d.currentProgram.id : d.currentProgram
             }
 
-            let currentProgramTitle: string | null = null
-            if (programId) {
+            let currentProgramTitle: string | null = (progMap.get(String(programId)) as string) || null
+
+            if (programId && !currentProgramTitle) {
               try {
                 const r = await fetch(`/api/programs/${programId}?depth=0`)
                 if (r.ok) currentProgramTitle = (await r.json()).title || null
-              } catch {}
+                if (!currentProgramTitle) console.warn(`DashboardView: program ${programId} title not found (device ${d.id})`)
+              } catch (e) {
+                console.warn(`DashboardView: fetch failed for program ${programId} (device ${d.id})`, e)
+              }
             }
 
             return { ...d, currentProgram: programId, currentProgramTitle }
