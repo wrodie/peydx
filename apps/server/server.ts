@@ -38,7 +38,7 @@ async function verifyDeviceApiKey(apiKey: string): Promise<{ id: number; departm
 
 async function verifyBrowserToken(token: string): Promise<{ id: number; departments: string[]; controllingDevice: number | null } | null> {
   try {
-    const res = await fetch(`${API_URL}/devices?where[browserToken][equals]=${token}&depth=0&limit=1`)
+    const res = await fetch(`${API_URL}/devices?where[browserToken][equals]=${encodeURIComponent(token)}&depth=0&limit=1`)
     if (!res.ok) return null
     const data = await res.json()
     const device = data.docs?.[0]

@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     restart: always
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -26,7 +26,7 @@ services:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN:-}
       SERVER_MANAGER_URL: ${SERVER_MANAGER_URL:-http://host.docker.internal:5556}
-      SERVER_MANAGER_TOKEN: ${SERVER_MANAGER_TOKEN:-}
+      SERVER_MANAGER_TOKEN: ${SERVER_MANAGER_TOKEN}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -41,6 +41,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "5050:5050"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/certbot/conf:/etc/letsencrypt
@@ -51,8 +52,6 @@ services:
   registry:
     image: registry:2
     restart: always
-    ports:
-      - "5050:5000"
     volumes:
       - registry_data:/var/lib/registry
 

@@ -131,12 +131,33 @@ cloudflared tunnel route dns peydx cms.yourchurch.org
 sudo cloudflared service install
 ```
 
-7. Update Nginx configuration. Since Cloudflare handles TLS termination, edit `nginx/conf.d/default.conf` to listen only on port 80 (remove the HTTPS server block):
+7. Update Nginx configuration. Since Cloudflare handles TLS termination, edit `nginx/conf.d/default.conf` to listen only on port 80 (remove the HTTPS server block). Also add rate limiting and the registry proxy:
 
 ```nginx
+limit_req_zone $binary_remote_addr zone=api:10m rate=30r/m;
+limit_req_zone $binary_remote_addr zone=strict:10m rate=10r/m;
+
 server {
     listen 80;
     server_name cms.yourchurch.org;
+
+    location /api/youtube-info {
+        limit_req zone=strict burst=5 nodelay;
+        proxy_pass http://payload-cms:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/timezone {
+        limit_req zone=strict burst=5 nodelay;
+        proxy_pass http://payload-cms:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 
     location /api/ws {
         proxy_pass http://payload-cms:3000;
@@ -150,6 +171,15 @@ server {
         proxy_read_timeout 86400;
     }
 
+    location /api/ {
+        limit_req zone=api burst=20 nodelay;
+        proxy_pass http://payload-cms:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location / {
         proxy_pass http://payload-cms:3000;
         proxy_set_header Host $host;
@@ -157,6 +187,24 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 86400;
+    }
+}
+
+server {
+    listen 5050;
+    server_name _;
+
+    allow 10.0.0.0/8;
+    allow 172.16.0.0/12;
+    allow 192.168.0.0/16;
+    deny all;
+
+    client_max_body_size 0;
+
+    location / {
+        proxy_pass http://registry:5000;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 }
 ```
@@ -226,14 +274,17 @@ For browser devices, a `browserToken` is auto-generated. The device URL is avail
 
 ## Nginx Configuration
 
-The Nginx reverse proxy handles two critical paths:
+The Nginx reverse proxy handles these paths:
 
-- **`/api/ws`** — WebSocket proxy for real-time communication (device heartbeats, remote control, schedule updates). The `proxy_read_timeout 86400` (24 hours) prevents long-lived WebSocket connections from being dropped.
+- **`/api/youtube-info`** and **`/api/timezone`** — Rate-limited (10 req/min per IP) unauthenticated utility endpoints.
+- **`/api/ws`** — WebSocket proxy for real-time communication (device heartbeats, remote control, schedule updates). The `proxy_read_timeout 86400` (24 hours) prevents long-lived WebSocket connections from being dropped. Not rate-limited.
+- **`/api/`** — Rate-limited (30 req/min per IP) catch-all for REST API requests.
 - **`/`** — Standard HTTP proxy to the Payload CMS application.
+- **Port 5050** — Docker registry proxy restricted to private IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). External internet access is blocked.
 
 ## Docker Registry
 
-The server includes a local Docker registry on port 5050 for distributing sync-agent images to client devices. No authentication is configured since the registry is LAN-only and the source code is open.
+The server includes a local Docker registry for distributing sync-agent images to client devices. The registry is proxied through Nginx on port 5050 with access restricted to private IP ranges only — external internet access is blocked. No authentication is configured since the registry is LAN-only and the source code is open.
 
 The registry is started automatically with `docker compose up -d` and persists images in the `registry_data` volume.
 

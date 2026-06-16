@@ -9,7 +9,6 @@ module.exports = {
       env: {
         API_URL: 'https://cms.yourchurch.org/api',
         DEVICE_API_KEY: '',
-        PLUG_IP: '',
         LOCAL_DIR: './apps/player/public/local-media',
       },
     },

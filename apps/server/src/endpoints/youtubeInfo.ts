@@ -2,6 +2,10 @@ export const youtubeInfo = {
   path: '/youtube-info',
   method: 'post' as const,
   handler: async (req: any) => {
+    if (!req.user) {
+      return Response.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     let body: { videoId?: string } = {}
     try {
       body = await req.clone().json()

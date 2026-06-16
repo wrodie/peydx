@@ -29,7 +29,11 @@ export const Schedule: CollectionConfig = {
       const user = u as any
       if (!user) return false
       if (user.role === 'admin') return true
-      return true
+      if (user.role === 'basic') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { department: { in: deptIds } }
+      }
+      return false
     },
     update: ({ req: { user: u } }) => {
       const user = u as any

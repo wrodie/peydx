@@ -8,7 +8,7 @@ export const Departments: CollectionConfig = {
     hidden: ({ user }) => (user as any)?.role !== 'admin',
   },
   access: {
-    read: () => true,
+    read: ({ req: { user } }) => !!user,
     create: ({ req: { user } }) => (user as any)?.role === 'admin',
     update: ({ req: { user } }) => (user as any)?.role === 'admin',
     delete: ({ req: { user } }) => (user as any)?.role === 'admin',

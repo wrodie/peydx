@@ -11,7 +11,6 @@ const { sanitizeFilename, resolveSlideMedia, buildScheduleJson, writeScheduleAto
 // CONFIGURATION — all from environment variables
 const API_KEY = process.env.DEVICE_API_KEY;
 const API_URL = process.env.API_URL;
-const PLUG_IP = process.env.PLUG_IP;
 const TIMEZONE = process.env.TIMEZONE || 'UTC';
 
 if (!API_KEY) throw new Error('Missing required env: DEVICE_API_KEY');
@@ -228,14 +227,6 @@ async function sync() {
 
     const allActiveItems = [...activeSchedule, ...activeAvailability];
     const requiredFilenames = new Set();
-    let shouldPowerOn = false;
-
-    for (const item of activeSchedule) {
-      const start = new Date(item.startTime);
-      const end = item.endTime ? new Date(item.endTime) : null;
-      if (start <= new Date(now.getTime() + 30 * 60000)) shouldPowerOn = true;
-      if (start <= now && (!end || now < end)) shouldPowerOn = true;
-    }
 
     console.log(ts(`[sync] Fetched: ${activeSchedule.length} schedule(s), ${activeAvailability.length} availability entry(ies)`));
 
@@ -366,11 +357,6 @@ async function sync() {
       console.log(ts(`[sync] Downloading ${downloads.length} file(s)...`));
       await Promise.allSettled(downloads);
       console.log(ts('[sync] All downloads complete'));
-    }
-
-    if (PLUG_IP) {
-      const cmd = shouldPowerOn ? 'on' : 'off';
-      axios.get(`http://${PLUG_IP}/relay?state=${cmd}`).catch(() => {});
     }
 
     // Cleanup stale files

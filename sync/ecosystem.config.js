@@ -20,8 +20,7 @@ module.exports = {
       // ⚠ PLACEHOLDER VALUES below — replace before deploying
       env: {
         API_URL: 'https://cms.yourchurch.org/api',
-        DEVICE_API_KEY: '',
-        PLUG_IP: '192.168.1.50'
+        DEVICE_API_KEY: ''
       }
     }
   ]

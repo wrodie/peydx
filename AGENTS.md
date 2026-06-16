@@ -32,7 +32,6 @@ Docker Compose additionally requires: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POS
 Sync agent requires:
 - `API_URL` — Payload CMS API base URL (e.g. `http://localhost:3000/api`)
 - `DEVICE_API_KEY` — API key generated for the device in CMS
-- `PLUG_IP` (optional) — Smart plug IP for TV power management
 
 ## Auth header format
 Payload v3 uses `Authorization: {collection-slug} API-Key {key}` (e.g. `Authorization: devices API-Key ...`).
