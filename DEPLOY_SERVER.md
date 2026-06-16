@@ -55,9 +55,12 @@ POSTGRES_USER=peydx
 POSTGRES_PASSWORD=your-secure-password
 POSTGRES_DB=peydx
 TIMEZONE=America/New_York
+CORS_ORIGIN=https://cms.yourchurch.org
 ```
 
-Replace the values with your own secure credentials. `TIMEZONE` should be an IANA timezone string (e.g. `America/New_York`, `Europe/London`, `Australia/Sydney`) and is used by the sync agent for schedule evaluation.
+Replace the values with your own secure credentials.
+- `TIMEZONE` should be an IANA timezone string (e.g. `America/New_York`, `Europe/London`, `Australia/Sydney`) and is used by the sync agent for schedule evaluation.
+- `CORS_ORIGIN` is a comma-separated list of allowed origins for WebSocket connections (e.g. `https://cms.yourchurch.org,https://signage.yourchurch.org`). Required in production — if not set, no cross-origin WebSocket connections are allowed.
 
 ### 3. Start the Stack
 

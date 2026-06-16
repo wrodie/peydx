@@ -387,7 +387,9 @@ app.prepare().then(async () => {
   const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     path: '/api/ws',
     cors: {
-      origin: dev ? ['http://localhost:5000', 'http://localhost:5173'] : '*',
+      origin: dev
+        ? ['http://localhost:5000', 'http://localhost:5173']
+        : (process.env.CORS_ORIGIN || '').split(',').filter(Boolean),
       methods: ['GET', 'POST'],
     },
     transports: ['websocket', 'polling'],

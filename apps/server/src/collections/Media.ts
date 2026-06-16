@@ -4,10 +4,10 @@ import { verifyMediaToken } from '../utilities/mediaToken'
 import { getIO } from '../websocket/io'
 import path from 'path'
 import fs from 'fs'
-import { exec } from 'child_process'
+import { execFile } from 'child_process'
 import { promisify } from 'util'
 
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -109,7 +109,7 @@ export const Media: CollectionConfig = {
           const thumbFilename = doc.filename.replace(/\.[^.]+$/, '_thumb.webp')
           const outputPath = path.resolve(process.cwd(), 'media', thumbFilename)
           try {
-            await execAsync(`ffmpeg -ss 2 -i "${inputPath}" -vframes 1 -vf "scale=400:300" "${outputPath}"`)
+            await execFileAsync('ffmpeg', ['-ss', '2', '-i', inputPath, '-vframes', '1', '-vf', 'scale=400:300', outputPath])
           } catch (err) {
             console.error(`Failed to generate video thumbnail for ${doc.filename}:`, err)
           }
@@ -117,8 +117,8 @@ export const Media: CollectionConfig = {
 
         // Extract duration via ffprobe
         try {
-          const { stdout } = await execAsync(
-            `ffprobe -v error -show_entries format=duration -of csv=p=0 "${inputPath}"`,
+          const { stdout } = await execFileAsync(
+            'ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', inputPath],
           )
           const durationSeconds = parseFloat(stdout.trim())
           if (!isNaN(durationSeconds) && durationSeconds > 0) {

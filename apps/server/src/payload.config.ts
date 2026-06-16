@@ -26,7 +26,7 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: process.env.PAYLOAD_SECRET!,
   admin: {
     user: Users.slug,
     timezones: {
@@ -63,7 +63,7 @@ export default buildConfig({
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {
-      connectionString: process.env.DATABASE_URI || '',
+      connectionString: process.env.DATABASE_URI!,
     },
   }),
   sharp,
