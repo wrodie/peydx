@@ -192,7 +192,7 @@ export const AudioBlock: Block = {
       label: 'Loop Media',
       defaultValue: false,
       admin: {
-        description: 'Repeats the audio until the slide transitions.',
+        description: 'Repeats the video until the slide transitions.',
       },
     },
     getSlideMoveControl(),

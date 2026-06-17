@@ -282,6 +282,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
               rel: 0,
               fs: 0,
               playsinline: 1,
+              origin: window.location.origin,
             },
             events: {
               onReady: (event: any) => {

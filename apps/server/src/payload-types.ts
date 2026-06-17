@@ -328,7 +328,7 @@ export interface Program {
             advanceMode: 'timed' | 'manual' | 'onEnd';
             duration?: number | null;
             /**
-             * Repeats the audio until the slide transitions.
+             * Repeats the video until the slide transitions.
              */
             loop?: boolean | null;
             /**
@@ -449,7 +449,7 @@ export interface Program {
                       advanceMode: 'timed' | 'manual' | 'onEnd';
                       duration?: number | null;
                       /**
-                       * Repeats the audio until the slide transitions.
+                       * Repeats the video until the slide transitions.
                        */
                       loop?: boolean | null;
                       /**

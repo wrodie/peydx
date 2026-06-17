@@ -20,6 +20,9 @@ export const Media: CollectionConfig = {
           Component: '/components/ListWithSidebar#ListWithSidebar',
         },
       },
+      beforeListTable: process.env.YOUTUBE_DOWNLOAD_ENABLED === 'true'
+        ? ['/components/ImportYoutubeButton#ImportYoutubeButton']
+        : [],
     },
   },
   upload: {
