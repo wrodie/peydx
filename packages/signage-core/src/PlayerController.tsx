@@ -22,6 +22,7 @@ interface PlayerControllerProps {
   keyConfig?: Partial<KeyConfig>
   onSlideChange?: (index: number) => void
   onStateChange?: (state: PlayerState, programId?: number, menuIndex?: number) => void
+  onPauseChange?: (paused: boolean) => void
 }
 
 const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
@@ -121,7 +122,7 @@ function getNextAutoPlay(scheduleEntries: ScheduleEntry[]): ScheduleEntry | null
 }
 
 export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControllerProps>(
-  ({ scheduleData, keyConfig: userKeyConfig, onSlideChange, onStateChange }, ref) => {
+  ({ scheduleData, keyConfig: userKeyConfig, onSlideChange, onStateChange, onPauseChange }, ref) => {
     const [playerState, setPlayerState] = useState<PlayerState>('idle')
     const [activeProgram, setActiveProgram] = useState<Program | null>(null)
     const [programKey, setProgramKey] = useState(0)
@@ -314,7 +315,8 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
 
       setShowPaused((prev) => !prev)
       pausedRef.current = !pausedRef.current
-    }, [playerState])
+      onPauseChange?.(pausedRef.current)
+    }, [playerState, onPauseChange])
 
     useImperativeHandle(ref, () => ({
       openMenu,

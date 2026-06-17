@@ -65,6 +65,10 @@ export function App() {
     [],
   )
 
+  const handlePauseChange = useCallback((paused: boolean) => {
+    socketRef.current?.emit('device:pauseChange', { paused })
+  }, [])
+
   useRemoteControl(socketRef.current, controllerRef)
 
   // Connect socket and set up event handlers
@@ -144,6 +148,7 @@ export function App() {
       keyConfig={keyConfig}
       onSlideChange={handleSlideChange}
       onStateChange={handleStateChange}
+      onPauseChange={handlePauseChange}
     />
   )
 }

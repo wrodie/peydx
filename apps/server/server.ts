@@ -305,6 +305,33 @@ async function handleDeviceStateChange(
       state: data.state,
       programId: data.programId,
     })
+
+    // Mirror forwarding
+    const controlled = await payload.find({
+      collection: 'devices',
+      depth: 0,
+      where: { controllingDevice: { equals: device.id } },
+      overrideAccess: true,
+    })
+    if (controlled.docs?.length > 0) {
+      if (data.state === 'playing' && data.programId != null) {
+        const program = await payload.findByID({
+          collection: 'programs',
+          id: data.programId,
+          depth: 2,
+        })
+        for (const controlledDevice of controlled.docs) {
+          io.to(`device:${controlledDevice.id}`).emit('remote:program', {
+            program,
+            slideIndex: 0,
+          })
+        }
+      } else {
+        for (const controlledDevice of controlled.docs) {
+          io.to(`device:${controlledDevice.id}`).emit('remote:back')
+        }
+      }
+    }
   } catch (err) {
     console.error('State change handler error:', err)
   }
@@ -340,6 +367,30 @@ function handleRemotePause(
   data: { id: number }
 ) {
   io.to(`device:${data.id}`).emit('remote:pause')
+}
+
+async function handleDevicePauseChange(
+  io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
+  socket: any,
+  data: { paused: boolean }
+) {
+  const device = socket.data
+  const payload = getPayload()
+  if (!payload) return
+
+  const existing = deviceStateStore.get(device.id) ?? { state: 'playing', programId: null, slideIndex: 0 }
+  deviceStateStore.set(device.id, { ...existing, paused: data.paused })
+
+  // Mirror forwarding
+  const controlled = await payload.find({
+    collection: 'devices',
+    depth: 0,
+    where: { controllingDevice: { equals: device.id } },
+    overrideAccess: true,
+  })
+  for (const controlledDevice of controlled.docs || []) {
+    io.to(`device:${controlledDevice.id}`).emit('remote:pause')
+  }
 }
 
 app.prepare().then(async () => {
@@ -619,6 +670,12 @@ app.prepare().then(async () => {
     socket.on('device:stateChange', async (data: any, callback: any) => {
       if (type !== 'device') { callback?.({ ok: false }); return }
       await handleDeviceStateChange(io, socket, data)
+      callback?.({ ok: true })
+    })
+
+    socket.on('device:pauseChange', async (data: any, callback: any) => {
+      if (type !== 'device') { callback?.({ ok: false }); return }
+      await handleDevicePauseChange(io, socket, data)
       callback?.({ ok: true })
     })
 

@@ -555,6 +555,12 @@ localIO.on('connection', (localPlayerSocket) => {
       cmsSocket.emit('device:stateChange', data);
     }
   });
+
+  localPlayerSocket.on('device:pauseChange', (data) => {
+    if (cmsSocket?.connected) {
+      cmsSocket.emit('device:pauseChange', data);
+    }
+  });
 });
 
 httpServer.listen(5000, () => {

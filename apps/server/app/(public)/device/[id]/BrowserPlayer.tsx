@@ -68,6 +68,10 @@ export function BrowserPlayer({ id, token }: Props) {
     [],
   )
 
+  const handlePauseChange = useCallback((paused: boolean) => {
+    socketRef.current?.emit('device:pauseChange', { paused })
+  }, [])
+
   useRemoteControl(socketRef.current, controllerRef)
 
   return (
@@ -77,6 +81,7 @@ export function BrowserPlayer({ id, token }: Props) {
         scheduleData={scheduleData}
         onSlideChange={handleSlideChange}
         onStateChange={handleStateChange}
+        onPauseChange={handlePauseChange}
       />
     </div>
   )

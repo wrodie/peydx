@@ -3,6 +3,7 @@ export interface ClientToServerEvents {
   'device:heartbeat': (data: { programId: number | null; slideIndex: number }, callback?: (ack: { ok: boolean }) => void) => void
   'device:slideChange': (data: { slideIndex: number }, callback?: (ack: { ok: boolean }) => void) => void
   'device:stateChange': (data: { state: 'idle' | 'menu' | 'playing'; programId?: number; menuIndex?: number }, callback?: (ack: { ok: boolean }) => void) => void
+  'device:pauseChange': (data: { paused: boolean }, callback?: (ack: { ok: boolean }) => void) => void
   'remote:advance': (data: { id: number }) => void
   'remote:previous': (data: { id: number }) => void
   'remote:goto': (data: { id: number; slideIndex: number }) => void

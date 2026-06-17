@@ -2,6 +2,7 @@ export const deviceStateStore = new Map<number, {
   state: string
   programId: number | null
   slideIndex: number
+  paused?: boolean
 }>()
 
 export function getDeviceState(id: number) {
