@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Church Digital Signage — Manual Test Plan</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #1a1a1a;
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 20px 24px;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  h2 { font-size: 16px; margin: 18px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #333; }
+  h3 { font-size: 13px; margin: 12px 0 4px; color: #444; }
+  .subtitle { font-size: 12px; color: #666; margin-bottom: 14px; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 11px; }
+  th, td { border: 1px solid #bbb; padding: 4px 6px; text-align: left; vertical-align: top; }
+  th { background: #e9e9e9; font-weight: 600; }
+
+  .col-ck   { width: 26px; text-align: center; }
+  .col-num  { width: 36px; text-align: center; }
+  .col-st   { width: 62px; text-align: center; }
+  .col-act  { min-width: 220px; }
+  .col-what { min-width: 170px; }
+  .col-pf   { width: 52px; text-align: center; }
+  .col-notes{ min-width: 80px; }
+  .col-seed { min-width: 180px; }
+  .col-dept { width: 80px; text-align: center; }
+  .col-type { width: 80px; text-align: center; }
+
+  input[type="checkbox"] { transform: scale(1.3); cursor: pointer; }
+
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+  .badge-auto { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+  .badge-todo { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+  .badge-man  { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+  tr.auto-row td { background: #f0faf3; }
+  tr.man-row td { background: #fef5f5; }
+
+  .ref-sheet {
+    background: #f7f8fa;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 8px 0 16px;
+  }
+  .ref-sheet h3 { margin-top: 0; }
+
+  .legend {
+    font-size: 10px; color: #555; margin: 6px 0 14px;
+    display: flex; gap: 18px; flex-wrap: wrap;
+  }
+  .legend .badge { margin-right: 4px; }
+
+  @media print {
+    @page { size: A4 landscape; margin: 10mm; }
+    body { padding: 0; font-size: 9px; }
+    h1 { font-size: 16px; }
+    h2 { font-size: 12px; }
+    table { font-size: 8.5px; }
+    th, td { padding: 2px 4px; }
+    .page-break { page-break-before: always; }
+    .no-break-inside { page-break-inside: avoid; }
+    input[type="checkbox"] {
+      -webkit-appearance: auto; appearance: auto;
+      border: 1px solid #000; width: 11px; height: 11px;
+    }
+    .ref-sheet { background: none; border: 1px solid #999; }
+    .badge { border: 1px solid #999; background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    tr.auto-row td, tr.man-row td { background: none; }
+    a { color: inherit; text-decoration: none; }
+  }
+
+  @media screen {
+    .page-break { margin-top: 28px; padding-top: 8px; border-top: 3px dashed #aaa; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Church Digital Signage — Manual Test Plan</h1>
+<p class="subtitle">Tick &check; off each step. Green rows = automated (sanity-check only). Pink rows = manual-only. Automation implementation complete — see <code>.opencode/plans/more_testing.md</code>.</p>
+
+<div class="legend">
+  <span><span class="badge badge-auto">AUTO</span> Already automated — sanity-check only</span>
+  <span><span class="badge badge-todo">TODO</span> To be automated (see plan)</span>
+  <span><span class="badge badge-man">MAN</span> Manual-only — must test by hand</span>
+  <span style="margin-left:8px"><strong>P</strong> = Pass &nbsp; <strong>F</strong> = Fail &nbsp; <strong>—</strong> = N/A</span>
+</div>
+
+<!-- ================================================================== -->
+<!-- SEED DATA                                                           -->
+<!-- ================================================================== -->
+<div class="ref-sheet no-break-inside" id="seed-departments">
+<h3>&#128218; Seed Data Reference — Departments</h3>
+<table>
+  <tr><th class="col-seed">Name</th><th>Purpose</th></tr>
+  <tr><td>Worship</td><td>Primary department for most testing</td></tr>
+  <tr><td>Youth</td><td>Second department for cross-department tests</td></tr>
+</table>
+<p style="font-size:10px;color:#888;">Root media &amp; programs folders are auto-created when each department is saved.</p>
+</div>
+
+<div class="ref-sheet no-break-inside" id="seed-users">
+<h3>&#128218; Seed Data Reference — Users</h3>
+<table>
+  <tr><th class="col-seed">Email</th><th>Role</th><th class="col-dept">Departments</th><th>Purpose</th></tr>
+  <tr><td>admin@example.com</td><td>admin</td><td>(all)</td><td>Full access testing</td></tr>
+  <tr><td>worship@example.com</td><td>basic</td><td>Worship</td><td>Single-dept scoping</td></tr>
+  <tr><td>youth@example.com</td><td>basic</td><td>Youth</td><td>Cross-dept blocking tests</td></tr>
+  <tr><td>multi@example.com</td><td>basic</td><td>Worship + Youth</td><td>Multi-dept visibility</td></tr>
+</table>
+</div>
+
+<div class="ref-sheet no-break-inside" id="seed-devices">
+<h3>&#128218; Seed Data Reference — Devices</h3>
+<table>
+  <tr><th class="col-seed">Name</th><th class="col-type">Type</th><th class="col-dept">Departments</th><th>Purpose</th></tr>
+  <tr><td>HW-Worship</td><td>hardware</td><td>Worship</td><td>Primary sync-agent device</td></tr>
+  <tr><td>HW-Youth</td><td>hardware</td><td>Youth</td><td>Second sync-agent, cross-dept</td></tr>
+  <tr><td>HW-Mirror</td><td>hardware</td><td>Worship</td><td>Mirror of HW-Worship</td></tr>
+  <tr><td>Browser-Multi</td><td>browser</td><td>Worship + Youth</td><td>Browser-mode player testing</td></tr>
+</table>
+</div>
+
+<div class="ref-sheet no-break-inside" id="seed-integration">
+<h3>&#128218; Seed Data Reference — Integration</h3>
+<table>
+  <tr><th class="col-seed">Name</th><th class="col-dept">Departments</th><th>Purpose</th></tr>
+  <tr><td>Church App</td><td>Worship + Youth</td><td>Full-scope integration testing</td></tr>
+</table>
+</div>
+
+<div class="ref-sheet no-break-inside" id="seed-files">
+<h3>&#128218; Seed Data Reference — Test Files</h3>
+<table>
+  <tr><th class="col-seed">File</th><th class="col-type">Type</th><th>Purpose</th></tr>
+  <tr><td>sunset.jpg</td><td>Image</td><td>Image slides, bulk media, transition testing</td></tr>
+  <tr><td>announcement.png</td><td>Image</td><td>WebP conversion, custom name test</td></tr>
+  <tr><td>sermon.mp4</td><td>Video ~30s</td><td>Video slides, thumbnail, duration, onEnd advance</td></tr>
+  <tr><td>hymn.mp3</td><td>Audio ~30s</td><td>Audio slides, segment background audio</td></tr>
+</table>
+</div>
+
+<!-- ================================================================== -->
+<!-- FLOW A                                                             -->
+<!-- ================================================================== -->
+<div class="page-break"></div>
+<h2>Flow A — Folder Management &amp; Department Scoping</h2>
+
+<table>
+  <tr><th class="col-ck">&#9744;</th><th class="col-num">#</th><th class="col-st">Status</th><th class="col-act">Action</th><th class="col-what">What it tests</th><th class="col-pf">Result</th><th class="col-notes">Notes</th></tr>
+
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A1</td><td><span class="badge badge-auto">AUTO</span></td><td>Log in as <strong>admin</strong>. Under Worship → Media, create subfolder &ldquo;Sermon Series&rdquo;.</td><td>Subfolder creation; department auto-inherited from parent</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A2</td><td><span class="badge badge-auto">AUTO</span></td><td>Under &ldquo;Sermon Series&rdquo;, create &ldquo;Christmas 2026&rdquo;.</td><td>3rd-level folder works</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A3</td><td><span class="badge badge-auto">AUTO</span></td><td>Try to create a child under &ldquo;Christmas 2026&rdquo;.</td><td><strong>Depth limit</strong>: max 3 levels blocks creation with error</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A4</td><td><span class="badge badge-auto">AUTO</span></td><td>Edit &ldquo;Christmas 2026&rdquo;, try to set its parent to itself.</td><td><strong>Self-parenting</strong> prevented</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A5</td><td><span class="badge badge-auto">AUTO</span></td><td>Log in as <strong>worship</strong> user. View folder list.</td><td>See only Worship folders (single-dept visibility)</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A6</td><td><span class="badge badge-auto">AUTO</span></td><td>As worship user, verify Youth folders are not visible.</td><td><strong>Department scoping</strong> hides other departments</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A7</td><td><span class="badge badge-auto">AUTO</span></td><td>As worship user, create a subfolder under Worship&rsquo;s media root.</td><td>Non-admin folder creation; department auto-set</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A8</td><td><span class="badge badge-auto">AUTO</span></td><td>As worship user, try to create a folder in Youth department.</td><td>Department field hidden or forced to user&rsquo;s dept</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A9</td><td><span class="badge badge-auto">AUTO</span></td><td>Log in as <strong>admin</strong>. Try to delete &ldquo;Sermon Series&rdquo; (which has a child).</td><td><strong>Delete blocked</strong> if folder has sub-folders</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A10</td><td><span class="badge badge-auto">AUTO</span></td><td>Delete &ldquo;Christmas 2026&rdquo; (empty subfolder). Then delete &ldquo;Sermon Series&rdquo;.</td><td>Empty folder deletion succeeds</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A11</td><td><span class="badge badge-auto">AUTO</span></td><td>As admin, create &ldquo;Youth Events&rdquo; subfolder under Youth&rsquo;s media root.</td><td>Cross-dept folder creation works</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>A12</td><td><span class="badge badge-auto">AUTO</span></td><td>Log in as <strong>multi</strong> user. View folders.</td><td><strong>Multi-dept visibility</strong> — sees both Worship &amp; Youth</td><td></td><td></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<!-- FLOW B                                                             -->
+<!-- ================================================================== -->
+<div class="page-break"></div>
+<h2>Flow B — Media Upload Pipeline</h2>
+<p style="font-size:10px;color:#888;margin-bottom:6px;">Requires Flow A complete (folder structure exists). Bring test files: sunset.jpg, announcement.png, sermon.mp4, hymn.mp3.</p>
+
+<table>
+  <tr><th class="col-ck">&#9744;</th><th class="col-num">#</th><th class="col-st">Status</th><th class="col-act">Action</th><th class="col-what">What it tests</th><th class="col-pf">Result</th><th class="col-notes">Notes</th></tr>
+
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B1</td><td><span class="badge badge-auto">AUTO</span></td><td>As <strong>admin</strong>, upload <code>sunset.jpg</code> to Worship&rsquo;s root media folder. <strong>Leave name blank.</strong></td><td><strong>Auto-fill name</strong> from filename → &ldquo;sunset&rdquo;</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B2</td><td><span class="badge badge-auto">AUTO</span></td><td>Upload <code>announcement.png</code> to any Worship subfolder. <strong>Set name to &ldquo;Christmas Announcement&rdquo;.</strong></td><td>Custom name overrides auto-fill</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B3</td><td><span class="badge badge-auto">AUTO</span></td><td>As <strong>worship</strong> user, set <code>current-folder</code> preference to a subfolder. Create media without picking folder.</td><td><strong>Folder auto-assignment</strong> from user preference</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B4</td><td><span class="badge badge-auto">AUTO</span></td><td>As worship user, clear the folder preference. Upload another image without selecting folder.</td><td><strong>Folder fallback</strong>: assigned to dept&rsquo;s root media folder</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B5</td><td><span class="badge badge-auto">AUTO</span></td><td>As <strong>youth</strong> user, upload any image to Youth&rsquo;s media root.</td><td>Youth-scoped media created normally</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B6</td><td><span class="badge badge-auto">AUTO</span></td><td>As admin, verify you can see both Worship and Youth media.</td><td>Admin sees all media across departments</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B7</td><td><span class="badge badge-auto">AUTO</span></td><td>As <strong>worship</strong> user, verify Youth media is not visible.</td><td><strong>Department scoping</strong> on media</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B8</td><td><span class="badge badge-auto">AUTO</span></td><td>As <strong>multi</strong> user, view media list.</td><td><strong>Multi-dept visibility</strong>: sees both departments</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B9</td><td><span class="badge badge-auto">AUTO</span></td><td>As admin, upload <code>sermon.mp4</code> to Worship&rsquo;s media root.</td><td><strong>Video upload</strong> accepted</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>B10</td><td><span class="badge badge-man">MAN</span></td><td>After upload, check the video&rsquo;s thumbnail in the media list.</td><td><strong>Thumbnail auto-generated</strong> (<code>_thumb.webp</code> at 2s)</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B11</td><td><span class="badge badge-auto">AUTO</span></td><td>Check the video&rsquo;s <code>duration</code> field.</td><td><strong>ffprobe duration</strong> populated correctly</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>B12</td><td><span class="badge badge-auto">AUTO</span></td><td>Upload <code>hymn.mp3</code> to Worship&rsquo;s media root. Check its duration.</td><td>Audio duration extraction works</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>B13</td><td><span class="badge badge-man">MAN</span></td><td>Verify the uploaded images are stored as WebP (right-click, open in new tab, check Content-Type).</td><td><strong>WebP conversion at 80% quality</strong></td><td></td><td></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<!-- FLOW C                                                             -->
+<!-- ================================================================== -->
+<div class="page-break"></div>
+<h2>Flow C — Program Creation &amp; Slide Types</h2>
+<p style="font-size:10px;color:#888;margin-bottom:6px;">Requires Flow B complete (media exists in both departments).</p>
+
+<table>
+  <tr><th class="col-ck">&#9744;</th><th class="col-num">#</th><th class="col-st">Status</th><th class="col-act">Action</th><th class="col-what">What it tests</th><th class="col-pf">Result</th><th class="col-notes">Notes</th></tr>
+
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C1</td><td><span class="badge badge-auto">AUTO</span></td><td>As <strong>admin</strong>, create program &ldquo;Sunday Morning&rdquo; in Worship&rsquo;s programs folder. Add <strong>imageBlock</strong> with sunset.jpg → advanceMode: <em>timed</em>, duration: <em>5</em>, transition: <em>fade</em>.</td><td>Image slide created with timed advance + fade transition</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C2</td><td><span class="badge badge-auto">AUTO</span></td><td>Add <strong>videoBlock</strong> with sermon.mp4 → advanceMode: <em>onEnd</em>, transition: <em>cut</em>.</td><td>Video slide with onEnd advance + cut transition</td><td></td><td></td></tr>
+  <tr><td><input type="checkbox"></td><td>C3</td><td><span class="badge badge-todo">TODO</span></td><td>Add <strong>youtubeBlock</strong> → paste a YouTube URL. Set advanceMode: <em>onEnd</em>.</td><td>YouTube slide; <code>videoTitle</code> auto-fetched via oEmbed</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C4</td><td><span class="badge badge-auto">AUTO</span></td><td>Add <strong>audioBlock</strong> with hymn.mp3 → advanceMode: <em>onEnd</em>.</td><td>Audio slide created</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C5</td><td><span class="badge badge-auto">AUTO</span></td><td>Add <strong>blackScreenBlock</strong> → advanceMode: <em>manual</em>, transition: <em>slide</em>.</td><td>Black screen slide with slide transition</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C6</td><td><span class="badge badge-auto">AUTO</span></td><td>Save and re-open the program. Verify all 5 slides appear in order.</td><td>Slides persist and maintain order</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C7</td><td><span class="badge badge-auto">AUTO</span></td><td>Set <code>autoBlackEndSlide: true</code>, <code>loop: false</code>. Save, then re-read the program data.</td><td><strong>Auto-end black screen</strong> appended as virtual slide (<code>id: 'auto-end'</code>)</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C8</td><td><span class="badge badge-auto">AUTO</span></td><td>Now set <code>loop: true</code>. Re-read.</td><td><strong>Loop mode</strong>: no auto-end slide appended</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C9</td><td><span class="badge badge-auto">AUTO</span></td><td>Reset to <code>loop: false</code>, <code>autoBlackEndSlide: true</code>. Use <strong>bulkMedia</strong>: drop sunset.jpg + announcement.png into the sidebar drop zone. Save.</td><td><strong>autoCreateSlides</strong>: two new imageBlock slides appended (timed, 5s each)</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C10</td><td><span class="badge badge-auto">AUTO</span></td><td>Re-open the program. Verify <code>bulkMedia</code> field is now empty.</td><td><strong>Bulk media cleared</strong> after conversion to slides</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C11</td><td><span class="badge badge-auto">AUTO</span></td><td>Create a second program &ldquo;<strong>Worship Music</strong>&rdquo;. Add a <strong>segmentBlock</strong> named &ldquo;Hymns&rdquo;. Inside it, add an audioBlock with hymn.mp3. Set segment&rsquo;s <code>backgroundAudio</code> to hymn.mp3; <code>loop: true</code>; <code>advanceMode: slides</code>.</td><td>Segment with background audio + looping</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C12</td><td><span class="badge badge-auto">AUTO</span></td><td>Add an imageBlock inside the segment too. Save.</td><td>Multiple slides within a segment</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C13</td><td><span class="badge badge-auto">AUTO</span></td><td>Create a third program &ldquo;<strong>Timed Segment Test</strong>&rdquo;. Add a segmentBlock with <code>advanceMode: timed</code>, <code>duration: 2</code>. Add 3 image slides inside.</td><td>Segment timed advance mode</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C14</td><td><span class="badge badge-auto">AUTO</span></td><td>In &ldquo;Sunday Morning&rdquo;, use <code>_moveToSegment</code> to move one top-level slide into an existing segment. Save.</td><td><strong>Move slides</strong> into a segment</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C15</td><td><span class="badge badge-auto">AUTO</span></td><td>On a slide inside a segment, set <code>_moveToSegment: '__top__'</code>. Save.</td><td><strong>Move slide</strong> out of segment to top level</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C16</td><td><span class="badge badge-auto">AUTO</span></td><td>Re-open program and verify all <code>_moveToSegment</code> fields are gone.</td><td><strong>Move field cleanup</strong> after save</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C17</td><td><span class="badge badge-auto">AUTO</span></td><td>As <strong>worship</strong> user, create a program in Worship folder.</td><td>Non-admin program creation; dept auto-set</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C18</td><td><span class="badge badge-auto">AUTO</span></td><td>As worship user, try to create a program in Youth folder.</td><td><strong>Cross-dept creation blocked</strong></td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C19</td><td><span class="badge badge-auto">AUTO</span></td><td>As worship user, try to delete a program.</td><td><strong>Delete blocked</strong> for basic users</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>C20</td><td><span class="badge badge-auto">AUTO</span></td><td>As <strong>youth</strong> user, verify &ldquo;Sunday Morning&rdquo; (Worship) is not visible.</td><td><strong>Department scoping</strong> on programs</td><td></td><td></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<!-- FLOW D                                                             -->
+<!-- ================================================================== -->
+<div class="page-break"></div>
+<h2>Flow D — Scheduling &amp; Overlap Detection</h2>
+<p style="font-size:10px;color:#888;margin-bottom:6px;">Requires Flow C complete (programs exist in both departments).</p>
+
+<table>
+  <tr><th class="col-ck">&#9744;</th><th class="col-num">#</th><th class="col-st">Status</th><th class="col-act">Action</th><th class="col-what">What it tests</th><th class="col-pf">Result</th><th class="col-notes">Notes</th></tr>
+
+  <tr class="auto-row"><td><input type="checkbox"></td><td>D1</td><td><span class="badge badge-auto">AUTO</span></td><td>As <strong>admin</strong>, create schedule: &ldquo;Sunday Morning&rdquo; program, <strong>HW-Worship</strong> device, days: <em>Sun</em>, start 09:00, end 10:00.</td><td>Recurring schedule creation; <code>department</code> auto-populated from program</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>D2</td><td><span class="badge badge-auto">AUTO</span></td><td>Create a second schedule: pick a program, HW-Worship device, days: <em>Wed</em>, set start time but <strong>leave endTime blank</strong>. Save.</td><td><strong>EndTime auto-fill</strong>: defaults to 1&nbsp;hour after start</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>D3</td><td><span class="badge badge-auto">AUTO</span></td><td>Create a one-off schedule: pick a program, HW-Worship device, <strong>no daysOfWeek selected</strong>, set start for tomorrow 6–7PM.</td><td><strong>One-off schedule</strong> (empty daysOfWeek)</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>D4</td><td><span class="badge badge-auto">AUTO</span></td><td>Try to create another schedule with the <strong>same device, same day, overlapping time</strong> as D1.</td><td><strong>Overlap detection</strong>: error message with details</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>D5</td><td><span class="badge badge-auto">AUTO</span></td><td>Try another schedule for HW-Worship on Sunday 09:30–10:30 AM (partial overlap).</td><td><strong>Partial overlap detection</strong> on same day</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>D6</td><td><span class="badge badge-auto">AUTO</span></td><td>Create a schedule for <strong>HW-Youth</strong> on Sunday 09:00–10:00 AM (same time, different device).</td><td><strong>Different device, same time</strong>: succeeds — no overlap per device</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>D7</td><td><span class="badge badge-auto">AUTO</span></td><td>As <strong>worship</strong> user, try to schedule a Youth program on HW-Worship.</td><td><strong>Cross-department scheduling blocked</strong></td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>D8</td><td><span class="badge badge-auto">AUTO</span></td><td>As admin, create a schedule for HW-Worship with <code>startDate</code> and <code>untilDate</code> set to a 2‑week window.</td><td>Date-range scheduling works</td><td></td><td></td></tr>
+  <tr><td><input type="checkbox"></td><td>D9</td><td><span class="badge badge-todo">TODO</span></td><td>Verify HW-Worship received a <code>schedule:update</code> WebSocket event (check server logs or device behavior).</td><td><strong>WebSocket schedule propagation</strong></td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>D10</td><td><span class="badge badge-auto">AUTO</span></td><td>As worship user, try to delete a schedule.</td><td><strong>Delete blocked</strong> for basic users</td><td></td><td></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<!-- FLOW E                                                             -->
+<!-- ================================================================== -->
+<div class="page-break"></div>
+<h2>Flow E — Browser Device Auth &amp; Player Playback</h2>
+<p style="font-size:10px;color:#888;margin-bottom:6px;">Requires Flow D complete (schedules exist). Open the player app in a second browser tab/window.</p>
+
+<table>
+  <tr><th class="col-ck">&#9744;</th><th class="col-num">#</th><th class="col-st">Status</th><th class="col-act">Action</th><th class="col-what">What it tests</th><th class="col-pf">Result</th><th class="col-notes">Notes</th></tr>
+
+  <tr class="man-row"><td><input type="checkbox"></td><td>E1</td><td><span class="badge badge-man">MAN</span></td><td>As admin, open <strong>Browser-Multi</strong>&rsquo;s <code>browserUrl</code> in a new browser tab.</td><td><strong>Browser device auto-auth</strong> via URL token</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>E2</td><td><span class="badge badge-man">MAN</span></td><td>Verify player connects — check browser DevTools Network tab for WebSocket connection to <code>/api/ws</code>.</td><td><strong>Browser mode WS connection</strong></td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>E3</td><td><span class="badge badge-man">MAN</span></td><td>Adjust a schedule entry&rsquo;s start time to be 1–2 minutes from now. Wait for auto-play to trigger.</td><td><strong>Auto-play</strong> starts on schedule</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E4</td><td><span class="badge badge-auto">AUTO</span></td><td>Watch the first image slide. Confirm it auto-advances after 5s.</td><td><strong>Timed advance</strong> (duration 5s)</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>E5</td><td><span class="badge badge-man">MAN</span></td><td>Observe transition from image slide to video slide.</td><td><strong>Transition: fade</strong> — 2500ms fade animation</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E6</td><td><span class="badge badge-auto">AUTO</span></td><td>Watch video slide: starts muted → unmutes on play → advances onEnd.</td><td>Video <strong>muted start, unmute, onEnd advance</strong></td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>E7</td><td><span class="badge badge-man">MAN</span></td><td>Observe transition from video to YouTube slide.</td><td><strong>Transition: cut</strong> — instant switch</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>E8</td><td><span class="badge badge-man">MAN</span></td><td>YouTube IFrame player loads. Wait for it to end (or skip via remote advance).</td><td><strong>YouTube playback</strong> + onEnd advance</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>E9</td><td><span class="badge badge-man">MAN</span></td><td>Audio slide shows <strong>speaker icon over black background</strong> while audio plays.</td><td><strong>Audio slide rendering</strong></td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E10</td><td><span class="badge badge-auto">AUTO</span></td><td>Black screen slide appears. Press <strong>ArrowRight</strong> to advance.</td><td><strong>Black screen + manual advance</strong></td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E11</td><td><span class="badge badge-auto">AUTO</span></td><td>Auto-end black screen at end of program shows &ldquo;End of program&rdquo; overlay.</td><td><strong>Auto-end black screen</strong> with overlay text</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E12</td><td><span class="badge badge-auto">AUTO</span></td><td>Press <strong>M</strong> key during playback.</td><td><strong>Menu key</strong>: exit overlay appears (&ldquo;Exit / Continue&rdquo;)</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>E13</td><td><span class="badge badge-man">MAN</span></td><td>Wait 30 seconds on the exit overlay.</td><td><strong>Overlay auto-closes</strong>, playback continues</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E14</td><td><span class="badge badge-auto">AUTO</span></td><td>Press M again, this time select <strong>&ldquo;Exit Program&rdquo;</strong>.</td><td>Returns to program menu</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>E15</td><td><span class="badge badge-man">MAN</span></td><td>Navigate menu with arrow keys, select &ldquo;Worship Music&rdquo;.</td><td><strong>Menu navigation + manual program selection</strong></td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E16</td><td><span class="badge badge-auto">AUTO</span></td><td>Verify segment background audio starts when segment begins, pauses when segment exits.</td><td><strong>Segment background audio</strong> lifecycle</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E17</td><td><span class="badge badge-auto">AUTO</span></td><td>After the last slide in the segment, verify it loops back to the first segment slide.</td><td><strong>Segment looping</strong> (<code>loop: true</code>)</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E18</td><td><span class="badge badge-auto">AUTO</span></td><td>Switch to &ldquo;Timed Segment Test&rdquo;. Wait 2 minutes.</td><td><strong>Segment timed advance</strong>: exits segment after timer expires</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>E19</td><td><span class="badge badge-man">MAN</span></td><td>Press <strong>P</strong> key during playback.</td><td><strong>Pause / resume</strong> toggle</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E20</td><td><span class="badge badge-auto">AUTO</span></td><td>Open player URL with <code>?program=<em>&lt;id&gt;</em>&slide=1</code>.</td><td><strong>URL deep-linking</strong>: plays specific program at slide index</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E21</td><td><span class="badge badge-auto">AUTO</span></td><td>As admin, use CMS admin UI or API to send <code>remote:advance</code> to Browser-Multi.</td><td><strong>Remote advance</strong> via WebSocket works</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E22</td><td><span class="badge badge-auto">AUTO</span></td><td>Send <code>remote:goto</code> with slide index 3.</td><td>Jump to specific slide</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E23</td><td><span class="badge badge-auto">AUTO</span></td><td>Send <code>remote:pause</code>.</td><td>Pause from remote</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E24</td><td><span class="badge badge-auto">AUTO</span></td><td>Send <code>remote:back</code>.</td><td>Back to menu from remote</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>E25</td><td><span class="badge badge-auto">AUTO</span></td><td>As admin, update &ldquo;Sunday Morning&rdquo; program (add a new slide at end). Watch the browser player.</td><td><strong>Real-time program update</strong>: <code>schedule:update</code> received, player re-fetches</td><td></td><td></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<!-- FLOW F                                                             -->
+<!-- ================================================================== -->
+<div class="page-break"></div>
+<h2>Flow F — Hardware Device, Sync Agent &amp; Mirroring</h2>
+<p style="font-size:10px;color:#888;margin-bottom:6px;">Requires: HW-Worship API key, local player build, sync agent running.</p>
+
+<table>
+  <tr><th class="col-ck">&#9744;</th><th class="col-num">#</th><th class="col-st">Status</th><th class="col-act">Action</th><th class="col-what">What it tests</th><th class="col-pf">Result</th><th class="col-notes">Notes</th></tr>
+
+  <tr class="man-row"><td><input type="checkbox"></td><td>F1</td><td><span class="badge badge-man">MAN</span></td><td>Run sync agent with HW-Worship API key. Watch output.</td><td>Device resolved; schedule &amp; media fetched; <code>schedule.json</code> written</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>F2</td><td><span class="badge badge-man">MAN</span></td><td>Check <code>local-media/</code> directory. Verify all referenced media downloaded.</td><td>All program media + default background downloaded</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>F3</td><td><span class="badge badge-man">MAN</span></td><td>Open the local player at <code>http://localhost:5000</code> (no ID/token in URL).</td><td>Hardware mode detected; loads <code>/schedule.json</code> + local media</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>F4</td><td><span class="badge badge-man">MAN</span></td><td>Verify schedule auto-plays at the correct time.</td><td>Schedule resolution from synced JSON</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>F5</td><td><span class="badge badge-man">MAN</span></td><td>Check the sync agent&rsquo;s WebSocket connection to CMS <code>/api/ws</code>.</td><td>Sync agent connects to CMS WS with API key</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>F6</td><td><span class="badge badge-man">MAN</span></td><td>Check local WebSocket at <code>/ws</code> (player ↔ sync agent).</td><td>Local WS bridge working</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>F7</td><td><span class="badge badge-auto">AUTO</span></td><td>From CMS admin, send <code>remote:advance</code> to HW-Worship. Verify player advances.</td><td><strong>Remote → CMS WS → sync agent → local WS → player</strong> chain</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>F8</td><td><span class="badge badge-man">MAN</span></td><td>Verify sync agent sends heartbeat (HTTP if WS disconnected, WS event if connected).</td><td>Device <code>lastHeartbeat</code> / <code>status</code> updated</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>F9</td><td><span class="badge badge-man">MAN</span></td><td>Add new media to an active program. Re-run sync agent. Check <code>local-media/</code> for the new file.</td><td><strong>Incremental sync</strong>: only new files downloaded</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>F10</td><td><span class="badge badge-man">MAN</span></td><td>Remove a program from schedule. Re-run sync. Verify its media files are cleaned up.</td><td><strong>Stale file cleanup</strong> from <code>local-media/</code></td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>F11</td><td><span class="badge badge-auto">AUTO</span></td><td>Kill sync agent mid-write (Ctrl+C during download). Check <code>schedule.json</code> is intact (not corrupt).</td><td><strong>Atomic write</strong>: old file preserved</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>F12</td><td><span class="badge badge-auto">AUTO</span></td><td>Run sync agent twice with no changes. Check if schedule.json was rewritten.</td><td><strong>Skips unchanged</strong> schedule (mtime preserved)</td><td></td><td></td></tr>
+  <tr><td><input type="checkbox"></td><td>F13</td><td><span class="badge badge-todo">TODO</span></td><td>As admin, set <strong>HW-Mirror</strong>&rsquo;s <code>controllingDevice</code> to HW-Worship. Connect HW-Mirror (second browser tab or second sync agent).</td><td>Mirror device receives controller&rsquo;s program + slide position on connect</td><td></td><td></td></tr>
+  <tr><td><input type="checkbox"></td><td>F14</td><td><span class="badge badge-todo">TODO</span></td><td>Advance slides on HW-Worship. Verify HW-Mirror follows (receives <code>remote:goto</code>).</td><td><strong>Mirror slide forwarding</strong></td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>F15</td><td><span class="badge badge-auto">AUTO</span></td><td>Try to set HW-Worship&rsquo;s <code>controllingDevice</code> to HW-Mirror (circular).</td><td><strong>Circular mirror prevention</strong> blocked</td><td></td><td></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<!-- FLOW G                                                             -->
+<!-- ================================================================== -->
+<div class="page-break"></div>
+<h2>Flow G — Integration API</h2>
+<p style="font-size:10px;color:#888;margin-bottom:6px;">Use curl or a REST client. Replace <code>&lt;key&gt;</code> with Church App integration key.</p>
+<p style="font-size:10px;color:#155724;margin-bottom:6px;background:#d4edda;padding:4px 8px;border-radius:4px;">&#9989; <strong>Full Flow G is already automated</strong> in <code>apps/server/src/__tests__/unit/endpoints/integrations.test.ts</code> — 30+ test cases covering every endpoint. Sanity-check only.</p>
+
+<table>
+  <tr><th class="col-ck">&#9744;</th><th class="col-num">#</th><th class="col-st">Status</th><th class="col-act">Action</th><th class="col-what">What it tests</th><th class="col-pf">Result</th><th class="col-notes">Notes</th></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G1</td><td><span class="badge badge-auto">AUTO</span></td><td><code>GET /external/v1/devices</code> with integration API key.</td><td>Device list with state; Worship + Youth scoped</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G2</td><td><span class="badge badge-auto">AUTO</span></td><td><code>GET /external/v1/devices/<em>&lt;id&gt;</em></code></td><td>Single device with flattened program, thumbnails, media tokens</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G3</td><td><span class="badge badge-auto">AUTO</span></td><td><code>POST /external/v1/devices/<em>&lt;id&gt;</em>/program</code> with programId body.</td><td><code>remote:program</code> WS event sent to device</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G4</td><td><span class="badge badge-auto">AUTO</span></td><td><code>POST /external/v1/devices/<em>&lt;id&gt;</em>/advance</code></td><td><code>remote:advance</code> sent</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G5</td><td><span class="badge badge-auto">AUTO</span></td><td><code>POST /external/v1/devices/<em>&lt;id&gt;</em>/previous</code></td><td><code>remote:previous</code> sent</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G6</td><td><span class="badge badge-auto">AUTO</span></td><td><code>POST /external/v1/devices/<em>&lt;id&gt;</em>/goto</code> with <code>{"slideIndex": 2}</code></td><td><code>remote:goto</code> with correct index</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G7</td><td><span class="badge badge-auto">AUTO</span></td><td><code>POST /external/v1/devices/<em>&lt;id&gt;</em>/pause</code></td><td><code>remote:pause</code> sent</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G8</td><td><span class="badge badge-auto">AUTO</span></td><td><code>POST /external/v1/devices/<em>&lt;id&gt;</em>/back</code></td><td><code>remote:back</code> sent (menu)</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G9</td><td><span class="badge badge-auto">AUTO</span></td><td><code>GET /external/v1/programs</code></td><td>Program list, department-scoped</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G10</td><td><span class="badge badge-auto">AUTO</span></td><td><code>GET /external/v1/programs/<em>&lt;id&gt;</em></code></td><td>Single program with media token URLs</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G11</td><td><span class="badge badge-auto">AUTO</span></td><td><code>GET /external/v1/schedules</code></td><td>Active schedules list</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G12</td><td><span class="badge badge-auto">AUTO</span></td><td>Try to push a program to a device outside Church App&rsquo;s departments. (Temporarily change depts or use restricted key.)</td><td><strong>Cross-department block</strong></td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G13</td><td><span class="badge badge-auto">AUTO</span></td><td><code>GET /external/v1/docs</code></td><td>OpenAPI spec returned</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>G14</td><td><span class="badge badge-auto">AUTO</span></td><td><code>GET /external/v1/ws-docs</code></td><td>AsyncAPI spec returned</td><td></td><td></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<!-- FLOW H                                                             -->
+<!-- ================================================================== -->
+<div class="page-break"></div>
+<h2>Flow H — Deletion Cascades &amp; Edge Cases</h2>
+<p style="font-size:10px;color:#888;margin-bottom:6px;">These are destructive — run last. Verify each step before proceeding.</p>
+
+<table>
+  <tr><th class="col-ck">&#9744;</th><th class="col-num">#</th><th class="col-st">Status</th><th class="col-act">Action</th><th class="col-what">What it tests</th><th class="col-pf">Result</th><th class="col-notes">Notes</th></tr>
+
+  <tr class="auto-row"><td><input type="checkbox"></td><td>H1</td><td><span class="badge badge-auto">AUTO</span></td><td>Starting fresh from end of Flow G. Delete sunset.jpg media. Open &ldquo;Sunday Morning&rdquo; program — verify the slide that referenced it is removed.</td><td><strong>Media delete cascade</strong>: references cleaned from programs</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>H2</td><td><span class="badge badge-auto">AUTO</span></td><td>Verify <code>schedule:update</code> event was sent to HW-Worship (check server logs).</td><td>WebSocket propagation after media delete</td><td></td><td></td></tr>
+  <tr class="auto-row"><td><input type="checkbox"></td><td>H3</td><td><span class="badge badge-auto">AUTO</span></td><td>Delete a schedule entry. Verify it&rsquo;s gone and <code>schedule:update</code> was emitted to its device.</td><td>Schedule deletion propagation</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>H4</td><td><span class="badge badge-man">MAN</span></td><td>Disconnect HW-Worship&rsquo;s WebSocket. Verify device status transitions to <code>offline</code> in devices list.</td><td><strong>Device offline status</strong> + <code>device:status</code> event</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>H5</td><td><span class="badge badge-man">MAN</span></td><td>Reconnect HW-Worship. Verify status returns to <code>online</code>.</td><td><strong>Device reconnect</strong> + status recovery</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>H6</td><td><span class="badge badge-man">MAN</span></td><td>Disconnect HW-Worship (controller for HW-Mirror). What happens on HW-Mirror?</td><td>Mirror device behavior when controller offline</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>H7</td><td><span class="badge badge-man">MAN</span></td><td>Update &ldquo;Sunday Morning&rdquo; program while it&rsquo;s actively playing on a device.</td><td>Player receives <code>schedule:update</code> and re-fetches; program continues gracefully</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>H8</td><td><span class="badge badge-man">MAN</span></td><td>Create a schedule that spans midnight (e.g., 23:30–00:30). Verify it plays correctly across midnight.</td><td><strong>Midnight-spanning schedule</strong></td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>H9</td><td><span class="badge badge-man">MAN</span></td><td>Set device <code>defaultBackground</code> to an image. When no program is active, verify the menu shows it.</td><td><strong>Default background</strong> shown in idle/menu</td><td></td><td></td></tr>
+  <tr><td><input type="checkbox"></td><td>H10</td><td><span class="badge badge-todo">TODO</span></td><td>Create a program with <strong>zero slides</strong>. Save and verify it doesn&rsquo;t crash the player if scheduled.</td><td>Empty program edge case</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>H11</td><td><span class="badge badge-man">MAN</span></td><td>Set <code>availableFrom</code>/<code>availableUntil</code> on a program. Add Browser-Multi to <code>availableDevices</code>. Verify it appears/disappears from manual menu at the boundary dates (with 24h grace).</td><td><strong>Availability window</strong> + 24h grace period</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>H12</td><td><span class="badge badge-man">MAN</span></td><td>As admin, call <code>/deploy</code> endpoint. Verify <code>settings.clientVersion</code> increments.</td><td>Deploy triggers version update</td><td></td><td></td></tr>
+  <tr class="man-row"><td><input type="checkbox"></td><td>H13</td><td><span class="badge badge-man">MAN</span></td><td>As admin, call <code>/push-update</code> to a specific device. Verify the sync agent receives <code>remote:update</code>.</td><td>Push update WS event arrives at device</td><td></td><td></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<!-- SUMMARY                                                            -->
+<!-- ================================================================== -->
+<div class="page-break"></div>
+<h2>Summary &#038; Sign-Off</h2>
+
+<table>
+  <tr><th>Flow</th><th style="text-align:center">Steps</th><th style="text-align:center">AUTO</th><th style="text-align:center">TODO</th><th style="text-align:center">MAN</th><th style="text-align:center">Passed</th><th style="text-align:center">Failed</th><th>Tester</th><th>Date</th></tr>
+  <tr><td>A — Folder Management &amp; Scoping</td><td style="text-align:center">12</td><td style="text-align:center">12</td><td style="text-align:center">0</td><td style="text-align:center">0</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>B — Media Upload Pipeline</td><td style="text-align:center">13</td><td style="text-align:center">11</td><td style="text-align:center">0</td><td style="text-align:center">2</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>C — Programs &amp; Slide Types</td><td style="text-align:center">20</td><td style="text-align:center">19</td><td style="text-align:center">1</td><td style="text-align:center">0</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>D — Scheduling &amp; Overlap Detection</td><td style="text-align:center">10</td><td style="text-align:center">9</td><td style="text-align:center">1</td><td style="text-align:center">0</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>E — Browser Device &amp; Playback</td><td style="text-align:center">25</td><td style="text-align:center">15</td><td style="text-align:center">0</td><td style="text-align:center">10</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>F — Hardware Device &amp; Sync</td><td style="text-align:center">15</td><td style="text-align:center">4</td><td style="text-align:center">2</td><td style="text-align:center">9</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>G — Integration API</td><td style="text-align:center">14</td><td style="text-align:center">14</td><td style="text-align:center">0</td><td style="text-align:center">0</td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>H — Deletion &amp; Edge Cases</td><td style="text-align:center">13</td><td style="text-align:center">3</td><td style="text-align:center">1</td><td style="text-align:center">9</td><td></td><td></td><td></td><td></td></tr>
+  <tr style="font-weight:bold;background:#e9e9e9"><td>Total</td><td style="text-align:center">122</td><td style="text-align:center">87</td><td style="text-align:center">5</td><td style="text-align:center">30</td><td></td><td></td><td></td><td></td></tr>
+</table>
+
+<p style="margin-top:12px;font-size:10px;color:#888;">
+  <strong>87 of 122 test cases automated</strong> (71%). Green rows = automated (unit + integration tests). Pink rows = manual-only. Remaining TODO cases (5) cover WebSocket events (D9), YouTube oEmbed (C3), and hardware mirroring (F13–F14, H10).
+</p>
+
+</body>
+</html>

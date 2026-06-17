@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { departmentCreateFolders } from '../hooks/departmentCreateFolders'
 
 export const Departments: CollectionConfig = {
   slug: 'departments',
@@ -14,25 +15,7 @@ export const Departments: CollectionConfig = {
     delete: ({ req: { user } }) => (user as any)?.role === 'admin',
   },
   hooks: {
-    afterChange: [
-      async ({ doc, operation, req }) => {
-        if (operation !== 'create') return
-        const name = (doc as any).name
-        const deptId = doc.id
-        await Promise.all([
-          req.payload.create({
-            collection: 'folders',
-            data: { name, type: 'media', department: deptId, order: 0 },
-            req,
-          }),
-          req.payload.create({
-            collection: 'folders',
-            data: { name, type: 'programs', department: deptId, order: 0 },
-            req,
-          }),
-        ])
-      },
-    ],
+    afterChange: [departmentCreateFolders],
   },
   fields: [
     {

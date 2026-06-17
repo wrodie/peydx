@@ -4,6 +4,8 @@ import { BlackScreenBlock } from '../blocks/BlackScreenBlock'
 import { SegmentBlock } from '../blocks/SegmentBlock'
 import { autoCreateSlides } from '../hooks/autoCreateSlides'
 import { moveSlides } from '../hooks/moveSlides'
+import { programBeforeValidate } from '../hooks/programBeforeValidate'
+import { programAutoEndSlide } from '../hooks/programAutoEndSlide'
 import { getIO } from '../websocket/io'
 
 export const Programs: CollectionConfig = {
@@ -50,21 +52,7 @@ export const Programs: CollectionConfig = {
   },
 
   hooks: {
-    beforeValidate: [
-      ({ data }) => {
-        if (data?.slides && Array.isArray(data.slides)) {
-          data.slides = data.slides.filter((s: any) => {
-            if (s.id === 'auto-end') return false
-            if (!s.blockType) {
-              console.warn('[Programs.beforeValidate] Filtered out slide missing blockType:', s)
-              return false
-            }
-            return true
-          })
-        }
-        return data
-      },
-    ],
+    beforeValidate: [programBeforeValidate],
     beforeChange: [
       async (args) => {
         const { req, data } = args
@@ -221,30 +209,7 @@ export const Programs: CollectionConfig = {
         }
       },
     ],
-    afterRead: [
-      ({ doc, req }) => {
-        if (doc.slides && Array.isArray(doc.slides)) {
-          doc.slides = doc.slides.filter((s: any) => s && s.blockType)
-        }
-        if ((doc as any).autoBlackEndSlide
-          && !(doc as any).loop
-          && doc.slides
-          && Array.isArray(doc.slides)
-          && doc.slides.length > 0
-          && doc.slides[doc.slides.length - 1]?.blockType !== 'blackScreenBlock'
-          && !doc.slides.some((s: any) => s.id === 'auto-end')
-        ) {
-          doc.slides = [...doc.slides, {
-            id: 'auto-end',
-            blockType: 'blackScreenBlock',
-            advanceMode: 'manual',
-            transition: 'fade',
-            duration: null,
-          }]
-        }
-        return doc
-      },
-    ],
+    afterRead: [programAutoEndSlide],
   },
 
   fields: [
