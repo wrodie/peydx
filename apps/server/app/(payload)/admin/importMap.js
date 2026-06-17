@@ -2,6 +2,7 @@ import { NameWithThumbnailCell as NameWithThumbnailCell_e58c5597d59ca78b1a1ebeb6
 import { DurationCell as DurationCell_a65bdf1fc80f44533c5d7292dd4d0d61 } from '../../../src/components/DurationCell'
 import { FormattedFilesizeCell as FormattedFilesizeCell_c7cd3958b74f4dc0249df3b07646a265 } from '../../../src/components/FormattedFilesizeCell'
 import { ListWithSidebar as ListWithSidebar_327dcbf0e0ac59d2715531a201bf0d0e } from '../../../src/components/ListWithSidebar'
+import { ImportYoutubeButton as ImportYoutubeButton_d8bde3dec6525ed660b086bce6806aed } from '../../../src/components/ImportYoutubeButton'
 import { PreviewLink as PreviewLink_67606df83359e7f8b6b18048103c8d46 } from '../../../src/components/PreviewLink'
 import { SlideMoveSelect as SlideMoveSelect_8baa4b9e7496e22bb4860e63ba10750f } from '../../../src/components/SlideMoveSelect'
 import { ProgramTimelineField as ProgramTimelineField_ed72df1cc39618f1d109f0b7d1cbbae2 } from '../../../src/components/program-edit/ProgramTimelineField'
@@ -19,6 +20,7 @@ export const importMap = {
   "/components/DurationCell#DurationCell": DurationCell_a65bdf1fc80f44533c5d7292dd4d0d61,
   "/components/FormattedFilesizeCell#FormattedFilesizeCell": FormattedFilesizeCell_c7cd3958b74f4dc0249df3b07646a265,
   "/components/ListWithSidebar#ListWithSidebar": ListWithSidebar_327dcbf0e0ac59d2715531a201bf0d0e,
+  "/components/ImportYoutubeButton#ImportYoutubeButton": ImportYoutubeButton_d8bde3dec6525ed660b086bce6806aed,
   "/components/PreviewLink#PreviewLink": PreviewLink_67606df83359e7f8b6b18048103c8d46,
   "/components/SlideMoveSelect#SlideMoveSelect": SlideMoveSelect_8baa4b9e7496e22bb4860e63ba10750f,
   "/components/program-edit/ProgramTimelineField#ProgramTimelineField": ProgramTimelineField_ed72df1cc39618f1d109f0b7d1cbbae2,

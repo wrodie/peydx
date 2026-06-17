@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "node --import tsx server.ts",
     "generate:types": "payload generate:types",
+    "generate:importmap": "payload generate:importmap",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

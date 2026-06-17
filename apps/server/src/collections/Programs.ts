@@ -4,6 +4,7 @@ import { BlackScreenBlock } from '../blocks/BlackScreenBlock'
 import { SegmentBlock } from '../blocks/SegmentBlock'
 import { autoCreateSlides } from '../hooks/autoCreateSlides'
 import { moveSlides } from '../hooks/moveSlides'
+import { convertYoutubeBlocks } from '../hooks/convertYoutubeBlocks'
 import { programBeforeValidate } from '../hooks/programBeforeValidate'
 import { programAutoEndSlide } from '../hooks/programAutoEndSlide'
 import { getIO } from '../websocket/io'
@@ -96,6 +97,7 @@ export const Programs: CollectionConfig = {
         }
         await autoCreateSlides(args)
         await moveSlides(args)
+        await convertYoutubeBlocks(args)
         if (user && !data.createdBy) {
           data.createdBy = user.id
         }

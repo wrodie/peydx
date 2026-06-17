@@ -20,6 +20,7 @@ import { pushUpdate } from './endpoints/pushUpdate'
 import { serverStatus } from './endpoints/serverStatus'
 import { youtubeInfo } from './endpoints/youtubeInfo'
 import { timezone } from './endpoints/timezone'
+import { mediaImportYoutube } from './endpoints/mediaImportYoutube'
 import { externalApiEndpoints } from './endpoints/integrations'
 
 const filename = fileURLToPath(import.meta.url)
@@ -59,7 +60,7 @@ export default buildConfig({
     Integrations,
   ],
   globals: [ConfigGlobal],
-  endpoints: [deploy, heartbeat, pushUpdate, serverStatus, youtubeInfo, timezone, ...externalApiEndpoints],
+  endpoints: [deploy, heartbeat, pushUpdate, serverStatus, youtubeInfo, timezone, mediaImportYoutube, ...externalApiEndpoints],
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {

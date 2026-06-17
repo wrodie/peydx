@@ -27,6 +27,9 @@ No `.env.example` exists. Server requires:
 - `DATABASE_URI` — Postgres connection string
 - `PAYLOAD_SECRET` — Payload CMS secret
 
+Server optional:
+- `YOUTUBE_DOWNLOAD_ENABLED` — Set to `true` to enable YouTube → MP4 conversion via yt-dlp. Requires `yt-dlp` and `deno` binaries installed (both included in Docker image). When disabled, YouTube blocks use the iframe embed player.
+
 Docker Compose additionally requires: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
 
 Sync agent requires:

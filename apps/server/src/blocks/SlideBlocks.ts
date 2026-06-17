@@ -161,6 +161,16 @@ export const YoutubeBlock: Block = {
         description: 'Repeats the video until the slide transitions.',
       },
     },
+    {
+      name: 'convertToVideo',
+      type: 'checkbox',
+      label: 'Download & Convert to Video',
+      defaultValue: false,
+      admin: {
+        description: 'Download the YouTube video and store it as a local MP4 file. Uses yt-dlp on the server.',
+        condition: () => process.env.YOUTUBE_DOWNLOAD_ENABLED === 'true',
+      },
+    },
     getSlideMoveControl(),
   ],
 }
@@ -192,7 +202,17 @@ export const AudioBlock: Block = {
       label: 'Loop Media',
       defaultValue: false,
       admin: {
-        description: 'Repeats the audio until the slide transitions.',
+        description: 'Repeats the video until the slide transitions.',
+      },
+    },
+    {
+      name: 'convertToVideo',
+      type: 'checkbox',
+      label: 'Download & Convert to Video',
+      defaultValue: false,
+      admin: {
+        description: 'Download the YouTube video and store it as a local MP4 file. Uses yt-dlp on the server.',
+        condition: () => process.env.YOUTUBE_DOWNLOAD_ENABLED === 'true',
       },
     },
     getSlideMoveControl(),
