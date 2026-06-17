@@ -5,6 +5,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useState, type FC } from 'react'
 import { AddSlideMenu } from './AddSlideMenu'
 import { ImportProgramModal } from './ImportProgramModal'
+import { ExportPptxButton } from './ExportPptxButton'
 import { SlideCard } from './SlideCard'
 import { SegmentContainer } from './SegmentContainer'
 
@@ -96,6 +97,7 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
         >
           Import Program
         </button>
+        <ExportPptxButton />
       </div>
 
       <SortableContext items={topLevelIds} strategy={verticalListSortingStrategy}>
