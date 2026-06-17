@@ -312,10 +312,6 @@ export interface Program {
              */
             loop?: boolean | null;
             /**
-             * Download the YouTube video and store it as a local MP4 file. Uses yt-dlp on the server.
-             */
-            convertToVideo?: boolean | null;
-            /**
              * Move this slide to another segment or the top level on save.
              */
             _moveToSegment?: string | null;
@@ -335,10 +331,6 @@ export interface Program {
              * Repeats the video until the slide transitions.
              */
             loop?: boolean | null;
-            /**
-             * Download the YouTube video and store it as a local MP4 file. Uses yt-dlp on the server.
-             */
-            convertToVideo?: boolean | null;
             /**
              * Move this slide to another segment or the top level on save.
              */
@@ -441,10 +433,6 @@ export interface Program {
                        */
                       loop?: boolean | null;
                       /**
-                       * Download the YouTube video and store it as a local MP4 file. Uses yt-dlp on the server.
-                       */
-                      convertToVideo?: boolean | null;
-                      /**
                        * Move this slide to another segment or the top level on save.
                        */
                       _moveToSegment?: string | null;
@@ -464,10 +452,6 @@ export interface Program {
                        * Repeats the video until the slide transitions.
                        */
                       loop?: boolean | null;
-                      /**
-                       * Download the YouTube video and store it as a local MP4 file. Uses yt-dlp on the server.
-                       */
-                      convertToVideo?: boolean | null;
                       /**
                        * Move this slide to another segment or the top level on save.
                        */
@@ -852,7 +836,6 @@ export interface ProgramsSelect<T extends boolean = true> {
               advanceMode?: T;
               duration?: T;
               loop?: T;
-              convertToVideo?: T;
               _moveToSegment?: T;
               id?: T;
               blockName?: T;
@@ -865,7 +848,6 @@ export interface ProgramsSelect<T extends boolean = true> {
               advanceMode?: T;
               duration?: T;
               loop?: T;
-              convertToVideo?: T;
               _moveToSegment?: T;
               id?: T;
               blockName?: T;
@@ -923,7 +905,6 @@ export interface ProgramsSelect<T extends boolean = true> {
                           advanceMode?: T;
                           duration?: T;
                           loop?: T;
-                          convertToVideo?: T;
                           _moveToSegment?: T;
                           id?: T;
                           blockName?: T;
@@ -936,7 +917,6 @@ export interface ProgramsSelect<T extends boolean = true> {
                           advanceMode?: T;
                           duration?: T;
                           loop?: T;
-                          convertToVideo?: T;
                           _moveToSegment?: T;
                           id?: T;
                           blockName?: T;
