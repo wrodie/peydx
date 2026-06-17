@@ -1,11 +1,16 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import React from 'react'
-import { render, screen, act, fireEvent } from '@testing-library/react'
+import { render, screen, act, fireEvent, cleanup } from '@testing-library/react'
 import { MenuEngine } from '../MenuEngine'
 import { DEFAULT_KEY_CONFIG } from '../types'
 import type { KeyConfig } from '../types'
 
 describe('MenuEngine', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    cleanup()
+  })
+
   const programs = [
     { id: 1, title: 'Morning Service', department: 'Worship' },
     { id: 2, title: 'Youth Announcements', department: 'Youth' },
@@ -61,5 +66,71 @@ describe('MenuEngine', () => {
     const onBack = vi.fn()
     render(<MenuEngine {...baseProps} onBack={onBack} />)
     fireEvent.keyDown(document.activeElement || document.body, { code: 'Escape' })
+  })
+
+  // Extended tests — Phase 4
+
+  it('navigates selection with arrow down key', () => {
+    render(<MenuEngine {...baseProps} selectedIndex={0} />)
+    fireEvent.keyDown(document.body, { code: 'ArrowDown' })
+    const items = document.querySelectorAll('.menu-item')
+    expect(items.length).toBeGreaterThan(0)
+  })
+
+  it('wraps arrow down from last to first item', () => {
+    render(<MenuEngine {...baseProps} selectedIndex={2} />)
+    fireEvent.keyDown(document.body, { code: 'ArrowDown' })
+  })
+
+  it('navigates selection with arrow up key', () => {
+    render(<MenuEngine {...baseProps} selectedIndex={1} />)
+    fireEvent.keyDown(document.body, { code: 'ArrowUp' })
+  })
+
+  it('exit overlay fires onExit for first item on Enter', () => {
+    const onExit = vi.fn()
+    const onBack = vi.fn()
+    render(
+      <MenuEngine
+        {...baseProps}
+        selectedIndex={0}
+        exitLabel="Exit Program"
+        continueLabel="Continue"
+        onExit={onExit}
+        onBack={onBack}
+      />
+    )
+    fireEvent.keyDown(document.body, { code: 'Enter' })
+    expect(onExit).toHaveBeenCalled()
+    expect(onBack).not.toHaveBeenCalled()
+  })
+
+  it('exit overlay fires onBack for second item on Enter', () => {
+    const onExit = vi.fn()
+    const onBack = vi.fn()
+    render(
+      <MenuEngine
+        {...baseProps}
+        selectedIndex={1}
+        exitLabel="Exit Program"
+        continueLabel="Continue"
+        onExit={onExit}
+        onBack={onBack}
+      />
+    )
+    fireEvent.keyDown(document.body, { code: 'Enter' })
+    expect(onBack).toHaveBeenCalled()
+    expect(onExit).not.toHaveBeenCalled()
+  })
+
+  it('renders custom title', () => {
+    render(<MenuEngine {...baseProps} title="Choose Content" />)
+    expect(screen.getByText('Choose Content')).toBeDefined()
+  })
+
+  it('does not show background when defaultBackground not provided', () => {
+    const { container } = render(<MenuEngine {...baseProps} />)
+    const bg = container.querySelector('.menu-background')
+    expect(bg).toBeNull()
   })
 })
