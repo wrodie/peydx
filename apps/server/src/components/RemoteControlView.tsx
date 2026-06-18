@@ -48,6 +48,7 @@ export function RemoteControlView() {
   const [selectedProgramId, setSelectedProgramId] = useState<string>('')
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null)
   const selectedDeviceRef = useRef<any>(null)
+  const stripRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetch('/api/devices?depth=1&limit=100')
@@ -173,6 +174,15 @@ export function RemoteControlView() {
       .then((data) => setAvailablePrograms(data.docs || []))
       .catch(console.error)
   }, [selectedDeviceId, devices])
+
+  useEffect(() => {
+    if (stripRef.current && currentSlideIndex >= 0) {
+      const thumb = stripRef.current.children[currentSlideIndex] as HTMLElement
+      if (thumb) {
+        thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+      }
+    }
+  }, [currentSlideIndex])
 
   const { slides: flatSlides } = useMemo(
     () => currentProgram ? flattenProgram(currentProgram) : { slides: [] },
@@ -454,6 +464,7 @@ export function RemoteControlView() {
             </div>
 
             <div
+              ref={stripRef}
               style={{
                 display: 'flex',
                 gap: 8,
