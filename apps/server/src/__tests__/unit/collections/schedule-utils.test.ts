@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { timeOfDayMinutes, dateOnly, DAY_NAMES } from '../../../collections/schedule-utils'
+import { timeOfDayMinutes, dateOnly, dateRangesOverlap, DAY_NAMES } from '../../../collections/schedule-utils'
 
 describe('timeOfDayMinutes', () => {
   it('returns 0 for midnight UTC', () => {
