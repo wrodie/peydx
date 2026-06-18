@@ -130,7 +130,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const [availableEntries, setAvailableEntries] = useState<AvailabilityEntry[]>([])
     const [currentScheduleEntry, setCurrentScheduleEntry] = useState<{ program?: Program; endTime?: string } | null>(null)
     const [showPaused, setShowPaused] = useState(false)
-    const [currentTime, setCurrentTime] = useState(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+    const [currentTime, setCurrentTime] = useState('')
     const pausedRef = useRef(false)
     const flattenedSlidesRef = useRef<Slide[]>([])
 
@@ -360,8 +360,10 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       } else {
         setAvailableEntries(availablePrograms)
         if (currentState === 'playing' && currentScheduleEntryRef.current) {
-          if (availablePrograms.length > 0 && !scheduleData?.hideProgramList) {
-            transitionTo('menu', null, null, 0, availablePrograms)
+          if (availablePrograms.length > 0) {
+            if (!scheduleData?.hideProgramList) {
+              transitionTo('menu', null, null, 0, availablePrograms)
+            }
           } else {
             transitionTo('idle', null, null)
           }
@@ -438,6 +440,8 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
             setActiveProgram(null)
             setCurrentScheduleEntry(null)
             emitState('menu', undefined, 0)
+          } else if (availablePrograms.length > 0 && schedule?.hideProgramList) {
+            return
           } else {
             setActiveProgram(null)
             setCurrentScheduleEntry(null)
@@ -451,9 +455,9 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }, [playerState, currentScheduleEntry, emitState])
 
     useEffect(() => {
-      const interval = setInterval(() => {
-        setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
-      }, 30_000)
+      const tick = () => setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+      tick()
+      const interval = setInterval(tick, 30_000)
       return () => clearInterval(interval)
     }, [])
 
