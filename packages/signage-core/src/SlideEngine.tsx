@@ -61,6 +61,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const [videoError, setVideoError] = useState<string | null>(null)
     const [isEnded, setIsEnded] = useState(false)
     const [segmentLoopKey, setSegmentLoopKey] = useState(0)
+    const [, forceRender] = useState(0)
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const playerRef = useRef<any>(null)
@@ -70,26 +71,8 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const prevSegmentIdRef = useRef<string | null>(null)
     const programRef = useRef(program.id)
     const prevProgramIdRef = useRef(program.id)
-
-    useEffect(() => {
-      if (program.id !== prevProgramIdRef.current) {
-        prevProgramIdRef.current = program.id
-        programRef.current = program.id
-        setCurrentIndex(initialSlideIndex ?? 0)
-        setVideoError(null)
-        setIsEnded(false)
-        setSegmentLoopKey(0)
-        prevSegmentIdRef.current = null
-        if (timerRef.current) clearTimeout(timerRef.current)
-        if (segmentTimerRef.current) clearTimeout(segmentTimerRef.current)
-        try { playerRef.current?.destroy() } catch {}
-        playerRef.current = null
-        if (bgAudioRef.current) {
-          bgAudioRef.current.pause()
-          bgAudioRef.current.src = ''
-        }
-      }
-    }, [program.id, initialSlideIndex])
+    const outgoingRef = useRef<{ slide: Slide; index: number } | null>(null)
+    const outgoingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const slides = flattened.slides
 
@@ -102,6 +85,19 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
 
     const isLastSlide = slides.length > 0 && currentIndex >= slides.length - 1
     const effectiveProgramEnd = isLastSlide && (!segCtx || !(segCtx.loop || segCtx.advanceMode === 'manual'))
+
+    const setIndex = useCallback((newIndex: number) => {
+      const oldSlide = slides[currentIndex]
+      if (oldSlide && newIndex !== currentIndex) {
+        outgoingRef.current = { slide: oldSlide, index: currentIndex }
+        if (outgoingTimerRef.current) clearTimeout(outgoingTimerRef.current)
+        outgoingTimerRef.current = setTimeout(() => {
+          outgoingRef.current = null
+          forceRender(n => n + 1)
+        }, TRANSITION_DURATION)
+      }
+      setCurrentIndex(newIndex)
+    }, [slides, currentIndex])
 
     useLayoutEffect(() => {
       if (!slides?.length || !onProgramEnd) {
@@ -127,7 +123,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
 
       if (ctx) {
         if (isLastSlideInSegment && ctx.loop) {
-          setCurrentIndex(findSegmentStartIndex(slides, currentIndex, ctx))
+          setIndex(findSegmentStartIndex(slides, currentIndex, ctx))
           setSegmentLoopKey((k) => k + 1)
           setVideoError(null)
           return
@@ -141,25 +137,25 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       }
 
       if (currentIndex < slides.length - 1) {
-        setCurrentIndex(currentIndex + 1)
+        setIndex(currentIndex + 1)
       } else if (!onProgramEnd) {
-        setCurrentIndex(0)
+        setIndex(0)
       }
       setVideoError(null)
-    }, [slides, onProgramEnd, isEnded, currentIndex, isLastSlideInSegment])
+    }, [slides, onProgramEnd, isEnded, currentIndex, isLastSlideInSegment, setIndex])
 
     const doPrevSlide = useCallback(() => {
       if (isEnded || !slides?.length) return
-      setCurrentIndex((i) => (i > 0 ? i - 1 : slides.length - 1))
+      setIndex(currentIndex > 0 ? currentIndex - 1 : slides.length - 1)
       setVideoError(null)
-    }, [slides, isEnded])
+    }, [slides, isEnded, currentIndex, setIndex])
 
     const gotoSlide = useCallback((index: number) => {
       if (slides && index >= 0 && index < slides.length) {
-        setCurrentIndex(index)
+        setIndex(index)
         setVideoError(null)
       }
-    }, [slides])
+    }, [slides, setIndex])
 
     useImperativeHandle(ref, () => ({
       nextSlide: doNextSlide,
@@ -199,13 +195,11 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       const newSegId = segCtx?.segmentId ?? null
 
       if (newSegId !== prevSegmentIdRef.current) {
-        // Leaving previous segment
         if (prevSegmentIdRef.current && bgAudioRef.current) {
           bgAudioRef.current.pause()
           bgAudioRef.current.src = ''
         }
 
-        // Entering new segment with background audio
         if (newSegId && segCtx?.backgroundAudio?.url && bgAudioRef.current) {
           bgAudioRef.current.src = segCtx.backgroundAudio.url
           bgAudioRef.current.load()
@@ -214,7 +208,6 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
 
         prevSegmentIdRef.current = newSegId
       } else if (segmentLoopKey > 0 && newSegId && segCtx?.backgroundAudio?.url && bgAudioRef.current) {
-        // Segment looped, restart background audio
         bgAudioRef.current.pause()
         bgAudioRef.current.load()
         bgAudioRef.current.currentTime = 0
@@ -229,12 +222,11 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       if (segCtx?.advanceMode === 'timed' && segCtx?.duration) {
         const durationMs = segCtx.duration * 60 * 1000
         segmentTimerRef.current = setTimeout(() => {
-          // Find the index just after this segment
           const endIdx = getSegmentEndIndex(slides, currentIndex, segCtx)
           if (endIdx < slides.length - 1) {
-            setCurrentIndex(endIdx + 1)
+            setIndex(endIdx + 1)
           } else if (!onProgramEnd) {
-            setCurrentIndex(0)
+            setIndex(0)
           }
         }, durationMs)
       }
@@ -242,7 +234,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       return () => {
         if (segmentTimerRef.current) clearTimeout(segmentTimerRef.current)
       }
-    }, [currentIndex, slides, segCtx, onProgramEnd, segmentLoopKey])
+    }, [currentIndex, slides, segCtx, onProgramEnd, segmentLoopKey, setIndex])
 
     useEffect(() => {
       const nextCodes = normalizeKeyCode(keys.next)
@@ -327,137 +319,144 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     if (!currentSlide) return null
 
     const transition = currentSlide.transition || 'fade'
-    const slideMedia =
-      currentSlide.blockType === 'videoBlock'
-        ? resolveMedia(currentSlide.video)
-        : currentSlide.blockType === 'audioBlock'
-          ? resolveMedia(currentSlide.audio)
-          : resolveMedia(currentSlide.image)
-    const mediaUrl = slideMedia?.url ?? ''
-    const youtubeId = currentSlide.blockType === 'youtubeBlock' ? parseYouTubeId(currentSlide.youtubeId || '') : null
-    const youtubeBackdrop = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : null
+
+    function renderSlideContent(slide: Slide, slideIndex: number, isOutgoing: boolean) {
+      const sm = slide.blockType === 'videoBlock'
+        ? resolveMedia(slide.video)
+        : slide.blockType === 'audioBlock'
+          ? resolveMedia(slide.audio)
+          : resolveMedia(slide.image)
+      const mu = sm?.url ?? ''
+      const ytId = slide.blockType === 'youtubeBlock' ? parseYouTubeId(slide.youtubeId || '') : null
+      const ytBg = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null
+
+      if (slide.blockType === 'imageBlock') {
+        return (
+          <>
+            <img src={mu} className="slide-backdrop" alt="" aria-hidden="true" />
+            <img src={mu} className="slide-foreground" alt={sm?.alt || 'Slide'} />
+          </>
+        )
+      }
+      if (slide.blockType === 'videoBlock') {
+        if (isOutgoing) return null
+        return (
+          <>
+            <video
+              ref={videoRef}
+              src={mu}
+              autoPlay
+              muted
+              disableRemotePlayback
+              playsInline
+              loop={slide.loop || false}
+              onError={() => {
+                setVideoError('unknown format')
+                if (slide.advanceMode !== 'timed') {
+                  setTimeout(doNextSlide, 3000)
+                }
+              }}
+              onEnded={() => {
+                if (!slide.loop && slide.advanceMode === 'onEnd') doNextSlide()
+              }}
+              onPlaying={(e) => {
+                e.currentTarget.muted = false
+              }}
+              className="slide-foreground"
+              style={{ display: videoError ? 'none' : undefined }}
+            />
+            {videoError && (
+              <div className="slide-video-error">
+                <p>This video format is not supported in your browser.</p>
+                <p className="slide-video-error-detail">{videoError}</p>
+                <p className="slide-video-error-hint">Convert to MP4 (H.264) for best compatibility, or use a YouTube link.</p>
+              </div>
+            )}
+          </>
+        )
+      }
+      if (slide.blockType === 'youtubeBlock' && ytId) {
+        return (
+          <>
+            {ytBg && <img src={ytBg} className="slide-backdrop" alt="" aria-hidden="true" />}
+            <div id={`yt-player-${slideIndex}`} className="slide-youtube-embed" />
+          </>
+        )
+      }
+      if (slide.blockType === 'blackScreenBlock') {
+        return <div className="slide-stage" style={{ background: '#000' }} />
+      }
+      if (slide.blockType === 'audioBlock') {
+        return (
+          <>
+            {!isOutgoing && (
+              <audio
+                ref={audioRef}
+                src={mu}
+                autoPlay
+                muted
+                playsInline
+                loop={slide.loop || false}
+                onEnded={() => {
+                  if (!slide.loop && slide.advanceMode === 'onEnd') doNextSlide()
+                }}
+                onPlaying={(e) => {
+                  e.currentTarget.muted = false
+                }}
+              />
+            )}
+            <div
+              className="slide-stage"
+              style={{
+                background: '#000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg
+                className="slide-audio-icon"
+                viewBox="0 0 24 24"
+                fill="white"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M3 9v6h4l5 5V4L7 9H3zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+              </svg>
+            </div>
+          </>
+        )
+      }
+      return null
+    }
+
+    function renderSlideWrapper(slide: Slide, index: number, isOutgoing: boolean) {
+      const animName = slide.transition || 'fade'
+      return (
+        <div
+          key={isOutgoing ? `out-${index}` : index}
+          className="slide-slide-wrapper"
+          style={{
+            animation: isOutgoing
+              ? `signageFadeOut ${TRANSITION_DURATION}ms ease both`
+              : animName === 'fade'
+                ? `signageFadeIn ${TRANSITION_DURATION}ms ease both`
+                : animName === 'slide'
+                  ? `signageSlideIn ${TRANSITION_DURATION}ms ease both`
+                  : undefined,
+            opacity: !isOutgoing && animName !== 'fade' && animName !== 'slide' ? 1 : undefined,
+            zIndex: isOutgoing ? 1 : 2,
+          }}
+        >
+          {renderSlideContent(slide, index, isOutgoing)}
+        </div>
+      )
+    }
 
     return (
       <div className="slide-stage">
         <audio ref={bgAudioRef} style={{ display: 'none' }} loop />
-        <div
-          key={currentIndex}
-          className="slide-slide-wrapper"
-          style={{
-            animation:
-              transition === 'fade'
-                ? `signageFadeIn ${TRANSITION_DURATION}ms ease both`
-                : transition === 'slide'
-                  ? `signageSlideIn ${TRANSITION_DURATION}ms ease both`
-                  : undefined,
-            opacity: transition !== 'fade' && transition !== 'slide' ? 1 : undefined,
-          }}
-        >
-          {currentSlide.blockType === 'imageBlock' && (
-            <>
-              <img
-                src={mediaUrl}
-                className="slide-backdrop"
-                alt=""
-                aria-hidden="true"
-              />
-              <img
-                src={mediaUrl}
-                className="slide-foreground"
-                alt={slideMedia?.alt || 'Slide'}
-              />
-            </>
-          )}
-          {currentSlide.blockType === 'videoBlock' && (
-            <>
-              <video
-                ref={videoRef}
-                src={mediaUrl}
-                autoPlay
-                muted
-                disableRemotePlayback
-                playsInline
-                loop={currentSlide.loop || false}
-                onError={() => {
-                  setVideoError('unknown format')
-                  if (currentSlide.advanceMode !== 'timed') {
-                    setTimeout(doNextSlide, 3000)
-                  }
-                }}
-                onEnded={() => {
-                  if (!currentSlide.loop && currentSlide.advanceMode === 'onEnd') doNextSlide()
-                }}
-                onPlaying={(e) => {
-                  e.currentTarget.muted = false
-                }}
-                className="slide-foreground"
-                style={{ display: videoError ? 'none' : undefined }}
-              />
-              {videoError && (
-                <div className="slide-video-error">
-                  <p>This video format is not supported in your browser.</p>
-                  <p className="slide-video-error-detail">{videoError}</p>
-                  <p className="slide-video-error-hint">Convert to MP4 (H.264) for best compatibility, or use a YouTube link.</p>
-                </div>
-              )}
-            </>
-          )}
-          {currentSlide.blockType === 'youtubeBlock' && youtubeId && (
-            <>
-              {youtubeBackdrop && (
-                <img
-                  src={youtubeBackdrop}
-                  className="slide-backdrop"
-                  alt=""
-                  aria-hidden="true"
-                />
-              )}
-              <div
-                id={`yt-player-${currentIndex}`}
-                className="slide-youtube-embed"
-              />
-            </>
-          )}
-          {currentSlide.blockType === 'blackScreenBlock' && (
-            <div className="slide-stage" style={{ background: '#000' }} />
-          )}
-          {currentSlide.blockType === 'audioBlock' && (
-            <>
-              <audio
-                ref={audioRef}
-                src={mediaUrl}
-                autoPlay
-                muted
-                playsInline
-                loop={currentSlide.loop || false}
-                onEnded={() => {
-                  if (!currentSlide.loop && currentSlide.advanceMode === 'onEnd') doNextSlide()
-                }}
-                onPlaying={(e) => {
-                  e.currentTarget.muted = false
-                }}
-              />
-              <div
-                className="slide-stage"
-                style={{
-                  background: '#000',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <svg
-                  className="slide-audio-icon"
-                  viewBox="0 0 24 24"
-                  fill="white"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M3 9v6h4l5 5V4L7 9H3zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-                </svg>
-              </div>
-            </>
-          )}
-        </div>
+        {outgoingRef.current && transition === 'fade' && renderSlideWrapper(outgoingRef.current.slide, outgoingRef.current.index, true)}
+        {renderSlideWrapper(currentSlide, currentIndex, false)}
         {isEnded && (
           <div
             key="end-overlay"

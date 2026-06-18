@@ -117,6 +117,11 @@
   to   { opacity: 1; }
 }
 
+@keyframes signageFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
 @keyframes signageSlideIn {
   from { opacity: 0; transform: translateX(60px); }
   to   { opacity: 1; transform: translateX(0); }
