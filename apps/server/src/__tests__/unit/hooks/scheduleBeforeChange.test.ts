@@ -282,27 +282,25 @@ describe('scheduleBeforeChange', () => {
       }))
     })
 
-    it('startDate/untilDate prevents overlap', async () => {
+    it('untilDate prevents overlap for one-off schedules', async () => {
       const req = makeReq()
       req.payload.findByID.mockResolvedValue({ folder: { department: 10 } })
       req.payload.find.mockResolvedValue({
         docs: [{
           id: 2,
-          daysOfWeek: ['mon'],
+          daysOfWeek: [],
           startTime: '2025-06-15T09:00:00.000Z',
           endTime: '2025-06-15T10:00:00.000Z',
-          startDate: '2025-01-01',
-          untilDate: '2025-01-31',
+          untilDate: '2025-06-01',
           devices: [1],
         }],
       })
 
       const data = {
         startTime: '2025-06-15T09:00:00.000Z',
-        daysOfWeek: ['mon'],
+        daysOfWeek: [],
         devices: [1],
         program: 5,
-        startDate: '2025-06-01',
       }
       await expect(
         scheduleBeforeChange({ data, req, operation: 'create' } as any)

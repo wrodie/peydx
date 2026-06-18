@@ -9,7 +9,6 @@ function makeScheduleEntry(overrides: any = {}): ScheduleEntry {
     startTime: '2025-06-16T09:30:00.000Z',
     endTime: '2025-06-16T11:00:00.000Z',
     daysOfWeek: [],
-    startDate: null,
     untilDate: null,
     program: { id: 1, title: 'Test Program', slides: [] },
     ...overrides,

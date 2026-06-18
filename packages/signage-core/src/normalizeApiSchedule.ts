@@ -60,7 +60,6 @@ export function normalizeApiSchedule(
       startTime: entry.startTime,
       endTime: entry.endTime,
       daysOfWeek: entry.daysOfWeek || [],
-      startDate: entry.startDate,
       untilDate: entry.untilDate,
       program: mapProgram(entry, resolveUrl),
     })),

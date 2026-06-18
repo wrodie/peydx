@@ -68,7 +68,6 @@ function buildScheduleJson(scheduleItems, availabilityItems, backgroundUrl, devi
     startTime: item.startTime,
     endTime: item.endTime,
     daysOfWeek: item.daysOfWeek || [],
-    startDate: item.startDate || null,
     untilDate: item.untilDate || null,
     program: {
       id: item.program?.id,

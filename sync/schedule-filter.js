@@ -30,7 +30,6 @@ function filterActiveSchedule(items, timeZone, todayStr, dayName, now, graceHour
       if (startDateInTZ !== dateStr) return false
     }
 
-    if (item.startDate && item.startDate.slice(0, 10) > dateStr) return false
     if (item.untilDate && item.untilDate.slice(0, 10) < dateStr) return false
 
     const start = new Date(item.startTime)

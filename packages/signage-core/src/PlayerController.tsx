@@ -73,7 +73,6 @@ export function resolveScheduleState(
       if (stripTime(entry.startTime) !== today) continue
     }
 
-    if (entry.startDate && new Date(entry.startDate).toISOString().split('T')[0] > today) continue
     if (entry.untilDate && new Date(entry.untilDate).toISOString().split('T')[0] < today) continue
 
     const startMin = timeOfDayMinutes(entry.startTime)
@@ -108,7 +107,6 @@ function getNextAutoPlay(scheduleEntries: ScheduleEntry[]): ScheduleEntry | null
       if (stripTime(entry.startTime) !== today) continue
     }
 
-    if (entry.startDate && new Date(entry.startDate).toISOString().split('T')[0] > today) continue
     if (entry.untilDate && new Date(entry.untilDate).toISOString().split('T')[0] < today) continue
 
     const start = new Date(entry.startTime)

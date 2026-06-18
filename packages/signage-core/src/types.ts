@@ -82,7 +82,6 @@ export interface ScheduleEntry {
   startTime: string
   endTime?: string
   daysOfWeek: string[]
-  startDate?: string
   untilDate?: string
   program: Program
 }

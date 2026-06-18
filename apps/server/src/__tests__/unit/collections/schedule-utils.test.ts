@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { timeOfDayMinutes, dateOnly, dateRangesOverlap, DAY_NAMES } from '../../../collections/schedule-utils'
+import { timeOfDayMinutes, dateOnly, DAY_NAMES } from '../../../collections/schedule-utils'
 
 describe('timeOfDayMinutes', () => {
   it('returns 0 for midnight UTC', () => {
@@ -56,13 +56,6 @@ describe('dateRangesOverlap', () => {
       '2024-01-10T00:00:00Z', '2024-01-15T00:00:00Z',
       '2024-01-01T00:00:00Z', '2024-01-05T00:00:00Z'
     )).toBe(false)
-  })
-
-  it('handles null startDate as unbounded start (0)', () => {
-    expect(dateRangesOverlap(
-      null, '2024-01-10T00:00:00Z',
-      '2024-01-05T00:00:00Z', '2024-01-15T00:00:00Z'
-    )).toBe(true)
   })
 
   it('handles null untilDate as unbounded end (Infinity)', () => {

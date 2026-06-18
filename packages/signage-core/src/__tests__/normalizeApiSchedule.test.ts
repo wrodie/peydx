@@ -19,7 +19,6 @@ describe('normalizeApiSchedule', () => {
         startTime: '2025-06-15T09:00:00.000Z',
         endTime: '2025-06-15T10:00:00.000Z',
         daysOfWeek: ['mon'],
-        startDate: '2025-01-01',
         untilDate: '2025-12-31',
         devices: [{ id: 1 }],
       },

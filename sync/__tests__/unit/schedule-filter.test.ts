@@ -9,7 +9,6 @@ function makeScheduleItem(overrides: any = {}) {
     startTime: '2025-06-16T09:00:00.000Z',
     endTime: '2025-06-16T10:00:00.000Z',
     daysOfWeek: ['mon'],
-    startDate: null,
     untilDate: null,
     devices: [1],
     ...overrides,
@@ -62,18 +61,6 @@ describe('filterActiveSchedule', () => {
     })]
     const result = filterActiveSchedule(items, timeZone, todayStr, dayName, now)
     expect(result).toHaveLength(0)
-  })
-
-  it('startDate not yet reached is excluded', () => {
-    const items = [makeScheduleItem({ startDate: '2025-07-01' })]
-    const result = filterActiveSchedule(items, timeZone, todayStr, dayName, now)
-    expect(result).toHaveLength(0)
-  })
-
-  it('startDate reached is included', () => {
-    const items = [makeScheduleItem({ startDate: '2025-06-01' })]
-    const result = filterActiveSchedule(items, timeZone, todayStr, dayName, now)
-    expect(result).toHaveLength(1)
   })
 
   it('untilDate passed is excluded', () => {

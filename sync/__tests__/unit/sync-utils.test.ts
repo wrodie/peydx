@@ -135,7 +135,6 @@ describe('buildScheduleJson', () => {
         startTime: '2024-01-15T09:00:00Z',
         endTime: '2024-01-15T10:00:00Z',
         daysOfWeek: ['mon'],
-        startDate: '2024-01-01T00:00:00Z',
         untilDate: '2024-12-31T00:00:00Z',
       },
     ]

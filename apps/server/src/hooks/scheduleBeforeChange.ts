@@ -1,5 +1,5 @@
 import type { CollectionBeforeChangeHook } from 'payload'
-import { timeOfDayMinutes, dateOnly, dateRangesOverlap, DAY_NAMES } from '../collections/schedule-utils'
+import { timeOfDayMinutes, dateOnly, DAY_NAMES } from '../collections/schedule-utils'
 
 const ONE_HOUR = 60 * 60 * 1000
 
@@ -105,18 +105,13 @@ export const scheduleBeforeChange: CollectionBeforeChangeHook = async ({ data, r
       const timesOverlap = startMinA < endMinB && endMinA > startMinB
       if (!timesOverlap) continue
 
-      const sdA = data.startDate || null
       const untilA = data.untilDate || null
-      const sdB = entry.startDate || null
       const untilB = entry.untilDate || null
-      const datesOverlap = dateRangesOverlap(sdA, untilA, sdB, untilB)
-      if (!datesOverlap) continue
 
       if (isOneOff || entryIsOneOff) {
         if (isOneOff) {
           const dateA = dateOnly(data.startTime)
           const dateATs = new Date(dateA).getTime()
-          if (sdB && dateATs < new Date(sdB).getTime()) continue
           if (untilB && dateATs > new Date(untilB).getTime()) continue
           if (!entryIsOneOff) {
             const dayName = DAY_NAMES[new Date(dateA).getUTCDay()]
@@ -126,7 +121,6 @@ export const scheduleBeforeChange: CollectionBeforeChangeHook = async ({ data, r
         if (entryIsOneOff) {
           const dateB = dateOnly(entry.startTime)
           const dateBTs = new Date(dateB).getTime()
-          if (sdA && dateBTs < new Date(sdA).getTime()) continue
           if (untilA && dateBTs > new Date(untilA).getTime()) continue
           if (!isOneOff) {
             const dayName = DAY_NAMES[new Date(dateB).getUTCDay()]

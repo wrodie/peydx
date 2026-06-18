@@ -572,10 +572,6 @@ export const externalApiEndpoints = [
 
         if (!isOneOff && !daysOfWeek.includes(dayName)) return false
 
-        if (s.startDate) {
-          const sd = new Date(s.startDate).getTime()
-          if (to < new Date(sd)) return false
-        }
         if (s.untilDate) {
           const ud = new Date(s.untilDate).getTime()
           if (from > new Date(ud)) return false

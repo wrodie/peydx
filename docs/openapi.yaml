@@ -556,10 +556,6 @@ components:
         endTime:
           type: string
           format: date-time
-        startDate:
-          type: string
-          format: date
-          nullable: true
         untilDate:
           type: string
           format: date

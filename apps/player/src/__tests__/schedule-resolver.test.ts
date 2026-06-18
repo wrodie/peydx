@@ -21,7 +21,6 @@ describe('normalizeApiSchedule', () => {
         startTime: '2024-01-15T09:00:00Z',
         endTime: '2024-01-15T10:00:00Z',
         daysOfWeek: [],
-        startDate: null,
         untilDate: null,
       },
     ],
@@ -172,7 +171,6 @@ describe('resolveScheduleState', () => {
       startTime: '2024-01-15T12:00:00Z',
       endTime: '2024-01-15T13:00:00Z',
       daysOfWeek: ['mon'],
-      startDate: '2024-01-01T00:00:00Z',
       untilDate: '2024-12-31T00:00:00Z',
       program: { id: 1, title: 'Test', slides: [] },
     }
@@ -211,7 +209,6 @@ describe('resolveScheduleState', () => {
         startTime: `${day}T${startHour}:00:00Z`,
         endTime: `${day}T${endHour}:00:00Z`,
         daysOfWeek: [todayDay],
-        startDate: undefined,
         untilDate: undefined,
         program: { id: 1, title: 'Test', slides: [] },
       }],
@@ -264,25 +261,6 @@ describe('resolveScheduleState', () => {
     expect(result.activeAutoPlay).toBeNull()
   })
 
-  it('filters by startDate range', () => {
-    const now = new Date()
-    const day = now.toISOString().split('T')[0]
-    const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
-    const futureDay = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    const schedule: ResolvedSchedule = {
-      lastUpdated: now.toISOString(),
-      schedule: [makeEntry({
-        startTime: `${day}T12:00:00Z`,
-        endTime: `${day}T13:00:00Z`,
-        daysOfWeek: [DAY_NAMES[now.getUTCDay()]],
-        startDate: futureDay,
-      })],
-      availability: [],
-    }
-    const result = resolveScheduleState(schedule.schedule, schedule.availability)
-    expect(result.activeAutoPlay).toBeNull()
-  })
-
   it('filters by untilDate range', () => {
     const now = new Date()
     const day = now.toISOString().split('T')[0]
@@ -316,7 +294,6 @@ describe('resolveScheduleState', () => {
         startTime: `${day}T${hours}:${mins}:00Z`,
         endTime: `${day}T23:59:00Z`,
         daysOfWeek: [DAY_NAMES[now.getUTCDay()]],
-        startDate: undefined,
         untilDate: undefined,
       })],
       availability: [],
@@ -339,7 +316,6 @@ describe('resolveScheduleState', () => {
         startTime: `${day}T00:00:00Z`,
         endTime: `${day}T${hours}:${mins}:00Z`,
         daysOfWeek: [DAY_NAMES[now.getUTCDay()]],
-        startDate: undefined,
         untilDate: undefined,
       })],
       availability: [],

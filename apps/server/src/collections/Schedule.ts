@@ -117,7 +117,7 @@ export const Schedule: CollectionConfig = {
         { label: 'Sunday', value: 'sun' },
       ],
       admin: {
-        description: 'Leave empty for a one-off event. Select days for weekly recurrence.',
+        description: 'Leave empty for a one-off event on the startTime date. Select days for weekly recurrence.',
       },
     },
     {
@@ -129,7 +129,7 @@ export const Schedule: CollectionConfig = {
           pickerAppearance: 'dayAndTime',
           timeIntervals: 15,
         },
-        description: 'For a one-off event, select the exact date and time. For recurring, the date sets the first occurrence (time-of-day is used each week).',
+        description: 'The date and time the program starts. For recurring schedules (daysOfWeek set), only the time-of-day is used — the date is ignored.',
       },
     },
     {
@@ -140,17 +140,7 @@ export const Schedule: CollectionConfig = {
           pickerAppearance: 'dayAndTime',
           timeIntervals: 15,
         },
-        description: 'Defaults to 1 hour after start time.',
-      },
-    },
-    {
-      name: 'startDate',
-      type: 'date',
-      admin: {
-        date: {
-          pickerAppearance: 'dayOnly',
-        },
-        description: 'Schedule becomes active on this date. Leave blank to use the startTime date.',
+        description: 'When the program stops. Defaults to 1 hour after startTime.',
       },
     },
     {
@@ -160,7 +150,7 @@ export const Schedule: CollectionConfig = {
         date: {
           pickerAppearance: 'dayOnly',
         },
-        description: 'Schedule ends on this date. Leave blank for indefinite recurrence.',
+        description: 'Optional end date for the schedule. Leave blank for indefinite recurrence. Useful for seasonal schedules (e.g., Christmas program ending Dec 25).',
       },
     },
     {
