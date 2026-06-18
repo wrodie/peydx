@@ -350,6 +350,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
                 : transition === 'slide'
                   ? `signageSlideIn ${TRANSITION_DURATION}ms ease both`
                   : undefined,
+            opacity: transition !== 'fade' && transition !== 'slide' ? 1 : undefined,
           }}
         >
           {currentSlide.blockType === 'imageBlock' && (
