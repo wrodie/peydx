@@ -197,6 +197,14 @@ export const Devices: CollectionConfig = {
       },
     },
     {
+      name: 'hideProgramList',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'When enabled, the list of available programs is not shown on the device. It will only play auto-scheduled programs.',
+      },
+    },
+    {
       name: 'updateAction',
       type: 'ui',
       admin: {

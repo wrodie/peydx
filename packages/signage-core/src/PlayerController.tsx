@@ -130,6 +130,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const [availableEntries, setAvailableEntries] = useState<AvailabilityEntry[]>([])
     const [currentScheduleEntry, setCurrentScheduleEntry] = useState<{ program?: Program; endTime?: string } | null>(null)
     const [showPaused, setShowPaused] = useState(false)
+    const [currentTime, setCurrentTime] = useState(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
     const pausedRef = useRef(false)
     const flattenedSlidesRef = useRef<Slide[]>([])
 
@@ -212,7 +213,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }, [])
     const handleProgramEnd = useCallback(() => {
       const { availablePrograms } = getResolvedState()
-      if (availablePrograms.length > 0) {
+      if (availablePrograms.length > 0 && !scheduleDataRef.current?.hideProgramList) {
         setAvailableEntries(availablePrograms)
         setMenuIndex(0)
         setPlayerState('menu')
@@ -239,6 +240,8 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         return
       }
 
+      if (scheduleDataRef.current?.hideProgramList) return
+
       const { availablePrograms } = getResolvedState()
       const programTitles = availablePrograms.map((e) => ({ id: e.programId, title: e.program.title, department: e.program.department ?? undefined }))
       const menuPrograms = programTitles
@@ -257,7 +260,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       setShowExitOverlay(false)
 
       const { availablePrograms } = getResolvedState()
-      if (availablePrograms.length > 0) {
+      if (availablePrograms.length > 0 && !scheduleDataRef.current?.hideProgramList) {
         setAvailableEntries(availablePrograms)
         setMenuIndex(0)
         setPlayerState('menu')
@@ -357,13 +360,17 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       } else {
         setAvailableEntries(availablePrograms)
         if (currentState === 'playing' && currentScheduleEntryRef.current) {
-          if (availablePrograms.length > 0) {
+          if (availablePrograms.length > 0 && !scheduleData?.hideProgramList) {
             transitionTo('menu', null, null, 0, availablePrograms)
           } else {
             transitionTo('idle', null, null)
           }
         } else if (currentState === 'idle' && availablePrograms.length > 0) {
-          transitionTo('menu', null, null, 0, availablePrograms)
+          if (scheduleData?.hideProgramList) {
+            transitionTo('idle', null, null)
+          } else {
+            transitionTo('menu', null, null, 0, availablePrograms)
+          }
         }
       }
     }, [scheduleData, transitionTo])
@@ -422,8 +429,9 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
 
       const interval = setInterval(() => {
         if (new Date() >= new Date(currentScheduleEntry.endTime!)) {
-          const { availablePrograms } = resolveScheduleState(scheduleDataRef.current?.schedule ?? [], scheduleDataRef.current?.availability ?? [])
-          if (availablePrograms.length > 0) {
+          const schedule = scheduleDataRef.current
+          const { availablePrograms } = resolveScheduleState(schedule?.schedule ?? [], schedule?.availability ?? [])
+          if (availablePrograms.length > 0 && !schedule?.hideProgramList) {
             setAvailableEntries(availablePrograms)
             setMenuIndex(0)
             setPlayerState('menu')
@@ -441,6 +449,13 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
 
       return () => clearInterval(interval)
     }, [playerState, currentScheduleEntry, emitState])
+
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+      }, 30_000)
+      return () => clearInterval(interval)
+    }, [])
 
     useEffect(() => {
       return () => clearMenuTimeout()
@@ -524,16 +539,15 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }
 
     return (
-      <div className="slide-stage" style={{ position: 'relative' }}>
-        {scheduleData?.defaultBackground ? (
-          <img
-            src={scheduleData.defaultBackground}
-            style={{ position: 'absolute', inset: 0, maxWidth: '100%', maxHeight: '100%', margin: 'auto', objectFit: 'contain', pointerEvents: 'none' }}
-            alt=""
-          />
-        ) : (
-          <div className="slide-status-text">No program scheduled</div>
+      <div className="menu-overlay">
+        {scheduleData?.defaultBackground && (
+          <img src={scheduleData.defaultBackground} className="menu-background" alt="" />
         )}
+        <div className="menu-overlay-bg" />
+        <div className="menu-top-bar">
+          <span className="menu-top-bar-left">{scheduleData?.deviceName || 'Signage'}</span>
+          <span className="menu-top-bar-right">{currentTime}</span>
+        </div>
       </div>
     )
   },

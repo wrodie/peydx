@@ -8,6 +8,8 @@
   user-select: none;
   font-family: system-ui, sans-serif;
   color: #fff;
+  background: #000;
+  overflow: hidden;
 }
 
 .menu-background {

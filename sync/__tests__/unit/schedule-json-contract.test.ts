@@ -44,7 +44,7 @@ describe('schedule.json contract', () => {
     },
   ]
 
-  const output = buildScheduleJson(validScheduleItems, validAvailabilityItems, '/bg.jpg', 'TV-1')
+  const output = buildScheduleJson(validScheduleItems, validAvailabilityItems, '/bg.jpg', 'TV-1', false)
 
   it('contains required top-level fields', () => {
     expect(output).toHaveProperty('lastUpdated')
@@ -52,6 +52,7 @@ describe('schedule.json contract', () => {
     expect(output).toHaveProperty('availability')
     expect(output).toHaveProperty('defaultBackground')
     expect(output).toHaveProperty('deviceName')
+    expect(output).toHaveProperty('hideProgramList')
   })
 
   it('each schedule entry has required fields', () => {

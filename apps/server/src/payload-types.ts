@@ -541,6 +541,10 @@ export interface Device {
    * Image shown centered on black when no program is running.
    */
   defaultBackground?: (number | null) | Media;
+  /**
+   * When enabled, the list of available programs is not shown on the device. It will only play auto-scheduled programs.
+   */
+  hideProgramList?: boolean | null;
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -1022,6 +1026,7 @@ export interface DevicesSelect<T extends boolean = true> {
   status?: T;
   browserToken?: T;
   defaultBackground?: T;
+  hideProgramList?: T;
   updatedAt?: T;
   createdAt?: T;
   enableAPIKey?: T;

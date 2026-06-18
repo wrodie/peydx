@@ -43,18 +43,21 @@ export function createCmsProvider(deviceId: string, token: string): DeviceProvid
 
       let bgUrl: string | null = null
       let deviceName: string | null = null
+      let hideProgramList: boolean = false
       try {
         const deviceRes = await fetch(`/api/devices/${deviceId}?depth=1`, { headers: authHeaders })
         const device = await deviceRes.json()
         const bg = device?.defaultBackground
         bgUrl = bg ? (bg.sizes?.fullHD?.url || bg.url || null) : null
         deviceName = device?.name || null
+        hideProgramList = device?.hideProgramList || false
       } catch {}
 
       return normalizeApiSchedule(scheduleData, programsData, {
         deviceId,
         defaultBackgroundUrl: bgUrl,
         deviceName,
+        hideProgramList,
         resolveMediaUrl,
       })
     },

@@ -143,6 +143,7 @@ async function resolveDevice() {
     id: device.id,
     name: device.name || null,
     defaultBackground: device.defaultBackground || null,
+    hideProgramList: device.hideProgramList || false,
   };
 }
 
@@ -155,6 +156,7 @@ async function sync() {
     const numericId = device.id;
     const deviceName = device.name;
     const defaultBgId = device.defaultBackground;
+    const hideProgramList = device.hideProgramList;
 
     t0 = Date.now();
     const auth = { headers: { Authorization: `devices API-Key ${API_KEY}` } };
@@ -369,7 +371,7 @@ async function sync() {
     }
 
     // Phase 3: Rewrite schedule with local URLs
-    let scheduleChanged = writeScheduleAtomically(buildScheduleJson(activeSchedule, activeAvailability, defaultBackgroundUrl, deviceName));
+    let scheduleChanged = writeScheduleAtomically(buildScheduleJson(activeSchedule, activeAvailability, defaultBackgroundUrl, deviceName, hideProgramList));
     if (scheduleChanged) {
       console.log(ts('[sync] Schedule rewritten with local URLs'));
     }

@@ -153,7 +153,7 @@ describe('buildScheduleJson', () => {
       },
     ]
 
-    const result = buildScheduleJson(scheduleItems, availabilityItems, '/local-media/bg.jpg', 'Lobby TV')
+    const result = buildScheduleJson(scheduleItems, availabilityItems, '/local-media/bg.jpg', 'Lobby TV', false)
 
     expect(result.lastUpdated).toBeTruthy()
     expect(result.schedule).toHaveLength(1)
@@ -171,14 +171,16 @@ describe('buildScheduleJson', () => {
 
     expect(result.defaultBackground).toBe('/local-media/bg.jpg')
     expect(result.deviceName).toBe('Lobby TV')
+    expect(result.hideProgramList).toBe(false)
   })
 
   it('handles empty input', () => {
-    const result = buildScheduleJson([], [], null, null)
+    const result = buildScheduleJson([], [], null, null, false)
     expect(result.schedule).toEqual([])
     expect(result.availability).toEqual([])
     expect(result.defaultBackground).toBeNull()
     expect(result.deviceName).toBeNull()
+    expect(result.hideProgramList).toBe(false)
   })
 })
 

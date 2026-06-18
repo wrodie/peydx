@@ -61,7 +61,7 @@ function resolveSlideMedia(slide) {
   return resolved
 }
 
-function buildScheduleJson(scheduleItems, availabilityItems, backgroundUrl, deviceName) {
+function buildScheduleJson(scheduleItems, availabilityItems, backgroundUrl, deviceName, hideProgramList) {
   const schedule = scheduleItems.map(item => ({
     programId: item.program?.id,
     scheduleType: 'autoplay',
@@ -98,6 +98,7 @@ function buildScheduleJson(scheduleItems, availabilityItems, backgroundUrl, devi
     availability,
     defaultBackground: backgroundUrl || null,
     deviceName: deviceName || null,
+    hideProgramList: hideProgramList || false,
   }
 }
 

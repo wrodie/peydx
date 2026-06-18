@@ -5,6 +5,7 @@ export interface NormalizeApiScheduleOptions {
   deviceId?: string | number | null
   defaultBackgroundUrl?: string | null
   deviceName?: string | null
+  hideProgramList?: boolean
   resolveMediaUrl?: (url: string) => string
 }
 
@@ -28,7 +29,7 @@ export function normalizeApiSchedule(
   programsData?: any,
   options: NormalizeApiScheduleOptions = {},
 ): ResolvedSchedule {
-  const { deviceId, defaultBackgroundUrl, deviceName, resolveMediaUrl } = options
+  const { deviceId, defaultBackgroundUrl, deviceName, hideProgramList, resolveMediaUrl } = options
   const resolveUrl = resolveMediaUrl ?? ((url: string) => url)
 
   const scheduleDocs = apiData?.docs || []
@@ -66,5 +67,6 @@ export function normalizeApiSchedule(
     availability,
     defaultBackground: defaultBackgroundUrl || null,
     deviceName: deviceName || null,
+    hideProgramList: hideProgramList || false,
   }
 }

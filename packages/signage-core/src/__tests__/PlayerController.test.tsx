@@ -37,7 +37,7 @@ describe('PlayerController', () => {
 
   it('renders idle state when no schedule data', () => {
     render(<PlayerController scheduleData={null} />)
-    expect(screen.getByText('No program scheduled')).toBeTruthy()
+    expect(screen.getByText('Signage')).toBeTruthy()
   })
 
   it('renders menu state when availability exists but no active autoplay', () => {
@@ -138,7 +138,7 @@ describe('PlayerController', () => {
       // initial program was already consumed — falls through to normal resolution
       // With empty schedule+availability, should go to idle
       expect(screen.queryByAltText('Slide 0')).toBeNull()
-      expect(screen.getByText('No program scheduled')).toBeTruthy()
+      expect(screen.getByText('Test')).toBeTruthy()
     })
   })
 })

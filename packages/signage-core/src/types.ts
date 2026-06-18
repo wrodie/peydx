@@ -100,6 +100,7 @@ export interface ResolvedSchedule {
   availability: AvailabilityEntry[]
   defaultBackground?: string | null
   deviceName?: string | null
+  hideProgramList?: boolean
 }
 
 export interface KeyConfig {
