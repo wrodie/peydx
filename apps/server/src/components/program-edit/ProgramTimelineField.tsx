@@ -22,6 +22,7 @@ const newSlideDefaults: Record<string, any> = {
     blockType: 'imageBlock',
     transition: 'fade',
     advanceMode: 'manual',
+    duration: 5,
   },
   videoBlock: {
     blockType: 'videoBlock',

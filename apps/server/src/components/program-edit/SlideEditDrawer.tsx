@@ -60,7 +60,7 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
 
   useEffect(() => {
     if (slide) {
-      setLocalSlide({ ...slide })
+      setLocalSlide({ ...slide, duration: slide.duration ?? 5 })
       setDirty(false)
     }
   }, [slide, isOpen])
@@ -113,6 +113,9 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
       const next = { ...prev, [name]: value }
       if (name === 'advanceMode' && value !== 'timed') {
         next.duration = undefined
+      }
+      if (name === 'advanceMode' && value === 'timed' && !prev.duration) {
+        next.duration = 5
       }
       return next
     })
@@ -272,7 +275,7 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
             </label>
             <input
               type="number"
-              value={localSlide.duration || 5}
+              value={localSlide.duration}
               onChange={(e) => updateField('duration', Number(e.target.value))}
               min={1}
               style={{
