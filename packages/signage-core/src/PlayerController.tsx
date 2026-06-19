@@ -286,10 +286,10 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
 
     const selectProgram = useCallback(
       (programId: number, slideIndex: number = 0) => {
-        const entry = scheduleDataRef.current?.schedule?.find((e) => e.programId === programId)
-          || scheduleDataRef.current?.availability?.find((e) => e.programId === programId)
+        const entry = scheduleDataRef.current?.availability?.find((e) => e.programId === programId)
+          || scheduleDataRef.current?.schedule?.find((e) => e.programId === programId)
         if (entry) {
-          transitionTo('playing', entry.program, entry, 0, undefined, slideIndex)
+          transitionTo('playing', entry.program, null, 0, undefined, slideIndex)
         }
       },
       [transitionTo],
