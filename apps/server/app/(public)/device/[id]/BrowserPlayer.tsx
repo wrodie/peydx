@@ -75,7 +75,7 @@ export function BrowserPlayer({ id, token }: Props) {
   useRemoteControl(socketRef.current, controllerRef)
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: 'black' }}>
+    <div style={{ background: 'black' }}>
       <PlayerController
         ref={controllerRef}
         scheduleData={scheduleData}
