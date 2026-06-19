@@ -133,6 +133,23 @@ export function App() {
     return () => window.removeEventListener('popstate', handler)
   }, [])
 
+  // Version self-check: reload if a new build is deployed
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await fetch('/version.json')
+        if (!res.ok) return
+        const { hash } = await res.json()
+        if (hash && hash !== __GIT_HASH__) {
+          window.location.reload()
+        }
+      } catch {}
+    }
+    check()
+    const interval = setInterval(check, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
+
   if (!provider) {
     return (
       <div style={{ width: '100vw', height: '100vh', background: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>

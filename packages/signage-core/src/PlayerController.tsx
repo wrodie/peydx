@@ -373,6 +373,14 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           } else {
             transitionTo('menu', null, null, 0, availablePrograms)
           }
+        } else if (currentState === 'menu') {
+          if (scheduleData?.hideProgramList) {
+            transitionTo('idle', null, null)
+          } else if (availablePrograms.length > 0) {
+            transitionTo('menu', null, null, 0, availablePrograms)
+          } else {
+            transitionTo('idle', null, null)
+          }
         }
       }
     }, [scheduleData, transitionTo])

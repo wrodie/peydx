@@ -68,6 +68,7 @@ React + Vite single-page application. Detects its mode from URL parameters:
 - **Hardware mode** (default) — connects to the local sync agent via WebSocket and fetches `schedule.json` for fully offline playback.
 - **Browser mode** (`?id=X&token=Y`) — connects directly to the CMS via WebSocket and fetches programs from the API. Requires internet.
   - Both modes accept optional `&program=<id>&slide=<index>` to automatically load an available program at a specific slide on startup.
+- **Version self-check** — on build, `dist/version.json` is written with the current git hash. The player polls this file every 5 minutes and reloads if the hash differs, picking up new code without manual refresh.
 
 ### Signage Core (`packages/signage-core/`)
 
@@ -176,6 +177,8 @@ sequenceDiagram
     CMS->>DEV: remote:update { version }
     DEV->>CMS: Pull new image from registry, restart container
 ```
+
+> **Browser devices** do not receive `remote:update`. Instead, the standalone player polls `/version.json` every 5 minutes and reloads when the git hash changes, picking up a new build without manual refresh. The `version.json` file is written during `vite build` by a Vite plugin that embeds `git rev-parse HEAD` into both the build output and the `__GIT_HASH__` compile-time constant.
 
 ## Authentication Flow
 

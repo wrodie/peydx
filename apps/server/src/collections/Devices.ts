@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { getIO } from '../websocket/io'
 
 export const Devices: CollectionConfig = {
   slug: 'devices',
@@ -47,6 +48,36 @@ export const Devices: CollectionConfig = {
           }
         }
         return data
+      },
+    ],
+    afterChange: [
+      async ({ doc, previousDoc, operation }) => {
+        if (operation !== 'update') return
+
+        const io = getIO()
+        if (!io) return
+
+        const d = doc as any
+        const p = previousDoc as any
+
+        function id(v: any): number | undefined {
+          if (v == null) return undefined
+          return typeof v === 'object' ? Number(v.id) : Number(v)
+        }
+        function ids(arr: any[]): string {
+          return (arr || []).map((v: any) => (typeof v === 'object' ? v.id : v)).sort((a: number, b: number) => a - b).join(',')
+        }
+
+        const changed = (
+          d.hideProgramList !== p?.hideProgramList ||
+          d.name !== p?.name ||
+          d.deviceType !== p?.deviceType ||
+          id(d.defaultBackground) !== id(p?.defaultBackground) ||
+          ids(d.departments) !== ids(p?.departments)
+        )
+        if (!changed) return
+
+        io.to(`device:${d.id}`).emit('schedule:update', {} as any)
       },
     ],
   },
