@@ -395,6 +395,7 @@ async function handleDevicePauseChange(
 
 app.prepare().then(async () => {
   const payload = await initPayload({ config })
+  await payload.migrate()
   setPayload(payload)
 
   const httpServer = createServer(async (req, res) => {
