@@ -106,11 +106,12 @@ Replace the values with your own secure credentials. `your-secure-password` must
 docker compose up -d --build
 ```
 
-This starts three containers:
+This starts four containers:
 
 - **payload-db** — PostgreSQL 16 database
-- **payload-cms** — Payload CMS application (Next.js on port 3000, internal only)
-- **nginx** — Reverse proxy with SSL termination (ports 80 and 443)
+- **payload-cms** — Payload CMS application (internal only, proxied through nginx)
+- **nginx** — Reverse proxy (port 80, plus Docker registry on port 5050)
+- **registry** — Docker registry for sync-agent images (internal only, proxied through nginx on port 5050)
 
 Verify all containers are running:
 
@@ -118,13 +119,13 @@ Verify all containers are running:
 docker compose ps
 ```
 
-### 4. Configure SSL / External Access
+You should be able to access the CMS immediately on port 80 (e.g., `http://192.168.1.100/admin` or `http://your-server-ip/admin`).
 
-You have two options for securing external access to the CMS:
+### 4. Configure External Access (Optional)
 
-#### Option A: Cloudflare Tunnel (Recommended)
+For local/LAN access, the CMS is already available on port 80. To make it available on the internet with HTTPS, use a Cloudflare Tunnel — this provides secure access without opening any inbound ports on your server, with automatic HTTPS and DDoS protection.
 
-Cloudflare Tunnel provides secure access without opening any inbound ports on your server. All traffic is proxied through Cloudflare's network with automatic HTTPS.
+#### Cloudflare Tunnel Setup
 
 1. Install `cloudflared`:
 
@@ -163,94 +164,22 @@ ingress:
 cloudflared tunnel route dns peydx cms.yourchurch.org
 ```
 
-6. Run the tunnel (as a service for persistence):
+6. Run the tunnel as a persistent service:
 
 ```bash
 sudo cloudflared service install
 ```
 
-7. Update Nginx configuration. Since Cloudflare handles TLS termination, edit `nginx/conf.d/default.conf` to listen only on port 80 (remove the HTTPS server block). Also add rate limiting and the registry proxy:
+7. Update your `.env` file to set `CORS_ORIGIN` to your domain:
 
-```nginx
-limit_req_zone $binary_remote_addr zone=api:10m rate=30r/m;
-limit_req_zone $binary_remote_addr zone=strict:10m rate=10r/m;
-
-server {
-    listen 80;
-    server_name cms.yourchurch.org;
-
-    location /api/youtube-info {
-        limit_req zone=strict burst=5 nodelay;
-        proxy_pass http://payload-cms:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /api/timezone {
-        limit_req zone=strict burst=5 nodelay;
-        proxy_pass http://payload-cms:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /api/ws {
-        proxy_pass http://payload-cms:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 86400;
-    }
-
-    location /api/ {
-        limit_req zone=api burst=20 nodelay;
-        proxy_pass http://payload-cms:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location / {
-        proxy_pass http://payload-cms:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 86400;
-    }
-}
-
-server {
-    listen 5050;
-    server_name _;
-
-    allow 10.0.0.0/8;
-    allow 172.16.0.0/12;
-    allow 192.168.0.0/16;
-    deny all;
-
-    client_max_body_size 0;
-
-    location / {
-        proxy_pass http://registry:5000;
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
+```env
+CORS_ORIGIN=https://cms.yourchurch.org
 ```
 
-8. Restart Nginx:
+8. Restart the CMS to pick up the new CORS origin:
 
 ```bash
-docker compose restart nginx
+docker compose restart payload-cms
 ```
 
 Benefits of Cloudflare Tunnel:
@@ -259,37 +188,16 @@ Benefits of Cloudflare Tunnel:
 - Built-in DDoS protection
 - No certificate renewal to manage
 
-#### Option B: Local Nginx with Let's Encrypt
+#### Alternative: Direct Access with Let's Encrypt
 
-If you prefer direct access with ports 80/443 open:
+If you prefer direct access without Cloudflare, you can add SSL termination to nginx:
 
-1. Ensure your domain DNS points to the server's public IP.
-2. The default `nginx/conf.d/default.conf` is pre-configured for HTTPS with Let's Encrypt. Replace `cms.yourchurch.org` with your domain.
-3. Generate SSL certificates:
+1. Add ports `443:443` to the nginx service in `docker-compose.yaml` and add certbot volume mounts.
+2. Replace `nginx/conf.d/default.conf` with a config that includes HTTPS (listen on 443 with SSL certificates).
+3. Install certbot and generate certificates.
+4. Set up auto-renewal via cron.
 
-```bash
-docker compose run --rm certbot certonly \
-  --webroot \
-  --webroot-path /var/www/certbot \
-  -d cms.yourchurch.org \
-  --email your-email@example.com \
-  --agree-tos \
-  --no-eff-email
-```
-
-You need to add a Certbot container to `docker-compose.yaml` or run certbot directly. The Nginx config references certificates at `/etc/letsencrypt/live/cms.yourchurch.org/`.
-
-4. Restart Nginx:
-
-```bash
-docker compose restart nginx
-```
-
-5. Set up auto-renewal via cron:
-
-```bash
-echo "0 0 * * * docker compose -f /opt/peydx/docker-compose.yaml run --rm certbot renew && docker compose -f /opt/peydx/docker-compose.yaml restart nginx" | sudo crontab -
-```
+This approach requires opening port 443 on your server's firewall and managing certificate renewals.
 
 ### 5. Create Your First Admin User
 
@@ -311,6 +219,8 @@ In the admin panel, navigate to **Departments** and create your organizational u
 For browser devices, a `browserToken` is auto-generated. The device URL is available in the admin panel under the device record.
 
 ## Nginx Configuration
+
+The default nginx configuration (in `nginx/conf.d/default.conf`) is set up for HTTP-only operation, with Cloudflare Tunnel handling HTTPS termination. It listens on port 80 and proxies all traffic to the Payload CMS container.
 
 The Nginx reverse proxy handles these paths:
 
