@@ -24,9 +24,28 @@ The server runs Payload CMS, PostgreSQL, and Nginx in Docker. Media files are st
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y docker.io docker-compose-plugin
+sudo apt-get install -y ca-certificates curl
+
+# 2. Add Docker's official GPG key
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# 3. Add the repository to APT sources
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 4. Update your package lists
+sudo apt-get update
+
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo systemctl enable docker --now
+sudo usermod -aG docker $USER
 ```
+
+You must log out and back in (or start a new shell) for the `docker` group change to take effect. You can also run `newgrp docker` in your current session as a shortcut.
 
 Verify:
 
@@ -40,27 +59,46 @@ docker compose version
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repo-url> /opt/peydx
+sudo mkdir /opt/peydx
+sudo chown $USER /opt/peydx
+git clone https://github.com/wrodie/peydx /opt/peydx
 cd /opt/peydx
 ```
 
 ### 2. Configure Environment
 
-Create `/opt/peydx/.env`:
+First, generate random secrets for `PAYLOAD_SECRET` and `SERVER_MANAGER_TOKEN`:
+
+```bash
+openssl rand -hex 32
+# Run twice — once for each value, or use the one-liner below
+```
+
+Or generate both and write them directly:
+
+```bash
+echo "PAYLOAD_SECRET=$(openssl rand -hex 32)"
+echo "SERVER_MANAGER_TOKEN=$(openssl rand -hex 32)"
+```
+
+Copy the generated values, then create `/opt/peydx/.env`:
 
 ```env
-DATABASE_URI=postgres://peydx:your-secure-password@payload-db:5432/peydx
-PAYLOAD_SECRET=a-long-random-secret-key
+DATABASE_URI=postgres://peydx:<your-secure-password>@payload-db:5432/peydx
+PAYLOAD_SECRET=<paste-generated-value-here>
 POSTGRES_USER=peydx
-POSTGRES_PASSWORD=your-secure-password
+POSTGRES_PASSWORD=<your-secure-password>
 POSTGRES_DB=peydx
 TIMEZONE=America/New_York
 CORS_ORIGIN=https://cms.yourchurch.org
+SERVER_MANAGER_TOKEN=<paste-generated-value-here>
 ```
 
-Replace the values with your own secure credentials.
+Replace the values with your own secure credentials. `your-secure-password` must match in both `DATABASE_URI` and `POSTGRES_PASSWORD`.
+
 - `TIMEZONE` should be an IANA timezone string (e.g. `America/New_York`, `Europe/London`, `Australia/Sydney`) and is used by the sync agent for schedule evaluation.
 - `CORS_ORIGIN` is a comma-separated list of allowed origins for WebSocket connections (e.g. `https://cms.yourchurch.org,https://signage.yourchurch.org`). Required in production — if not set, no cross-origin WebSocket connections are allowed.
+- `SERVER_MANAGER_TOKEN` is used to authenticate the server manager service. If you are not using the remote deploy feature, you can leave this blank — but it must be present to avoid a warning on startup.
 
 ### 3. Start the Stack
 
@@ -306,8 +344,9 @@ cp scripts/deploy.sh /opt/peydx/scripts/
 cp scripts/server-manager.py /opt/peydx/scripts/
 cp scripts/server-manager.service /opt/peydx/scripts/
 
-# Add SERVER_MANAGER_TOKEN to /opt/peydx/.env
-echo "SERVER_MANAGER_TOKEN=$(openssl rand -hex 32)" >> /opt/peydx/.env
+# SERVER_MANAGER_TOKEN should already be in /opt/peydx/.env from step 2.
+# If you skipped it, generate one now:
+# echo "SERVER_MANAGER_TOKEN=$(openssl rand -hex 32)" >> /opt/peydx/.env
 
 # Create log file
 sudo touch /var/log/peydx-deploy.log

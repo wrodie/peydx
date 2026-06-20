@@ -27,7 +27,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-}
       YOUTUBE_DOWNLOAD_ENABLED: ${YOUTUBE_DOWNLOAD_ENABLED:-false}
       SERVER_MANAGER_URL: ${SERVER_MANAGER_URL:-http://host.docker.internal:5556}
-      SERVER_MANAGER_TOKEN: ${SERVER_MANAGER_TOKEN}
+      SERVER_MANAGER_TOKEN: ${SERVER_MANAGER_TOKEN:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

@@ -1,6 +1,6 @@
 # External Integration API
 
-REST and WebSocket API for third-party systems (e.g. Home Assistant) to control PeydX digital signage devices remotely.
+REST and WebSocket API for third-party systems (e.g. Home Assistant) to control PeydX presentation and signage devices remotely.
 
 ## Overview
 

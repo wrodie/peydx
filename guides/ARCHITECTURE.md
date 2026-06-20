@@ -1,6 +1,6 @@
 # Architecture
 
-System architecture for peydx — a multi-tenant church digital signage and classroom presentation platform.
+System architecture for PeydX — a multi-tenant church education and classroom presentation platform with digital signage.
 
 ## System Overview
 

@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Project overview
-Church digital signage system — Payload CMS v3 backend, React + Vite offline-first player, Node.js sync agent.
+Church education and presentation system with digital signage — Payload CMS v3 backend, React + Vite offline-first player, Node.js sync agent.
 Full architecture and data model spec: [`REQUIREMENTS.md`](./REQUIREMENTS.md)
 
 ## Monorepo layout
