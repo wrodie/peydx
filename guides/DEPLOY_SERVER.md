@@ -442,7 +442,7 @@ journalctl -u cloudflared           # Check tunnel service logs
 
 ### Media Volume
 
-Uploaded media files are stored in a named Docker volume (`media_data`), mounted into the CMS container at `/home/node/app/media`. This keeps media uploads separate from the codebase — they persist across `git pull` and container rebuilds. No manual directory setup or permission management is needed; Docker handles the volume automatically.
+Uploaded media files are stored in a named Docker volume (`media_data`), mounted into the CMS container at `/home/node/app/apps/server/media`. This keeps media uploads separate from the codebase — they persist across `git pull` and container rebuilds. No manual directory setup or permission management is needed; Docker handles the volume automatically.
 
 To back up the media volume:
 

@@ -34,7 +34,7 @@ services:
       payload-db:
         condition: service_healthy
     volumes:
-      - media_data:/home/node/app/media
+      - media_data:/home/node/app/apps/server/media
 
   nginx:
     image: nginx:alpine

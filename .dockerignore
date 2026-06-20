@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.opencode
+media
+apps/player/dist
+apps/server/.next
+docs
+guides
+nginx
+scripts
+sync
+TEST-PLAN*.html
+docker-compose.client.yaml
+ecosystem.config.js
