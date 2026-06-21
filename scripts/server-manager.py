@@ -70,19 +70,19 @@ class Handler(BaseHTTPRequestHandler):
 
     def _handle_status(self):
         try:
-            tag = subprocess.run(
-                ["git", "describe", "--tags", "--abbrev=0"],
-                capture_output=True, text=True, cwd=PROJECT_DIR,
-            ).stdout.strip()
-        except Exception:
-            tag = "unknown"
-
-        try:
             subprocess.run(
                 ["git", "fetch", "--tags"],
                 capture_output=True, text=True, cwd=PROJECT_DIR,
                 timeout=10,
             )
+            tag = subprocess.run(
+                ["git", "describe", "--tags", "--abbrev=0"],
+                capture_output=True, text=True, cwd=PROJECT_DIR,
+            ).stdout.strip() or "dev"
+        except Exception:
+            tag = "unknown"
+
+        try:
             rev_result = subprocess.run(
                 ["git", "rev-list", "--tags", "--max-count=1"],
                 capture_output=True, text=True, cwd=PROJECT_DIR,
