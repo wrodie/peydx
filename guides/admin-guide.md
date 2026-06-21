@@ -80,6 +80,7 @@ The top navigation bar provides quick access to all major sections:
 - Users
 - Devices
 - Integrations
+- Settings
 
 ---
 

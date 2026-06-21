@@ -118,6 +118,7 @@ export function TopNavHeader() {
     { label: 'Users', href: `${adminRoute}/collections/users` },
     { label: 'Devices', href: `${adminRoute}/collections/devices` },
     { label: 'Integrations', href: `${adminRoute}/collections/integrations` },
+    { label: 'Settings', href: `${adminRoute}/globals/settings` },
   ]
 
   return (

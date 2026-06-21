@@ -192,15 +192,31 @@ docker compose ps
 
 You should be able to access the CMS immediately on port 80 (e.g., `http://192.168.1.100/admin` or `http://your-server-ip/admin`). If you configured Cloudflare, it may take a minute for the tunnel to connect and the public hostname to resolve.
 
-### 6. Create Your First Admin User
+### 6. Build Client Image
+
+Build and push the sync-agent Docker image to the local registry. This image is used by client devices to run the sync agent.
+
+```bash
+cd /opt/peydx
+docker build -f sync/Dockerfile -t localhost:5050/sync-agent:latest .
+docker push localhost:5050/sync-agent:latest
+```
+
+Verify the image is in the registry:
+
+```bash
+curl http://localhost:5050/v2/sync-agent/tags/list
+```
+
+### 7. Create Your First Admin User
 
 Visit the admin panel in your browser (e.g., `http://192.168.1.100/admin` or `https://cms.yourchurch.org/admin` once Cloudflare is set up) and create the first admin user.
 
-### 7. Create Departments
+### 8. Create Departments
 
 In the admin panel, navigate to **Departments** and create your organizational units (e.g. "Children's Ministry", "Youth Ministry", "Digital Signage"). Each department automatically gets a root media folder and root programs folder.
 
-### 8. Create Devices
+### 9. Create Devices
 
 1. Navigate to **Devices** in the admin panel.
 2. Create a new device:
