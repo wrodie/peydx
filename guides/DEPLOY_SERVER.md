@@ -100,7 +100,22 @@ Replace the values with your own secure credentials. `your-secure-password` must
 - `CORS_ORIGIN` is a comma-separated list of allowed origins for WebSocket connections (e.g. `https://cms.yourchurch.org,https://signage.yourchurch.org`). Required in production — if not set, no cross-origin WebSocket connections are allowed.
 - `SERVER_MANAGER_TOKEN` is used to authenticate the server manager service. If you are not using the remote deploy feature, you can leave this blank — but it must be present to avoid a warning on startup.
 
-### 3. Start the Stack
+### 3. Server Manager (Optional)
+
+The server manager is a host-level service that receives deploy commands from the CMS. It handles git checkout, client image builds, and server rebuilds — all triggered from the admin UI.
+
+> Skip this if you plan to update manually. If you skip it now and want to add it later, see the Server Manager setup in this guide.
+
+```bash
+sudo touch /var/log/peydx-deploy.log
+sudo cp /opt/peydx/scripts/peydx-server-manager.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable peydx-server-manager --now
+```
+
+The server manager listens on `127.0.0.1:5556`.
+
+### 4. Start the Stack
 
 ```bash
 docker compose up -d --build
@@ -121,7 +136,7 @@ docker compose ps
 
 You should be able to access the CMS immediately on port 80 (e.g., `http://192.168.1.100/admin` or `http://your-server-ip/admin`).
 
-### 4. Configure External Access (Optional)
+### 5. Configure External Access (Optional)
 
 For local/LAN access, the CMS is already available on port 80. To make it available on the internet with HTTPS, use a Cloudflare Tunnel — this provides secure access without opening any inbound ports on your server, with automatic HTTPS and DDoS protection.
 
@@ -184,15 +199,15 @@ If you prefer direct access without Cloudflare, you can add SSL termination to n
 
 This approach requires opening port 443 on your server's firewall and managing certificate renewals.
 
-### 5. Create Your First Admin User
+### 6. Create Your First Admin User
 
 Visit the admin panel in your browser (e.g., `http://192.168.1.100/admin` or `https://cms.yourchurch.org/admin` once Cloudflare is set up) and create the first admin user.
 
-### 6. Create Departments
+### 7. Create Departments
 
 In the admin panel, navigate to **Departments** and create your organizational units (e.g. "Children's Ministry", "Youth Ministry", "Digital Signage"). Each department automatically gets a root media folder and root programs folder.
 
-### 7. Create Devices
+### 8. Create Devices
 
 1. Navigate to **Devices** in the admin panel.
 2. Create a new device:
@@ -227,38 +242,11 @@ The registry is started automatically with `docker compose up -d` and persists i
 curl http://localhost:5050/v2/sync-agent/tags/list
 ```
 
-## Server Manager
-
-The server manager is a host-level service that receives deploy commands from the CMS. It handles git checkout, client image builds, and server rebuilds — all triggered from the admin UI.
-
-### One-Time Setup
-
-```bash
-# Copy files to /opt/peydx if not already there
-cp scripts/deploy.sh /opt/peydx/scripts/
-cp scripts/server-manager.py /opt/peydx/scripts/
-cp scripts/server-manager.service /opt/peydx/scripts/
-
-# SERVER_MANAGER_TOKEN should already be in /opt/peydx/.env from step 2.
-# If you skipped it, generate one now:
-# echo "SERVER_MANAGER_TOKEN=$(openssl rand -hex 32)" >> /opt/peydx/.env
-
-# Create log file
-sudo touch /var/log/peydx-deploy.log
-
-# Install and start the service
-sudo cp /opt/peydx/scripts/server-manager.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable server-manager --now
-```
-
-The server manager listens on `127.0.0.1:5556` and authenticates requests using `SERVER_MANAGER_TOKEN`.
-
-## Remote Updates
+## Updating
 
 ### Deploying a New Version
 
-When code is pushed and tagged (e.g. `git tag v1.2.0 && git push --tags`), deploy from the CMS:
+When code is pushed and tagged (e.g. `git tag v1.2.0 && git push --tags`), deploy from the CMS (requires the server manager to be set up — see [Server Manager setup](#3-server-manager-optional)):
 
 1. Open the admin panel and navigate to **Settings**.
 2. The page will show the current server version and whether an update is available.
@@ -278,9 +266,9 @@ To update a specific device without pushing to all:
 
 Device updates trigger the sync agent to pull the new image from the registry and restart.
 
-## Updating (Manual)
+### Manual Update
 
-If remote deploy is unavailable, update the server manually:
+If the server manager is not set up, update the server manually:
 
 ```bash
 cd /opt/peydx
