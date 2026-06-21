@@ -115,30 +115,9 @@ sudo systemctl enable peydx-server-manager --now
 
 The server manager listens on `127.0.0.1:5556`.
 
-### 4. Start the Stack
+### 4. Configure External Access (Optional)
 
-```bash
-docker compose up -d --build
-```
-
-This starts four containers:
-
-- **payload-db** — PostgreSQL 16 database
-- **payload-cms** — Payload CMS application (internal only, proxied through nginx)
-- **nginx** — Reverse proxy (port 80, plus Docker registry on port 5050)
-- **registry** — Docker registry for sync-agent images (internal only, proxied through nginx on port 5050)
-
-Verify all containers are running:
-
-```bash
-docker compose ps
-```
-
-You should be able to access the CMS immediately on port 80 (e.g., `http://192.168.1.100/admin` or `http://your-server-ip/admin`).
-
-### 5. Configure External Access (Optional)
-
-For local/LAN access, the CMS is already available on port 80. To make it available on the internet with HTTPS, use a Cloudflare Tunnel — this provides secure access without opening any inbound ports on your server, with automatic HTTPS and DDoS protection.
+For local/LAN access, the CMS is already available on port 80 once the stack starts. To make it available on the internet with HTTPS, configure a Cloudflare Tunnel before starting the stack — this provides secure access without opening any inbound ports on your server, with automatic HTTPS and DDoS protection.
 
 > **Prerequisite:** Your domain must be managed by Cloudflare DNS (nameservers delegated to Cloudflare). Only the DNS management moves to Cloudflare — your existing services (AWS, etc.) stay where they are, you just recreate their DNS records in Cloudflare.
 
@@ -154,13 +133,9 @@ For local/LAN access, the CMS is already available on port 80. To make it availa
 CLOUDFLARE_TUNNEL_TOKEN=eyJ...
 ```
 
-4. Uncomment the `cloudflared` service in `docker-compose.yaml` and restart the stack:
+4. Uncomment the `cloudflared` service in `docker-compose.yaml` — it will start automatically when you run `docker compose up` in the next step.
 
-```bash
-docker compose up -d
-```
-
-5. Still in the Cloudflare dashboard, on the tunnel page, configure the **Public Hostname**:
+5. After the stack is running (next step), return to the Cloudflare dashboard and configure the **Public Hostname**:
 
    | Field | Value |
    |---|---|
@@ -170,16 +145,10 @@ docker compose up -d
 
    Cloudflare automatically provisions an SSL certificate for the hostname.
 
-6. Update your `.env` file to set `CORS_ORIGIN` to your domain:
+6. Ensure `CORS_ORIGIN` is set in your `.env` file (it should already be configured from step 2):
 
 ```env
 CORS_ORIGIN=https://cms.yourchurch.org
-```
-
-7. Restart the CMS to pick up the new CORS origin:
-
-```bash
-docker compose restart payload-cms
 ```
 
 Benefits of Cloudflare Tunnel:
@@ -198,6 +167,30 @@ If you prefer direct access without Cloudflare, you can add SSL termination to n
 4. Set up auto-renewal via cron.
 
 This approach requires opening port 443 on your server's firewall and managing certificate renewals.
+
+### 5. Start the Stack
+
+```bash
+docker compose up -d --build
+```
+
+If you set up Cloudflare Tunnel in step 4, the `cloudflared` container will start automatically alongside the other services.
+
+This starts four (or five with Cloudflare) containers:
+
+- **payload-db** — PostgreSQL 16 database
+- **payload-cms** — Payload CMS application (internal only, proxied through nginx)
+- **nginx** — Reverse proxy (port 80, plus Docker registry on port 5050)
+- **registry** — Docker registry for sync-agent images (internal only, proxied through nginx on port 5050)
+- **cloudflared** *(optional)* — Cloudflare Tunnel connector (only if configured in step 4)
+
+Verify all containers are running:
+
+```bash
+docker compose ps
+```
+
+You should be able to access the CMS immediately on port 80 (e.g., `http://192.168.1.100/admin` or `http://your-server-ip/admin`). If you configured Cloudflare, it may take a minute for the tunnel to connect and the public hostname to resolve.
 
 ### 6. Create Your First Admin User
 
