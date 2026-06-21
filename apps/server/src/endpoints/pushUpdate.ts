@@ -15,8 +15,7 @@ export const pushUpdate = {
       // body is optional
     }
 
-    const settings = await req.payload.findGlobal({ slug: 'settings' })
-    const version = settings?.clientVersion || 'v0.1.0'
+    const version = 'latest'
 
     const io = getIO()
     if (!io) {

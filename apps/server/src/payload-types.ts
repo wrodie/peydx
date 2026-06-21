@@ -1093,7 +1093,6 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface Setting {
   id: number;
-  clientVersion: string;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1102,7 +1101,6 @@ export interface Setting {
  * via the `definition` "settings_select".
  */
 export interface SettingsSelect<T extends boolean = true> {
-  clientVersion?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

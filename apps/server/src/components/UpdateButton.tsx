@@ -1,6 +1,6 @@
 'use client'
 
-import { useDocumentInfo, useField, useAuth } from '@payloadcms/ui'
+import { useDocumentInfo, useAuth } from '@payloadcms/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const sectionStyle: React.CSSProperties = {
@@ -68,21 +68,9 @@ const overlayStyle: React.CSSProperties = {
   gap: 16,
 }
 
-async function fetchClientVersion(): Promise<string> {
-  try {
-    const res = await fetch('/api/globals/settings')
-    if (!res.ok) return 'v0.1.0'
-    const data = await res.json()
-    return data.clientVersion || 'v0.1.0'
-  } catch {
-    return 'v0.1.0'
-  }
-}
-
 export function UpdateButton() {
   const { user } = useAuth()
-  const { id } = useDocumentInfo()
-  const { value: clientVersion } = useField<string>({ path: 'clientVersion' })
+  const { id, globalSlug, collectionSlug } = useDocumentInfo()
 
   const [pushStatus, setPushStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [pushLoading, setPushLoading] = useState(false)
@@ -91,20 +79,20 @@ export function UpdateButton() {
     currentVersion: string
     latestVersion: string
     updateAvailable: boolean
+    serverManager?: boolean
   } | null>(null)
   const [deployLoading, setDeployLoading] = useState(false)
   const [deployStatus, setDeployStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [deploying, setDeploying] = useState(false)
   const reconnectingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const isDeviceView = !!(id && clientVersion === undefined)
-  const isSettingsView = !isDeviceView && clientVersion !== undefined
+  const isSettingsView = globalSlug === 'settings'
+  const isDeviceView = collectionSlug === 'devices'
 
   const handlePushUpdate = useCallback(async () => {
     setPushLoading(true)
     setPushStatus(null)
     try {
-      const version = clientVersion || (await fetchClientVersion())
       const body: { deviceId?: number } = {}
       if (isDeviceView && id) {
         body.deviceId = id as number
@@ -125,7 +113,7 @@ export function UpdateButton() {
     } finally {
       setPushLoading(false)
     }
-  }, [clientVersion, id, isDeviceView])
+  }, [id, isDeviceView])
 
   const fetchServerStatus = useCallback(async () => {
     try {
@@ -220,10 +208,12 @@ export function UpdateButton() {
     )
   }
 
-  const version = clientVersion || 'v0.1.0'
+  if (!isSettingsView) return null
+
   const currentServerVersion = serverInfo?.currentVersion || '...'
   const latestVersion = serverInfo?.latestVersion || '...'
   const hasUpdate = serverInfo?.updateAvailable || false
+  const serverManagerConnected = serverInfo?.serverManager !== false
 
   return (
     <div>
@@ -236,6 +226,11 @@ export function UpdateButton() {
               Update available: {latestVersion}
             </span>
           )}
+          {!serverManagerConnected && (
+            <span style={{ color: 'var(--theme-elevation-500, #666)', marginLeft: 8, fontSize: '0.8rem' }}>
+              Server manager not connected
+            </span>
+          )}
         </div>
         <button
           type="button"
@@ -243,7 +238,7 @@ export function UpdateButton() {
           onClick={handleDeploy}
           disabled={deployLoading || !hasUpdate}
         >
-          {deployLoading ? 'Starting...' : hasUpdate ? `Deploy ${latestVersion}` : 'Up to date'}
+          {deployLoading ? 'Starting...' : hasUpdate ? `Deploy ${latestVersion}` : serverManagerConnected ? 'Up to date' : 'Manual update only'}
         </button>
         {deployStatus && (
           <div style={deployStatus.type === 'success' ? successStyle : errorStyle}>
@@ -253,12 +248,12 @@ export function UpdateButton() {
       </div>
 
       <div style={sectionStyle}>
-        <label style={labelStyle}>Client Version</label>
+        <label style={labelStyle}>Update Client Devices</label>
         <p style={infoStyle}>
-          Deployed client version: <strong>{version}</strong>
+          Pushes the current sync-agent version to all connected devices.
         </p>
         <button type="button" style={buttonStyle} onClick={handlePushUpdate} disabled={pushLoading}>
-          {pushLoading ? 'Pushing...' : `Push ${version} to All Devices`}
+          {pushLoading ? 'Pushing...' : 'Push Latest to All Devices'}
         </button>
         {pushStatus && (
           <div style={pushStatus.type === 'success' ? successStyle : errorStyle}>

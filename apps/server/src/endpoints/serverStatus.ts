@@ -14,16 +14,19 @@ export const serverStatus = {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) {
-        return Response.json(
-          { currentVersion: 'unknown', latestVersion: 'unknown', updateAvailable: false },
-          { status: 200 },
-        )
+        throw new Error('Server manager not available')
       }
       const data = await res.json()
       return Response.json(data)
     } catch {
+      let currentVersion = 'unknown'
+      try {
+        const settings = await req.payload.findGlobal({ slug: 'settings' })
+        currentVersion = settings?.clientVersion || 'v0.1.0'
+      } catch {}
+
       return Response.json(
-        { currentVersion: 'unknown', latestVersion: 'unknown', updateAvailable: false },
+        { currentVersion, latestVersion: 'unknown', updateAvailable: false, serverManager: false },
         { status: 200 },
       )
     }

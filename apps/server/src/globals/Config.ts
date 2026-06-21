@@ -5,11 +5,6 @@ export const Config: GlobalConfig = {
   label: 'Settings',
   admin: {
     group: 'Admin',
-    components: {
-      elements: {
-        beforeDocumentControls: ['/components/UpdateButton#UpdateButton'],
-      },
-    },
   },
   access: {
     read: ({ req: { user } }) => (user as any)?.role === 'admin',
@@ -17,11 +12,13 @@ export const Config: GlobalConfig = {
   },
   fields: [
     {
-      name: 'clientVersion',
-      type: 'text',
-      label: 'Client Version',
-      defaultValue: 'v0.1.0',
-      required: true,
+      name: 'updateSection',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '/components/UpdateButton#UpdateButton',
+        },
+      },
     },
   ],
 }
