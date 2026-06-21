@@ -95,8 +95,8 @@ class Handler(BaseHTTPRequestHandler):
                     capture_output=True, text=True, cwd=PROJECT_DIR,
                 )
                 latest = desc_result.stdout.strip() or current
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[server-manager] Failed to fetch tags: {e}", file=sys.stderr)
 
         self._send_json({
             "currentVersion": current,
