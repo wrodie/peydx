@@ -69,20 +69,21 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _handle_status(self):
+        # Current version from package.json (always accurate, no git dependency)
+        try:
+            with open(f"{PROJECT_DIR}/package.json") as f:
+                current = json.load(f).get("version", "dev")
+        except Exception:
+            current = "dev"
+
+        # Latest version from git tags (fetched from GitHub)
+        latest = current
         try:
             subprocess.run(
                 ["git", "fetch", "--tags"],
                 capture_output=True, text=True, cwd=PROJECT_DIR,
                 timeout=10,
             )
-            tag = subprocess.run(
-                ["git", "describe", "--tags", "--abbrev=0"],
-                capture_output=True, text=True, cwd=PROJECT_DIR,
-            ).stdout.strip() or "dev"
-        except Exception:
-            tag = "unknown"
-
-        try:
             rev_result = subprocess.run(
                 ["git", "rev-list", "--tags", "--max-count=1"],
                 capture_output=True, text=True, cwd=PROJECT_DIR,
@@ -93,16 +94,14 @@ class Handler(BaseHTTPRequestHandler):
                     ["git", "describe", "--tags", latest_commit],
                     capture_output=True, text=True, cwd=PROJECT_DIR,
                 )
-                latest = desc_result.stdout.strip()
-            else:
-                latest = tag
+                latest = desc_result.stdout.strip() or current
         except Exception:
-            latest = tag
+            pass
 
         self._send_json({
-            "currentVersion": tag,
+            "currentVersion": current,
             "latestVersion": latest,
-            "updateAvailable": tag != latest and latest != "",
+            "updateAvailable": current != latest,
         })
 
     def _send_json(self, data):
