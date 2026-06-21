@@ -125,58 +125,43 @@ You should be able to access the CMS immediately on port 80 (e.g., `http://192.1
 
 For local/LAN access, the CMS is already available on port 80. To make it available on the internet with HTTPS, use a Cloudflare Tunnel — this provides secure access without opening any inbound ports on your server, with automatic HTTPS and DDoS protection.
 
+> **Prerequisite:** Your domain must be managed by Cloudflare DNS (nameservers delegated to Cloudflare). Only the DNS management moves to Cloudflare — your existing services (AWS, etc.) stay where they are, you just recreate their DNS records in Cloudflare.
+
 #### Cloudflare Tunnel Setup
 
-1. Install `cloudflared`:
+1. Go to **Cloudflare Zero Trust** > **Networks** > **Tunnels** and click **Create a tunnel**.
+
+2. Name the tunnel (e.g., `peydx`) and select **Docker** as the connector type.
+
+3. Copy the tunnel token (starts with `eyJ...`). Add it to your `.env` file:
+
+```env
+CLOUDFLARE_TUNNEL_TOKEN=eyJ...
+```
+
+4. Uncomment the `cloudflared` service in `docker-compose.yaml` and restart the stack:
 
 ```bash
-curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
-sudo dpkg -i cloudflared.deb
+docker compose up -d
 ```
 
-2. Authenticate with Cloudflare:
+5. Still in the Cloudflare dashboard, on the tunnel page, configure the **Public Hostname**:
 
-```bash
-cloudflared tunnel login
-```
+   | Field | Value |
+   |---|---|
+   | Subdomain | `cms` |
+   | Domain | `yourchurch.org` |
+   | Service | `http://nginx:80` |
 
-3. Create a tunnel:
+   Cloudflare automatically provisions an SSL certificate for the hostname.
 
-```bash
-cloudflared tunnel create peydx
-```
-
-4. Configure the tunnel route. Create `~/.cloudflared/config.yml`:
-
-```yaml
-tunnel: peydx
-credentials-file: /root/.cloudflared/<TUNNEL_ID>.json
-
-ingress:
-  - hostname: cms.yourchurch.org
-    service: http://localhost:80
-  - service: http://localhost:80
-```
-
-5. Add a DNS record pointing `cms.yourchurch.org` to the tunnel:
-
-```bash
-cloudflared tunnel route dns peydx cms.yourchurch.org
-```
-
-6. Run the tunnel as a persistent service:
-
-```bash
-sudo cloudflared service install
-```
-
-7. Update your `.env` file to set `CORS_ORIGIN` to your domain:
+6. Update your `.env` file to set `CORS_ORIGIN` to your domain:
 
 ```env
 CORS_ORIGIN=https://cms.yourchurch.org
 ```
 
-8. Restart the CMS to pick up the new CORS origin:
+7. Restart the CMS to pick up the new CORS origin:
 
 ```bash
 docker compose restart payload-cms
@@ -185,7 +170,7 @@ docker compose restart payload-cms
 Benefits of Cloudflare Tunnel:
 - No open inbound ports on your server
 - Automatic HTTPS with Cloudflare-managed certificates
-- Built-in DDoS protection
+- Built-in DDoS protection and WAF filtering
 - No certificate renewal to manage
 
 #### Alternative: Direct Access with Let's Encrypt
@@ -201,7 +186,7 @@ This approach requires opening port 443 on your server's firewall and managing c
 
 ### 5. Create Your First Admin User
 
-Visit `https://cms.yourchurch.org/admin` (or `http://localhost:3000/admin` for development) and create the first admin user.
+Visit the admin panel in your browser (e.g., `http://192.168.1.100/admin` or `https://cms.yourchurch.org/admin` once Cloudflare is set up) and create the first admin user.
 
 ### 6. Create Departments
 
