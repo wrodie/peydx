@@ -9,7 +9,6 @@ docs
 guides
 nginx
 scripts
-sync
 TEST-PLAN*.html
 docker-compose.client.yaml
 ecosystem.config.js
