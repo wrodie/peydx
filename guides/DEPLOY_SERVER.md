@@ -113,7 +113,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable peydx-server-manager --now
 ```
 
-The server manager listens on `127.0.0.1:5556`.
+The server manager listens on port 5556.
 
 ### 4. Configure External Access (Optional)
 

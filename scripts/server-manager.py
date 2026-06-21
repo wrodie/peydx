@@ -108,7 +108,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    server = HTTPServer(("127.0.0.1", PORT), Handler)
+    server = HTTPServer(("0.0.0.0", PORT), Handler)
     print(f"[server-manager] Listening on 127.0.0.1:{PORT}", file=sys.stderr)
     try:
         server.serve_forever()
