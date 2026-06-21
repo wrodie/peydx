@@ -83,10 +83,19 @@ class Handler(BaseHTTPRequestHandler):
                 capture_output=True, text=True, cwd=PROJECT_DIR,
                 timeout=10,
             )
-            latest = subprocess.run(
-                ["git", "describe", "--tags", "$(git rev-list --tags --max-count=1)"],
-                capture_output=True, text=True, shell=True, cwd=PROJECT_DIR,
-            ).stdout.strip()
+            rev_result = subprocess.run(
+                ["git", "rev-list", "--tags", "--max-count=1"],
+                capture_output=True, text=True, cwd=PROJECT_DIR,
+            )
+            if rev_result.returncode == 0 and rev_result.stdout.strip():
+                latest_commit = rev_result.stdout.strip()
+                desc_result = subprocess.run(
+                    ["git", "describe", "--tags", latest_commit],
+                    capture_output=True, text=True, cwd=PROJECT_DIR,
+                )
+                latest = desc_result.stdout.strip()
+            else:
+                latest = tag
         except Exception:
             latest = tag
 
