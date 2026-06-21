@@ -1,3 +1,7 @@
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
 export const serverStatus = {
   path: '/server-status',
   method: 'get' as const,
@@ -19,10 +23,12 @@ export const serverStatus = {
       const data = await res.json()
       return Response.json(data)
     } catch {
-      let currentVersion = 'unknown'
+      let currentVersion = 'dev'
       try {
-        const settings = await req.payload.findGlobal({ slug: 'settings' })
-        currentVersion = settings?.clientVersion || 'v0.1.0'
+        const dirname = path.dirname(fileURLToPath(import.meta.url))
+        const rootPkgPath = path.resolve(dirname, '../../../../package.json')
+        const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, 'utf-8'))
+        currentVersion = rootPkg.version || 'dev'
       } catch {}
 
       return Response.json(
