@@ -90,8 +90,8 @@ What the bootstrap script does:
 After the script completes, verify the sync agent is running:
 
 ```bash
-docker compose -f /opt/peydx/docker-compose.client.yaml ps
-docker compose -f /opt/peydx/docker-compose.client.yaml logs -f
+sudo docker compose -f /opt/peydx/docker-compose.client.yaml ps
+sudo docker compose -f /opt/peydx/docker-compose.client.yaml logs -f
 ```
 
 The device should appear as "online" in the CMS dashboard within 30 seconds.

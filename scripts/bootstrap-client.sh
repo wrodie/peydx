@@ -155,8 +155,8 @@ Bootstrap complete!
 
 What's next:
   1. Verify the sync agent is running:
-       docker compose -f $BASE_DIR/docker-compose.client.yaml ps
-       docker compose -f $BASE_DIR/docker-compose.client.yaml logs -f
+       sudo docker compose -f $BASE_DIR/docker-compose.client.yaml ps
+       sudo docker compose -f $BASE_DIR/docker-compose.client.yaml logs -f
 
   2. Set up the Chromium kiosk (see DEPLOY_CLIENT.md for details)
 
