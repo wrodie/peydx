@@ -169,7 +169,7 @@ export function UpdateButton() {
       } catch {
         sawDisconnect = true
       }
-      if (attempts > 40) {
+      if (attempts > 160) {
         clearInterval(reconnectingRef.current!)
         reconnectingRef.current = null
         clearInterval(deployPollRef.current!)
@@ -293,6 +293,11 @@ export function UpdateButton() {
             {deployStatus.message}
           </div>
         )}
+        {hasUpdate && (
+          <div style={{ fontSize: '0.8rem', color: 'var(--theme-elevation-500, #666)', marginTop: 8 }}>
+            This process can take up to 5 minutes.
+          </div>
+        )}
       </div>
 
       <div style={sectionStyle}>
@@ -338,7 +343,7 @@ export function UpdateButton() {
             })}
           </div>
           <div style={{ fontSize: '0.9rem', opacity: 0.7, marginTop: 16 }}>
-            This page will refresh automatically when the server is back.
+            This can take up to 5 minutes. The page will refresh automatically.
           </div>
         </div>
       )}
