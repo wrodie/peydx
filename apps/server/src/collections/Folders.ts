@@ -44,7 +44,16 @@ export const Folders: CollectionConfig = {
       }
       return false
     },
-    delete: ({ req: { user: u } }) => (u as any)?.role === 'admin',
+    delete: ({ req: { user: u } }) => {
+      const user = u as any
+      if (!user) return false
+      if (user.role === 'admin') return true
+      if (user.role === 'basic') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { department: { in: deptIds } }
+      }
+      return false
+    },
   },
   hooks: {
     beforeChange: [folderBeforeChange],

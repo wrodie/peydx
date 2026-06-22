@@ -127,10 +127,12 @@ describe('Integration Tests', () => {
       expect(f.id).toBeTruthy()
     })
 
-    it('only admin can delete folders (access check)', async () => {
+    it('basic user can delete own-department folders (access check)', async () => {
       const user = await loginUser('basic@test.com', 'userpass123')
       expect(await payload.collections.folders.config.access.delete({ req: { user: admin } })).toBe(true)
-      expect(await payload.collections.folders.config.access.delete({ req: { user } })).toBe(false)
+      const result = await payload.collections.folders.config.access.delete({ req: { user } })
+      expect(result).toHaveProperty('department')
+      expect(result.department.in).toContain(dept1.id)
     })
 
     it('media create access: basic=true, unauth=false', async () => {
@@ -138,9 +140,11 @@ describe('Integration Tests', () => {
       expect(await payload.collections.media.config.access.create({ req: { user: null } })).toBe(false)
     })
 
-    it('program delete access: admin=true, basic=false', async () => {
+    it('program delete access: admin=true, basic=dept-scoped', async () => {
       expect(await payload.collections.programs.config.access.delete({ req: { user: admin } })).toBe(true)
-      expect(await payload.collections.programs.config.access.delete({ req: { user: basicUser } })).toBe(false)
+      const result = await payload.collections.programs.config.access.delete({ req: { user: basicUser } })
+      expect(result).toHaveProperty('folder.department')
+      expect(result['folder.department'].in).toContain(dept1.id)
     })
 
     it('schedule read: device=true, basic=dept-scoped', async () => {
@@ -247,11 +251,13 @@ describe('Integration Tests', () => {
       expect(p.slides).toHaveLength(1)
     })
 
-    it('non-admin cannot delete programs (access check)', async () => {
+    it('non-admin can delete own-department programs (access check)', async () => {
       await createBasicUser('proguser@test.com', [dept1.id])
       const user = await loginUser('proguser@test.com', 'userpass123')
       expect(await payload.collections.programs.config.access.delete({ req: { user: admin } })).toBe(true)
-      expect(await payload.collections.programs.config.access.delete({ req: { user } })).toBe(false)
+      const result = await payload.collections.programs.config.access.delete({ req: { user } })
+      expect(result).toHaveProperty('folder.department')
+      expect(result['folder.department'].in).toContain(dept1.id)
     })
 
     it('non-admin user sees only department-scoped programs', async () => {

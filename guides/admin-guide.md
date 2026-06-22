@@ -44,14 +44,14 @@ Everything in the system is scoped by **departments**. A department represents a
 |---|---|---|
 | See all departments' data | Yes | No — only their own departments |
 | Create/edit/delete users | Yes | No |
-| Create/edit/delete devices | Yes | Read and update devices in their departments |
+| Create/edit/delete devices | Yes | Create/edit/delete devices in their departments |
 | Create/edit/delete departments | Yes | No |
-| Create/edit/delete folders | Yes | Create/edit within their departments; cannot delete |
+| Create/edit/delete folders | Yes | Create/edit/delete in their departments (folder must be empty) |
 | Upload and manage media | Yes | Within their departments |
 | Create and edit programs | Yes | Within their departments |
-| Delete programs | Yes | No |
+| Delete programs | Yes | Within their departments |
 | Create and edit schedules | Yes | Within their departments |
-| Delete schedules | Yes | No |
+| Delete schedules | Yes | Within their departments |
 | Access Settings and Integrations | Yes | No |
 | Push software updates | Yes | No |
 | Use Remote Control | Yes | Yes (devices in their departments) |
@@ -177,7 +177,7 @@ Only admins can create, edit, or delete user accounts.
 ### Understanding Roles
 
 - **Admin** — Full access to everything. Can manage users, devices, departments, integrations, and settings. Can delete programs and schedules. Sees the Admin dropdown in navigation.
-- **Basic Volunteer** — Can only see and manage content in their assigned departments. Cannot delete programs or schedules. Cannot access admin sections.
+- **Basic Volunteer** — Can create, edit, and delete all content in their assigned departments (media, programs, schedules, folders). Cannot manage users or devices. Cannot access admin sections.
 
 ### Multi-Department Users
 

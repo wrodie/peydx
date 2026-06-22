@@ -459,7 +459,7 @@ Click a schedule to view or edit it.
 You can only see media, programs, and schedules that belong to your department(s). If you're in multiple departments, you'll see content from all of them.
 
 **Who can delete things?**
-Only administrators can delete programs, schedules, users, and devices. If you need something removed, contact an admin.
+You can delete media, programs, schedules, and folders in your department(s). Only administrators can delete users and devices — contact an admin if you need those removed.
 
 **What happens when I delete media?**
 The system automatically cleans up references to deleted media in programs. Any slides that used the deleted media will become empty.

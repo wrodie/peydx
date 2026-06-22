@@ -48,7 +48,14 @@ export const Programs: CollectionConfig = {
         'folder.department': { in: (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d) }
       }
     },
-    delete: ({ req: { user: u } }) => (u as any)?.role === 'admin',
+    delete: ({ req: { user: u } }) => {
+      const user = u as any
+      if (!user) return false;
+      if (user.role === 'admin') return true;
+      return {
+        'folder.department': { in: (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d) }
+      }
+    },
   },
 
   hooks: {
