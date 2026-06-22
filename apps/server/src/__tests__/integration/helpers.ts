@@ -25,10 +25,18 @@ async function createAdmin(payload: any) {
   })
 }
 
-async function createBasicUser(payload: any, email: string, deptIds: number[]) {
+async function createStandardUser(payload: any, email: string, deptIds: number[]) {
   return payload.create({
     collection: 'users',
-    data: { email, password: 'userpass123', role: 'basic', name: 'Basic User', departments: deptIds },
+    data: { email, password: 'userpass123', role: 'standard', name: 'Standard User', departments: deptIds },
+    overrideAccess: true,
+  })
+}
+
+async function createManagerUser(payload: any, email: string, deptIds: number[]) {
+  return payload.create({
+    collection: 'users',
+    data: { email, password: 'userpass123', role: 'manager', name: 'Manager', departments: deptIds },
     overrideAccess: true,
   })
 }
@@ -67,7 +75,8 @@ export {
   getSharedPayload,
   clearAllData,
   createAdmin,
-  createBasicUser,
+  createStandardUser,
+  createManagerUser,
   createDepartment,
   createFolder,
   loginUser,

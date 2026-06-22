@@ -8,7 +8,7 @@ describe('folderBeforeChange', () => {
         findByID: vi.fn(),
         ...payloadOverrides,
       },
-      user: { id: 1, role: 'basic', departments: [{ id: 10 }, { id: 20 }], ...userOverrides },
+      user: { id: 1, role: 'standard', departments: [{ id: 10 }, { id: 20 }], ...userOverrides },
     } as any
   }
 

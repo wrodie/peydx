@@ -30,7 +30,7 @@ export const Programs: CollectionConfig = {
       const user = u as any
       if (!user) return false
       if (user.role === 'admin') return true;
-      if (user.role === 'basic') {
+      if (user.role === 'standard' || user.role === 'manager') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
         return { 'folder.department': { in: deptIds } }
       }

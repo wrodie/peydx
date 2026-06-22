@@ -8,7 +8,7 @@ function makeReq(payloadOverrides: any = {}, userOverrides: any = {}) {
       find: vi.fn(),
       ...payloadOverrides,
     },
-    user: { id: 1, role: 'basic', departments: [{ id: 10 }], ...userOverrides },
+    user: { id: 1, role: 'standard', departments: [{ id: 10 }], ...userOverrides },
   } as any
 }
 
@@ -119,7 +119,7 @@ describe('scheduleBeforeChange', () => {
   })
 
   describe('department enforcement', () => {
-    it('basic user scheduling program outside department throws', async () => {
+    it('standard user scheduling program outside department throws', async () => {
       const req = makeReq()
       req.payload.findByID.mockResolvedValue({ folder: { department: 30 } })
 

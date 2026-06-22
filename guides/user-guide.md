@@ -1,6 +1,6 @@
 # PeydX — Church Education & Presentation System: User Guide
 
-A step-by-step guide for volunteers and basic users.
+A step-by-step guide for users.
 
 ## Table of Contents
 

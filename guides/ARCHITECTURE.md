@@ -22,7 +22,7 @@ graph TB
 
     subgraph AdminBrowsers["Admin Browsers"]
         AB1["Admin Dashboard"]
-        AB2["Volunteer Dashboard"]
+        AB2["User Dashboard"]
     end
     AB1 --- CF
     AB2 --- CF
@@ -193,7 +193,7 @@ graph LR
     end
 
     subgraph "User Auth (JWT)"
-        UA1["Admin / Volunteer<br/>logs in with email+password"] -->|"Payload default auth"| UA2["JWT cookie with<br/>role + departments"]
+        UA1["Admin / User<br/>logs in with email+password"] -->|"Payload default auth"| UA2["JWT cookie with<br/>role + departments"]
     end
 ```
 
@@ -209,8 +209,8 @@ All three auth methods converge on a Socket.IO middleware that validates identit
 graph TD
     subgraph "Users Collection"
         U1["Admin User<br/>departments: [1, 2, 3]"]
-        U2["Children's Volunteer<br/>departments: [1]"]
-        U3["Youth Volunteer<br/>departments: [2]"]
+        U2["Children's Dept User<br/>departments: [1]"]
+        U3["Youth Dept User<br/>departments: [2]"]
     end
 
     subgraph "Departments Collection"
@@ -242,7 +242,7 @@ Department filtering is enforced at the access control layer in every collection
 
 - **Users** have a `departments` hasMany relationship saved to their JWT
 - **Media** and **Programs** belong to a `folder` which belongs to a `department`. Access control filters by `folder.department`
-- **Schedule** entries infer their `department` from the selected program's folder. Admins see all; basic users see schedules in their departments; devices bypass department filter (the `devices[contains]` query already scopes results)
+- **Schedule** entries infer their `department` from the selected program's folder. Admins see all; standard users see schedules in their departments; devices bypass department filter (the `devices[contains]` query already scopes results)
 - **Folders** belong to a `department`. Child folders inherit department from their parent (non-overridable). Basic users see folders in their departments only
 - **Devices** have `departments` hasMany. A device can display schedules from multiple departments. Basic users can manage devices in their own departments
 
@@ -372,7 +372,7 @@ graph TB
     CF["Cloudflare Tunnel"] --> NX
 
     subgraph "Remote Access"
-        ADM["Admin / Volunteer<br/>Dashboard"]
+        ADM["Admin / User<br/>Dashboard"]
         BD["Browser Device<br/>(Smart TV, Tablet)"]
     end
 
@@ -384,7 +384,7 @@ graph TB
 - **Hardware players**: Mini PCs on the same local network. The sync agent runs in a Docker container (`docker compose -f docker-compose.client.yaml up -d`) pulling a pre-built image from the server's registry — no local build or git clone needed. Media is stored in a named Docker volume for persistence. The Chromium kiosk runs on the host OS for direct GPU access.
 - **Cloudflare Tunnel**: Provides secure external access to the CMS admin panel and WebSocket connections without opening inbound ports. Handles TLS termination and DDoS protection.
  - **Browser devices**: Connect directly to the CMS through the Cloudflare Tunnel. Require internet but no local software. A browser device can mirror a hardware player's display by setting the `controllingDevice` field.
-- **Admin access**: Volunteers and admins access the CMS dashboard through the Cloudflare Tunnel for managing media, programs, and schedules.
+- **Admin access**: Users, managers, and admins access the CMS dashboard through the Cloudflare Tunnel for managing media, programs, and schedules.
 - **Docker Registry**: A local registry on port 5050 stores pre-built sync-agent images. Client devices pull from this registry during remote updates.
 
 ## Remote Updates

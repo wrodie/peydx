@@ -9,7 +9,7 @@ On the flip side, if you are willing to put in some work, one off purchases of c
 
 ## Features
 
-- **Multi-department isolation** — Users are scoped to their departments. Admins see everything; volunteers only see their own media, programs, and schedules.
+- **Multi-department isolation** — Users are scoped to their departments. Admins see everything; standard users only see their own media, programs, and schedules.
 - **Folder organization** — Hierarchical folders (max 3 levels) for media and programs, scoped per department. Child folders inherit department from parent.
 - **Block-based program builder** — Build programs from image, video, YouTube, audio, black screen, and segment blocks. Each slide has configurable advance mode (timed, on-end, manual) and transition (fade, cut, slide, zoom).
 - **Bulk media upload** — Drag multiple images into a program; slides are auto-created with sensible defaults (5s timed, fade transition). Video and audio files auto-detect duration and set on-end advance.

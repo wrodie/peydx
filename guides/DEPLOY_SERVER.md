@@ -8,7 +8,7 @@ Deploy the Payload CMS backend as a local Docker deployment with optional Cloudf
 |---|---|---|
 | CPU | Intel Core i5 (or equivalent) | Intel Core i5 |
 | RAM | 4 GB | 8 GB |
-| Storage | 40 GB SSD | 80 GB SSD |
+| Storage | 40 GB | 80 GB |
 | OS | Ubuntu 22.04 LTS (or similar Linux) | Ubuntu 24.04 LTS |
 
 The server runs Payload CMS, PostgreSQL, and Nginx in Docker. Media files are stored on disk and grow over time — size your storage accordingly.

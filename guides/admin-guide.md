@@ -40,21 +40,21 @@ Everything in the system is scoped by **departments**. A department represents a
 
 ### User Roles
 
-| Capability | Admin | Basic Volunteer |
-|---|---|---|
-| See all departments' data | Yes | No — only their own departments |
-| Create/edit/delete users | Yes | No |
-| Create/edit/delete devices | Yes | Create/edit/delete devices in their departments |
-| Create/edit/delete departments | Yes | No |
-| Create/edit/delete folders | Yes | Create/edit/delete in their departments (folder must be empty) |
-| Upload and manage media | Yes | Within their departments |
-| Create and edit programs | Yes | Within their departments |
-| Delete programs | Yes | Within their departments |
-| Create and edit schedules | Yes | Within their departments |
-| Delete schedules | Yes | Within their departments |
-| Access Settings and Integrations | Yes | No |
-| Push software updates | Yes | No |
-| Use Remote Control | Yes | Yes (devices in their departments) |
+| Capability | Admin | Manager | Standard |
+|---|---|---|---|
+| See all departments' data | Yes | No — only their own departments | No — only their own departments |
+| Create/edit/delete users | Yes | Create/edit/delete Standard users in their departments | No |
+| Create/edit/delete devices | Yes | No | No |
+| Create/edit/delete departments | Yes | No | No |
+| Create/edit/delete folders | Yes | Create/edit/delete in their departments (folder must be empty) | Create/edit/delete in their departments (folder must be empty) |
+| Upload and manage media | Yes | Within their departments | Within their departments |
+| Create and edit programs | Yes | Within their departments | Within their departments |
+| Delete programs | Yes | Within their departments | Within their departments |
+| Create and edit schedules | Yes | Within their departments | Within their departments |
+| Delete schedules | Yes | Within their departments | Within their departments |
+| Access Settings and Integrations | Yes | No | No |
+| Push software updates | Yes | No | No |
+| Use Remote Control | Yes | Yes (devices in their departments) | Yes (devices in their departments) |
 
 ---
 
@@ -170,18 +170,19 @@ Only admins can create, edit, or delete user accounts.
    - **Email** — The user's login email address
    - **Name** — The user's display name
    - **Password** — Set an initial password
-   - **Role** — Choose Admin or Basic Volunteer
+   - **Role** — Choose Admin, Manager, or Standard
    - **Departments** — Select one or more departments (shown in sidebar, admin-only field)
 4. Click **Save**.
 
 ### Understanding Roles
 
 - **Admin** — Full access to everything. Can manage users, devices, departments, integrations, and settings. Can delete programs and schedules. Sees the Admin dropdown in navigation.
-- **Basic Volunteer** — Can create, edit, and delete all content in their assigned departments (media, programs, schedules, folders). Cannot manage users or devices. Cannot access admin sections.
+- **Manager** — Can create, edit, and delete Standard users within their departments. Can assign users to departments they belong to. Has all the content permissions of a Standard user. Cannot manage admins, managers, devices, departments, or settings.
+- **Standard** — Can create, edit, and delete all content in their assigned departments (media, programs, schedules, folders). Cannot manage users or devices. Cannot access admin sections.
 
 ### Multi-Department Users
 
-A user can be assigned to multiple departments. They will see and manage content from all their departments. For example, a volunteer in both "Youth Ministry" and "Worship Team" can create programs that use media from either department.
+A user can be assigned to multiple departments. They will see and manage content from all their departments. For example, a user in both "Youth Ministry" and "Worship Team" can create programs that use media from either department.
 
 ### Editing a User
 
@@ -588,7 +589,7 @@ To resolve this:
 
 ### Deleting Schedules
 
-Only admins can delete schedules. Basic volunteers can create and edit but not delete.
+Admins and managers can delete schedules. Standard users can create and edit as well.
 
 When a schedule is created, updated, or deleted, all affected devices are notified via WebSocket in real-time.
 

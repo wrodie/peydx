@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { userBeforeChange } from '../hooks/userBeforeChange'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -10,19 +11,50 @@ export const Users: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     group: 'Admin',
-    hidden: ({ user }) => (user as any)?.role !== 'admin',
+    hidden: ({ user }) => {
+      const role = (user as any)?.role
+      return role !== 'admin' && role !== 'manager'
+    },
   },
   access: {
-    // Only global admins can see the full list of users or create new accounts
     read: ({ req: { user: u } }) => {
       const user = u as any
-      if (user?.role === 'admin') return true
-      if (user?.role === 'basic') return true
+      if (!user) return false
+      if (user.role === 'admin') return true
+      if (user.role === 'manager') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { departments: { in: deptIds } } as any
+      }
+      if (user.role === 'standard') return { id: { equals: user.id } } as any
       return false
     },
-    create: ({ req: { user: u } }) => (u as any)?.role === 'admin',
-    update: ({ req: { user: u } }) => (u as any)?.role === 'admin',
-    delete: ({ req: { user: u } }) => (u as any)?.role === 'admin',
+    create: ({ req: { user: u } }) => {
+      const user = u as any
+      return user?.role === 'admin' || user?.role === 'manager'
+    },
+    update: ({ req: { user: u } }) => {
+      const user = u as any
+      if (!user) return false
+      if (user.role === 'admin') return true
+      if (user.role === 'manager') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { departments: { in: deptIds } } as any
+      }
+      return false
+    },
+    delete: ({ req: { user: u } }) => {
+      const user = u as any
+      if (!user) return false
+      if (user.role === 'admin') return true
+      if (user.role === 'manager') {
+        const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+        return { departments: { in: deptIds } } as any
+      }
+      return false
+    },
+  },
+  hooks: {
+    beforeChange: [userBeforeChange],
   },
   fields: [
     {
@@ -34,10 +66,14 @@ export const Users: CollectionConfig = {
       name: 'role',
       type: 'select',
       required: true,
-      defaultValue: 'basic',
+      defaultValue: 'standard',
+      admin: {
+        condition: (_, __, { user }) => (user as any)?.role === 'admin',
+      },
       options: [
         { label: 'Admin', value: 'admin' },
-        { label: 'Basic Volunteer', value: 'basic' },
+        { label: 'Manager', value: 'manager' },
+        { label: 'Standard', value: 'standard' },
       ],
     },
     {
@@ -48,9 +84,23 @@ export const Users: CollectionConfig = {
       required: true,
       admin: {
         position: 'sidebar',
-        condition: (data, siblingData, { user }) => (user as any)?.role === 'admin',
+        condition: (_, __, { user }) => {
+          const role = (user as any)?.role
+          return role === 'admin' || role === 'manager'
+        },
+      },
+      filterOptions: ({ user: u }) => {
+        const user = u as any
+        if (!user) return false
+        if (user.role === 'admin') return true
+        if (user.role === 'manager') {
+          const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
+          return { id: { in: deptIds } }
+        }
+        return false
       },
     },
   ],
 }
+
 

@@ -8,7 +8,7 @@ describe('mediaFolderAutoAssign', () => {
         find: vi.fn(),
         ...payloadOverrides,
       },
-      user: { id: 1, role: 'basic', departments: [{ id: 10 }] },
+      user: { id: 1, role: 'standard', departments: [{ id: 10 }] },
     } as any
   }
 

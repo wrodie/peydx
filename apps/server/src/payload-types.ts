@@ -559,7 +559,7 @@ export interface Device {
 export interface User {
   id: number;
   name: string;
-  role: 'admin' | 'basic';
+  role?: ('admin' | 'manager' | 'standard') | null;
   departments?: (number | Department)[] | null;
   updatedAt: string;
   createdAt: string;

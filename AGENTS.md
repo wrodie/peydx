@@ -20,7 +20,7 @@ npm run build:all       # Build both workspaces
 npm run sync            # node sync/sync-agent.js (runs sync + Express server on port 5000)
 ```
 
-No test runner, lint, or typecheck commands are configured.
+Test runner: `npm test` (runs all workspace tests), `npm run test:server` (vitest), `npm run test:core`, `npm run test:player`, `npm run test:sync`. No lint or typecheck commands are configured.
 
 ## Required environment variables
 No `.env.example` exists. Server requires:
@@ -55,7 +55,7 @@ The old Payload v2 format (`Authorization: PayloadAPIKey ...`) no longer works.
 2. **Folders (custom tree structure)**: A custom `Folders` collection provides hierarchical organization for Media and Programs. Folders are scoped per-collection (`type` field: `media`/`programs`) and per-department. Max 3 levels deep. Non-admin users can create folders within their department. Delete is blocked if folder contains items or sub-folders. **Department inheritance**: When a child folder is created, its `department` is automatically inherited from the parent (cannot be overridden). The `folder` field on Media/Programs is hidden on create (auto-assigned from `current-folder` preference, falls back to department's root folder) and visible on edit. A `FolderTree` component renders a collapsible tree above the list table, with "All", "Unfiled", and clickable folder nodes that filter the list view. The folder tree uses `useListQuery.handleWhereChange` to update the list filter. Known limitation: the ListDrawer/media-picker in slide blocks does not include folder filtering yet.
 3. **autoCreateSlides hook**: Program bulk media → slide auto-creation runs as a `beforeChange` hook. Must pass `req` through to `payload.update()` to share the parent create transaction (prevents "Not Found" error from uncommitted transaction).
 4. **Media name auto-fill**: `beforeChange` hook sets `name` from `req.file.name` (ext-stripped) if left blank. Field is not required — UX is "type a name or leave blank to use filename".
-5. **No migration strategy**: Dev database is dropped & recreated for schema changes. No production data exists yet. For the `department → departments` change, a manual SQL migration was run to create `users_rels` and copy data. See `apps/server/src/migrations/20260605_000000_departments_hasmany.ts`.
+5. **Migration strategy**: The system is in production — the database cannot be dropped for schema changes. Migrations must be non-destructive and backwards-compatible. Use `npx payload migrate:create` to generate a diff, then review/edit the generated SQL to ensure it doesn't recreate tables or drop data. For enum changes, use `ALTER TYPE ... ADD VALUE` rather than recreating the type. Apply migrations with `npx payload migrate`. Existing migrations are in `apps/server/src/migrations/`.
 6. **Schedule access for devices**: Device-authenticated requests bypass department filtering on the Schedule collection — the query's `where[devices][contains]` filter already restricts results to the device's own schedules.
 7. **Devices access for self-read**: Device-authenticated requests can read their own record via `{ id: { equals: user.id } }`. The `deviceId` field was removed — the numeric Payload `id` is the sole identifier.
 8. **Media download URLs**: Payload v3 serves files at `/api/media/file/<filename>` (not `/api/media/<filename>`).

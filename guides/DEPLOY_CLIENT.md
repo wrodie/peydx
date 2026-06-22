@@ -10,8 +10,8 @@ Two deployment tiers are supported: hardware players for mission-critical offlin
 |---|---|
 | CPU | Intel Core i5 (or equivalent) |
 | RAM | 4 GB |
-| Storage | 250 GB SSD |
-| OS | Ubuntu Server 22.04 LTS |
+| Storage | 128 GB |
+| OS | Ubuntu Server 22.04 LTS (or equivalent) |
 | Network | Ethernet recommended |
 
 Hardware players run a local sync agent and Chromium kiosk for smooth 1080p video playback with CSS effects. The i5 requirement ensures consistent performance during video decoding and blur/transition rendering.

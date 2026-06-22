@@ -18,10 +18,18 @@ async function createAdmin() {
   })
 }
 
-async function createBasicUser(email: string, deptIds: number[]) {
+async function createStandardUser(email: string, deptIds: number[]) {
   return payload.create({
     collection: 'users',
-    data: { email, password: 'userpass123', role: 'basic', name: 'Basic', departments: deptIds },
+    data: { email, password: 'userpass123', role: 'standard', name: 'Standard', departments: deptIds },
+    overrideAccess: true,
+  })
+}
+
+async function createManagerUser(email: string, deptIds: number[]) {
+  return payload.create({
+    collection: 'users',
+    data: { email, password: 'userpass123', role: 'manager', name: 'Manager', departments: deptIds },
     overrideAccess: true,
   })
 }
@@ -98,10 +106,10 @@ describe('Integration Tests', () => {
 
   // ── Access Control ──
   describe('Access Control', () => {
-    let basicUser: any
+    let standardUser: any
 
     beforeAll(async () => {
-      basicUser = await createBasicUser('basic@test.com', [dept1.id])
+      standardUser = await createStandardUser('standard@test.com', [dept1.id])
     })
 
     it('admin sees all folders', async () => {
@@ -109,16 +117,16 @@ describe('Integration Tests', () => {
       expect(r.docs.length).toBeGreaterThanOrEqual(2)
     })
 
-    it('basic user folder read returns dept constraint', async () => {
-      const user = await loginUser('basic@test.com', 'userpass123')
+    it('standard user folder read returns dept constraint', async () => {
+      const user = await loginUser('standard@test.com', 'userpass123')
       const result = await payload.collections.folders.config.access.read({ req: { user } })
       expect(result).toHaveProperty('department')
       expect(result.department).toHaveProperty('in')
       expect(result.department.in).toContain(dept1.id)
     })
 
-    it('basic user can create folders', async () => {
-      const user = await loginUser('basic@test.com', 'userpass123')
+    it('standard user can create folders', async () => {
+      const user = await loginUser('standard@test.com', 'userpass123')
       const f = await payload.create({
         collection: 'folders',
         data: { name: 'UserFolder', type: 'media', department: dept1.id, parent: mediaFolder.id, order: 1 },
@@ -127,39 +135,95 @@ describe('Integration Tests', () => {
       expect(f.id).toBeTruthy()
     })
 
-    it('basic user can delete own-department folders (access check)', async () => {
-      const user = await loginUser('basic@test.com', 'userpass123')
+    it('standard user can delete own-department folders (access check)', async () => {
+      const user = await loginUser('standard@test.com', 'userpass123')
       expect(await payload.collections.folders.config.access.delete({ req: { user: admin } })).toBe(true)
       const result = await payload.collections.folders.config.access.delete({ req: { user } })
       expect(result).toHaveProperty('department')
       expect(result.department.in).toContain(dept1.id)
     })
 
-    it('media create access: basic=true, unauth=false', async () => {
-      expect(await payload.collections.media.config.access.create({ req: { user: basicUser } })).toBe(true)
+    it('media create access: standard=true, unauth=false', async () => {
+      expect(await payload.collections.media.config.access.create({ req: { user: standardUser } })).toBe(true)
       expect(await payload.collections.media.config.access.create({ req: { user: null } })).toBe(false)
     })
 
-    it('program delete access: admin=true, basic=dept-scoped', async () => {
+    it('program delete access: admin=true, standard=dept-scoped', async () => {
       expect(await payload.collections.programs.config.access.delete({ req: { user: admin } })).toBe(true)
-      const result = await payload.collections.programs.config.access.delete({ req: { user: basicUser } })
+      const result = await payload.collections.programs.config.access.delete({ req: { user: standardUser } })
       expect(result).toHaveProperty('folder.department')
       expect(result['folder.department'].in).toContain(dept1.id)
     })
 
-    it('schedule read: device=true, basic=dept-scoped', async () => {
+    it('schedule read: device=true, standard=dept-scoped', async () => {
       const deviceRead = await payload.collections.schedule.config.access.read({
         req: { user: { id: 1, collection: 'devices', departments: [dept1.id] } },
       })
       expect(deviceRead).toBe(true)
-      const basicRead = await payload.collections.schedule.config.access.read({ req: { user: basicUser } })
-      expect(basicRead).toHaveProperty('department')
-      expect(basicRead.department.in).toContain(dept1.id)
+      const standardRead = await payload.collections.schedule.config.access.read({ req: { user: standardUser } })
+      expect(standardRead).toHaveProperty('department')
+      expect(standardRead.department.in).toContain(dept1.id)
     })
 
     it('devices read: admin=true, unauth=false', async () => {
       expect(await payload.collections.devices.config.access.read({ req: { user: admin } })).toBe(true)
       expect(await payload.collections.devices.config.access.read({ req: { user: null } })).toBe(false)
+    })
+
+    it('manager can create standard users', async () => {
+      const mgr = await createManagerUser('mgr@test.com', [dept1.id])
+      const newUser = await payload.create({
+        collection: 'users',
+        data: { email: 'mgr-created@test.com', password: 'userpass123', role: 'standard', name: 'Created', departments: [dept1.id] },
+        req: { user: mgr },
+      })
+      expect(newUser.id).toBeTruthy()
+      expect(newUser.role).toBe('standard')
+    })
+
+    it('manager cannot create admin users', async () => {
+      const mgr = await createManagerUser('mgr2@test.com', [dept1.id])
+      await expect(payload.create({
+        collection: 'users',
+        data: { email: 'bad@test.com', password: 'userpass123', role: 'admin', name: 'Bad', departments: [dept1.id] },
+        req: { user: mgr },
+      })).rejects.toThrow('Managers can only create users with the Standard role')
+    })
+
+    it('manager cannot assign users to departments they do not belong to', async () => {
+      const mgr = await createManagerUser('mgr3@test.com', [dept1.id])
+      await expect(payload.create({
+        collection: 'users',
+        data: { email: 'baddept@test.com', password: 'userpass123', role: 'standard', name: 'BadDept', departments: [dept2.id] },
+        req: { user: mgr },
+      })).rejects.toThrow('Managers can only assign users to their own departments')
+    })
+
+    it('manager can update and delete users in their departments', async () => {
+      const mgr = await createManagerUser('mgr4@test.com', [dept1.id])
+      const target = await createStandardUser('target@test.com', [dept1.id])
+      const updated = await payload.update({
+        collection: 'users',
+        id: target.id,
+        data: { name: 'Updated by Manager' },
+        req: { user: mgr },
+      })
+      expect(updated.name).toBe('Updated by Manager')
+      await payload.delete({ collection: 'users', id: target.id, req: { user: mgr } })
+    })
+
+    it('standard user can read own profile via access', async () => {
+      const s1 = await createStandardUser('s1@test.com', [dept1.id])
+      const result = await payload.collections.users.config.access.read({ req: { user: s1 } })
+      expect(result).toHaveProperty('id')
+      expect(result.id.equals).toBe(s1.id)
+    })
+
+    it('manager sees users in their departments', async () => {
+      const mgr = await createManagerUser('mgr5@test.com', [dept1.id])
+      const result = await payload.collections.users.config.access.read({ req: { user: mgr } })
+      expect(result).toHaveProperty('departments')
+      expect(result.departments.in).toContain(dept1.id)
     })
   })
 
@@ -252,7 +316,7 @@ describe('Integration Tests', () => {
     })
 
     it('non-admin can delete own-department programs (access check)', async () => {
-      await createBasicUser('proguser@test.com', [dept1.id])
+      await createStandardUser('proguser@test.com', [dept1.id])
       const user = await loginUser('proguser@test.com', 'userpass123')
       expect(await payload.collections.programs.config.access.delete({ req: { user: admin } })).toBe(true)
       const result = await payload.collections.programs.config.access.delete({ req: { user } })
@@ -330,7 +394,7 @@ describe('Integration Tests', () => {
     })
 
     it('non-admin cannot schedule cross-dept program', async () => {
-      await createBasicUser('schedusr@test.com', [dept1.id])
+      await createStandardUser('schedusr@test.com', [dept1.id])
       const user = await loginUser('schedusr@test.com', 'userpass123')
       const yf = await payload.find({
         collection: 'folders', where: { type: { equals: 'programs' }, department: { equals: dept2.id } },

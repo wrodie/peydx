@@ -17,7 +17,7 @@ export const Schedule: CollectionConfig = {
       if (user.collection === 'devices') {
         return true
       }
-      if (user.role === 'basic') {
+      if (user.role === 'standard' || user.role === 'manager') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
         return { department: { in: deptIds } }
       }
@@ -27,7 +27,7 @@ export const Schedule: CollectionConfig = {
       const user = u as any
       if (!user) return false
       if (user.role === 'admin') return true
-      if (user.role === 'basic') {
+      if (user.role === 'standard' || user.role === 'manager') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
         return { department: { in: deptIds } }
       }
@@ -37,7 +37,7 @@ export const Schedule: CollectionConfig = {
       const user = u as any
       if (!user) return false
       if (user.role === 'admin') return true
-      if (user.role === 'basic') {
+      if (user.role === 'standard' || user.role === 'manager') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
         return { department: { in: deptIds } }
       }
@@ -47,7 +47,7 @@ export const Schedule: CollectionConfig = {
       const user = u as any
       if (!user) return false
       if (user.role === 'admin') return true
-      if (user.role === 'basic') {
+      if (user.role === 'standard' || user.role === 'manager') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
         return { department: { in: deptIds } }
       }
