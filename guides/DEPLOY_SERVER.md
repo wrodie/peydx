@@ -137,9 +137,10 @@ For local/LAN access, the CMS is already available on port 80 once the stack sta
 
 ```env
 CLOUDFLARE_TUNNEL_TOKEN=eyJ...
+COMPOSE_PROFILES=cloudflared
 ```
 
-4. Uncomment the `cloudflared` service in `docker-compose.yaml` — it will start automatically when you run `docker compose up` in the next step.
+4. Add `COMPOSE_PROFILES=cloudflared` to your `.env` file — the cloudflared service will start automatically when you run `docker compose up` in the next step.
 
 5. After the stack is running (next step), return to the Cloudflare dashboard and configure the **Public Hostname**:
 
@@ -180,9 +181,9 @@ This approach requires opening port 443 on your server's firewall and managing c
 docker compose up -d --build
 ```
 
-If you set up Cloudflare Tunnel in step 4, the `cloudflared` container will start automatically alongside the other services.
+If you configured Cloudflare Tunnel in step 4 (added `COMPOSE_PROFILES=cloudflared` to `.env`), the `cloudflared` container will start automatically alongside the other services.
 
-This starts four (or five with Cloudflare) containers:
+This starts up to five containers:
 
 - **payload-db** — PostgreSQL 16 database
 - **payload-cms** — Payload CMS application (internal only, proxied through nginx)

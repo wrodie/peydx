@@ -15,6 +15,7 @@ import { Folders } from './collections/Folders'
 import { Integrations } from './collections/Integrations'
 import { Config as ConfigGlobal } from './globals/Config'
 import { deploy } from './endpoints/deploy'
+import { deployStatus } from './endpoints/deployStatus'
 import { heartbeat } from './endpoints/heartbeat'
 import { pushUpdate } from './endpoints/pushUpdate'
 import { serverStatus } from './endpoints/serverStatus'
@@ -61,7 +62,7 @@ export default buildConfig({
     Integrations,
   ],
   globals: [ConfigGlobal],
-  endpoints: [deploy, heartbeat, pushUpdate, serverStatus, youtubeInfo, timezone, mediaImportYoutube, ...externalApiEndpoints, exportProgram],
+  endpoints: [deploy, deployStatus, heartbeat, pushUpdate, serverStatus, youtubeInfo, timezone, mediaImportYoutube, ...externalApiEndpoints, exportProgram],
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {

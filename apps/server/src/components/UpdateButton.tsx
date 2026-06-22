@@ -65,7 +65,20 @@ const overlayStyle: React.CSSProperties = {
   zIndex: 99999,
   color: '#fff',
   fontFamily: 'inherit',
-  gap: 16,
+  gap: 8,
+}
+
+const steps = [
+  { key: 'checkout', label: 'Checking out version' },
+  { key: 'building', label: 'Building client image' },
+  { key: 'pushing', label: 'Pushing to registry' },
+  { key: 'rebuilding', label: 'Rebuilding server' },
+]
+
+function getStepInfo(step: string | null) {
+  if (!step) return null
+  const idx = steps.findIndex(s => s.key === step)
+  return { idx, current: step }
 }
 
 export function UpdateButton() {
@@ -85,7 +98,9 @@ export function UpdateButton() {
   const [deployLoading, setDeployLoading] = useState(false)
   const [deployStatus, setDeployStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [deploying, setDeploying] = useState(false)
+  const [deployStep, setDeployStep] = useState<string | null>(null)
   const reconnectingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const deployPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isSettingsView = globalSlug === 'settings'
   const isDeviceView = collectionSlug === 'devices'
@@ -146,21 +161,42 @@ export function UpdateButton() {
         if (res.ok) {
           clearInterval(reconnectingRef.current!)
           reconnectingRef.current = null
+          clearInterval(deployPollRef.current!)
+          deployPollRef.current = null
           window.location.reload()
         }
       } catch {}
       if (attempts > 40) {
         clearInterval(reconnectingRef.current!)
         reconnectingRef.current = null
+        clearInterval(deployPollRef.current!)
+        deployPollRef.current = null
         setDeploying(false)
         setDeployStatus({ type: 'error', message: 'Server did not come back within 2 minutes. Check the server manually.' })
       }
     }, 3000)
   }, [])
 
+  const startDeployPolling = useCallback(() => {
+    deployPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch('/api/deploy-status')
+        if (res.ok) {
+          const data = await res.json()
+          setDeployStep(data.step)
+          if (data.step === 'done') {
+            clearInterval(deployPollRef.current!)
+            deployPollRef.current = null
+          }
+        }
+      } catch {}
+    }, 2000)
+  }, [])
+
   useEffect(() => {
     return () => {
       if (reconnectingRef.current) clearInterval(reconnectingRef.current)
+      if (deployPollRef.current) clearInterval(deployPollRef.current)
     }
   }, [])
 
@@ -171,6 +207,7 @@ export function UpdateButton() {
     }
     setDeployLoading(true)
     setDeployStatus(null)
+    setDeployStep('checkout')
     try {
       const res = await fetch('/api/deploy', {
         method: 'POST',
@@ -179,7 +216,7 @@ export function UpdateButton() {
       })
       const data = await res.json()
       if (res.ok && data.success) {
-        setDeployStatus({ type: 'success', message: 'Deploy started. Server will restart.' })
+        startDeployPolling()
         startReconnecting()
       } else {
         setDeployStatus({ type: 'error', message: data.error || 'Deploy failed' })
@@ -189,7 +226,7 @@ export function UpdateButton() {
     } finally {
       setDeployLoading(false)
     }
-  }, [serverInfo, startReconnecting])
+  }, [serverInfo, startReconnecting, startDeployPolling])
 
   if (user?.role !== 'admin') return null
 
@@ -215,6 +252,8 @@ export function UpdateButton() {
   const latestVersion = serverInfo?.latestVersion || '...'
   const hasUpdate = serverInfo?.updateAvailable || false
   const serverManagerConnected = serverInfo?.serverManager !== false
+
+  const stepInfo = getStepInfo(deployStep)
 
   return (
     <div>
@@ -270,8 +309,34 @@ export function UpdateButton() {
 
       {deploying && (
         <div style={overlayStyle}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>Server is restarting...</div>
-          <div style={{ fontSize: '0.9rem', opacity: 0.7 }}>This page will refresh automatically when the server is back.</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>Deploying {latestVersion}...</div>
+          <div style={{ width: 320, marginTop: 12 }}>
+            {steps.map((step, i) => {
+              const done = stepInfo ? i < stepInfo.idx : false
+              const active = stepInfo ? i === stepInfo.idx : false
+              return (
+                <div
+                  key={step.key}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '4px 0',
+                    opacity: done ? 0.8 : active ? 1 : 0.4,
+                    color: done ? '#22c55e' : active ? '#fff' : '#999',
+                  }}
+                >
+                  <span style={{ width: 20, textAlign: 'center' }}>
+                    {done ? '✓' : active ? '→' : '○'}
+                  </span>
+                  <span>{step.label}</span>
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ fontSize: '0.9rem', opacity: 0.7, marginTop: 16 }}>
+            This page will refresh automatically when the server is back.
+          </div>
         </div>
       )}
     </div>

@@ -11,6 +11,7 @@ DEPLOY_SCRIPT = "/opt/peydx/scripts/deploy.sh"
 PROJECT_DIR = "/opt/peydx"
 TOKEN = os.environ.get("SERVER_MANAGER_TOKEN", "")
 PORT = int(os.environ.get("SERVER_MANAGER_PORT", "5556"))
+STATUS_FILE = "/tmp/peydx-deploy-status"
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -29,6 +30,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True})
         elif self.path == "/status":
             self._handle_status()
+        elif self.path == "/deploy-status":
+            self._handle_deploy_status()
         else:
             self.send_error(404)
 
@@ -112,6 +115,15 @@ class Handler(BaseHTTPRequestHandler):
             "updateAvailable": current != latest,
             "error": error,
         })
+
+    def _handle_deploy_status(self):
+        step = None
+        try:
+            with open(STATUS_FILE) as f:
+                step = f.read().strip()
+        except Exception:
+            pass
+        self._send_json({"step": step})
 
     def _send_json(self, data):
         self.send_response(200)

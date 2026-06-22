@@ -53,12 +53,13 @@ services:
     volumes:
       - registry_data:/var/lib/registry
 
-  # cloudflared:
-  #   image: cloudflare/cloudflared
-  #   restart: always
-  #   command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-  #   depends_on:
-  #     - nginx
+  cloudflared:
+    image: cloudflare/cloudflared
+    restart: always
+    command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    profiles: [cloudflared]
+    depends_on:
+      - nginx
 
 volumes:
   postgres_data:

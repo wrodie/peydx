@@ -25,11 +25,21 @@ fi
 REGISTRY_URL="${REGISTRY_URL:-localhost:5050}"
 CLIENT_IMAGE="$REGISTRY_URL/sync-agent"
 
+STATUS_FILE="/tmp/peydx-deploy-status"
+
+report() {
+  echo "$1" > "$STATUS_FILE"
+}
+
+report "checkout"
+
 echo "Fetching tags..."
 git fetch --tags
 
 echo "Checking out $VERSION..."
 git checkout "$VERSION"
+
+report "building"
 
 echo "Building client image $CLIENT_IMAGE:$VERSION..."
 docker build \
@@ -39,13 +49,23 @@ docker build \
   -t "$CLIENT_IMAGE:latest" \
   "$PROJECT_DIR"
 
+report "pushing"
+
 echo "Pushing $CLIENT_IMAGE:$VERSION..."
 docker push "$CLIENT_IMAGE:$VERSION"
 
 echo "Pushing $CLIENT_IMAGE:latest..."
 docker push "$CLIENT_IMAGE:latest"
 
+report "rebuilding"
+
 echo "Rebuilding server..."
-docker compose -f "$PROJECT_DIR/docker-compose.yaml" up -d --build
+COMPOSE_FLAGS="-f $PROJECT_DIR/docker-compose.yaml"
+if [ -n "${CLOUDFLARE_TUNNEL_TOKEN:-}" ]; then
+  COMPOSE_FLAGS="$COMPOSE_FLAGS --profile cloudflared"
+fi
+docker compose $COMPOSE_FLAGS up -d --build
+
+report "done"
 
 echo "[$(date -Iseconds)] Deploy complete: version=$VERSION"
