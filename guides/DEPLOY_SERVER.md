@@ -63,6 +63,7 @@ sudo mkdir /opt/peydx
 sudo chown $USER /opt/peydx
 git clone https://github.com/wrodie/peydx /opt/peydx
 cd /opt/peydx
+git checkout $(git tag --list | sort -V | tail -1)
 ```
 
 ### 2. Configure Environment
