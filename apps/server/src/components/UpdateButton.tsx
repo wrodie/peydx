@@ -80,6 +80,7 @@ export function UpdateButton() {
     latestVersion: string
     updateAvailable: boolean
     serverManager?: boolean
+    error?: string | null
   } | null>(null)
   const [deployLoading, setDeployLoading] = useState(false)
   const [deployStatus, setDeployStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -229,6 +230,11 @@ export function UpdateButton() {
           {!serverManagerConnected && (
             <span style={{ color: 'var(--theme-elevation-500, #666)', marginLeft: 8, fontSize: '0.8rem' }}>
               Server manager not connected
+            </span>
+          )}
+          {serverInfo?.error && (
+            <span style={{ color: 'var(--theme-warning-500, #f59e0b)', marginLeft: 8, fontSize: '0.8rem' }}>
+              {serverInfo.error}
             </span>
           )}
         </div>
