@@ -154,18 +154,21 @@ export function UpdateButton() {
   const startReconnecting = useCallback(() => {
     setDeploying(true)
     let attempts = 0
+    let sawDisconnect = false
     reconnectingRef.current = setInterval(async () => {
       attempts++
       try {
         const res = await fetch('/api/server-status')
-        if (res.ok) {
+        if (res.ok && sawDisconnect) {
           clearInterval(reconnectingRef.current!)
           reconnectingRef.current = null
           clearInterval(deployPollRef.current!)
           deployPollRef.current = null
           window.location.reload()
         }
-      } catch {}
+      } catch {
+        sawDisconnect = true
+      }
       if (attempts > 40) {
         clearInterval(reconnectingRef.current!)
         reconnectingRef.current = null

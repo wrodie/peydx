@@ -2,6 +2,12 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+// Baked at build time — won't change until the container restarts
+const dirname = path.dirname(fileURLToPath(import.meta.url))
+const rootPkgPath = path.resolve(dirname, '../../../../package.json')
+const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, 'utf-8'))
+const OWN_VERSION: string = rootPkg.version || 'dev'
+
 export const serverStatus = {
   path: '/server-status',
   method: 'get' as const,
@@ -21,18 +27,14 @@ export const serverStatus = {
         throw new Error('Server manager not available')
       }
       const data = await res.json()
-      return Response.json(data)
+      return Response.json({
+        currentVersion: OWN_VERSION,
+        latestVersion: data.latestVersion,
+        updateAvailable: OWN_VERSION !== data.latestVersion,
+      })
     } catch {
-      let currentVersion = 'dev'
-      try {
-        const dirname = path.dirname(fileURLToPath(import.meta.url))
-        const rootPkgPath = path.resolve(dirname, '../../../../package.json')
-        const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, 'utf-8'))
-        currentVersion = rootPkg.version || 'dev'
-      } catch {}
-
       return Response.json(
-        { currentVersion, latestVersion: 'unknown', updateAvailable: false, serverManager: false },
+        { currentVersion: OWN_VERSION, latestVersion: 'unknown', updateAvailable: false, serverManager: false },
         { status: 200 },
       )
     }
