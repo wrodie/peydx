@@ -113,6 +113,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable peydx-server-manager --now
 ```
 
+The server manager runs as `root`, but the repository was cloned by your user — this git configuration tells git the directory is safe to use from the server manager process:
+
+```bash
+sudo git config --global --add safe.directory /opt/peydx
+```
+
 The server manager listens on port 5556.
 
 ### 4. Configure External Access (Optional)
