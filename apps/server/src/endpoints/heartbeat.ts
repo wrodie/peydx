@@ -19,6 +19,7 @@ export const heartbeat = {
       status: 'online',
     }
     if (typeof body.programId === 'number') heartbeatData.currentProgram = body.programId
+    if (typeof body.clientVersion === 'string') heartbeatData.clientVersion = body.clientVersion
     await req.payload.update({
       collection: 'devices',
       id: req.user.id,

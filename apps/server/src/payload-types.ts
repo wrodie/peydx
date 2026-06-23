@@ -535,7 +535,11 @@ export interface Device {
    * Current slide index, reported by the device.
    */
   currentSlideIndex?: number | null;
-  status?: ('online' | 'offline' | 'stale') | null;
+  /**
+   * Version of the sync agent/player running on this device.
+   */
+  clientVersion?: string | null;
+  status?: ('online' | 'offline' | 'stale' | 'updating') | null;
   browserToken?: string | null;
   /**
    * Image shown centered on black when no program is running.
@@ -1023,6 +1027,7 @@ export interface DevicesSelect<T extends boolean = true> {
   lastHeartbeat?: T;
   currentProgram?: T;
   currentSlideIndex?: T;
+  clientVersion?: T;
   status?: T;
   browserToken?: T;
   defaultBackground?: T;

@@ -1,7 +1,19 @@
 'use client'
 
-import { useDocumentInfo, useAuth } from '@payloadcms/ui'
+import { useAuth } from '@payloadcms/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { io, type Socket } from 'socket.io-client'
+import type { ServerToClientEvents, ClientToServerEvents } from 'signage-core'
+
+type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>
+
+interface DeviceRow {
+  id: number
+  name: string
+  deviceType: string
+  status: string
+  clientVersion: string | null
+}
 
 const sectionStyle: React.CSSProperties = {
   padding: '12px 0',
@@ -81,12 +93,60 @@ function getStepInfo(step: string | null) {
   return { idx, current: step }
 }
 
+function statusDot(status: string): string {
+  switch (status) {
+    case 'online': return '\u25CF'
+    case 'updating': return '\u25D1'
+    default: return '\u25CB'
+  }
+}
+
+function statusColor(status: string): string {
+  switch (status) {
+    case 'online': return '#22c55e'
+    case 'updating': return '#f59e0b'
+    default: return '#999'
+  }
+}
+
+const tableStyle: React.CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  marginTop: 12,
+  fontSize: '0.85rem',
+}
+
+const thStyle: React.CSSProperties = {
+  textAlign: 'left',
+  padding: '8px 12px',
+  borderBottom: '2px solid var(--theme-elevation-200, #ddd)',
+  color: 'var(--theme-elevation-500, #666)',
+  fontWeight: 600,
+  fontSize: '0.75rem',
+  textTransform: 'uppercase',
+}
+
+const tdStyle: React.CSSProperties = {
+  padding: '8px 12px',
+  borderBottom: '1px solid var(--theme-elevation-100, #eee)',
+}
+
+const smallButtonStyle: React.CSSProperties = {
+  padding: '4px 12px',
+  fontSize: '0.8rem',
+  border: '1px solid var(--theme-elevation-200, #ddd)',
+  borderRadius: 4,
+  cursor: 'pointer',
+  background: 'var(--theme-elevation-50, #f8f8f8)',
+  color: 'var(--theme-elevation-900, #111)',
+}
+
 export function UpdateButton() {
   const { user } = useAuth()
-  const { id, globalSlug, collectionSlug } = useDocumentInfo()
 
   const [pushStatus, setPushStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [pushLoading, setPushLoading] = useState(false)
+  const [singlePushLoading, setSinglePushLoading] = useState<Record<number, boolean>>({})
 
   const [serverInfo, setServerInfo] = useState<{
     currentVersion: string
@@ -102,17 +162,57 @@ export function UpdateButton() {
   const reconnectingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const deployPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const isSettingsView = globalSlug === 'settings'
-  const isDeviceView = collectionSlug === 'devices'
+  const [devices, setDevices] = useState<DeviceRow[]>([])
+  const [devicesLoading, setDevicesLoading] = useState(true)
 
-  const handlePushUpdate = useCallback(async () => {
-    setPushLoading(true)
+  const fetchDevices = useCallback(async () => {
+    try {
+      const res = await fetch('/api/devices?depth=0&limit=100')
+      if (!res.ok) return
+      const data = await res.json()
+      setDevices((data.docs || []).map((d: any) => ({
+        id: d.id,
+        name: d.name || '(unnamed)',
+        deviceType: d.deviceType || 'hardware',
+        status: d.status || 'offline',
+        clientVersion: d.clientVersion || null,
+      })))
+    } catch {
+      // ignore
+    } finally {
+      setDevicesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchDevices()
+
+    const socket: TypedSocket = io(window.location.origin, {
+      path: '/api/ws',
+      transports: ['websocket', 'polling'],
+    }) as TypedSocket
+
+    socket.on('device:status', (data) => {
+      setDevices(prev => prev.map(d =>
+        d.id === data.id
+          ? { ...d, status: data.status, clientVersion: data.clientVersion ?? d.clientVersion }
+          : d
+      ))
+    })
+
+    return () => { socket.disconnect() }
+  }, [fetchDevices])
+
+  const handlePushUpdate = useCallback(async (deviceId?: number) => {
+    if (deviceId) {
+      setSinglePushLoading(prev => ({ ...prev, [deviceId]: true }))
+    } else {
+      setPushLoading(true)
+    }
     setPushStatus(null)
     try {
       const body: { deviceId?: number } = {}
-      if (isDeviceView && id) {
-        body.deviceId = id as number
-      }
+      if (deviceId) body.deviceId = deviceId
       const res = await fetch('/api/push-update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +220,7 @@ export function UpdateButton() {
       })
       const data = await res.json()
       if (res.ok && data.success) {
-        setPushStatus({ type: 'success', message: `${data.devicesUpdated} device(s) updated` })
+        setPushStatus({ type: 'success', message: deviceId ? 'Update sent' : `${data.devicesUpdated} device(s) updated` })
       } else {
         setPushStatus({ type: 'error', message: data.error || 'Update failed' })
       }
@@ -128,8 +228,11 @@ export function UpdateButton() {
       setPushStatus({ type: 'error', message: err.message || 'Network error' })
     } finally {
       setPushLoading(false)
+      if (deviceId) {
+        setSinglePushLoading(prev => ({ ...prev, [deviceId]: false }))
+      }
     }
-  }, [id, isDeviceView])
+  }, [])
 
   const fetchServerStatus = useCallback(async () => {
     try {
@@ -146,10 +249,8 @@ export function UpdateButton() {
   }, [])
 
   useEffect(() => {
-    if (isSettingsView) {
-      fetchServerStatus()
-    }
-  }, [isSettingsView, fetchServerStatus])
+    fetchServerStatus()
+  }, [fetchServerStatus])
 
   const startReconnecting = useCallback(() => {
     setDeploying(true)
@@ -233,24 +334,6 @@ export function UpdateButton() {
 
   if (user?.role !== 'admin') return null
 
-  if (isDeviceView) {
-    return (
-      <div style={{ padding: '12px 0' }}>
-        <label style={labelStyle}>Remote Update</label>
-        <button type="button" style={buttonStyle} onClick={handlePushUpdate} disabled={pushLoading}>
-          {pushLoading ? 'Updating...' : 'Push Update'}
-        </button>
-        {pushStatus && (
-          <div style={pushStatus.type === 'success' ? successStyle : errorStyle}>
-            {pushStatus.message}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  if (!isSettingsView) return null
-
   const currentServerVersion = serverInfo?.currentVersion || '...'
   const latestVersion = serverInfo?.latestVersion || '...'
   const hasUpdate = serverInfo?.updateAvailable || false
@@ -303,15 +386,61 @@ export function UpdateButton() {
       <div style={sectionStyle}>
         <label style={labelStyle}>Update Client Devices</label>
         <p style={infoStyle}>
-          Pushes the current sync-agent version to all connected devices.
+          Pushes the current sync-agent version to connected hardware devices.
         </p>
-        <button type="button" style={buttonStyle} onClick={handlePushUpdate} disabled={pushLoading}>
+        <button type="button" style={buttonStyle} onClick={() => handlePushUpdate()} disabled={pushLoading}>
           {pushLoading ? 'Pushing...' : 'Push Latest to All Devices'}
         </button>
         {pushStatus && (
           <div style={pushStatus.type === 'success' ? successStyle : errorStyle}>
             {pushStatus.message}
           </div>
+        )}
+
+        {devicesLoading ? (
+          <p style={infoStyle}>Loading devices...</p>
+        ) : devices.length === 0 ? (
+          <p style={infoStyle}>No devices found.</p>
+        ) : (
+          <table style={tableStyle}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Name</th>
+                <th style={thStyle}>Type</th>
+                <th style={thStyle}>Status</th>
+                <th style={thStyle}>Version</th>
+                <th style={thStyle}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices.map(d => (
+                <tr key={d.id}>
+                  <td style={tdStyle}>{d.name}</td>
+                  <td style={tdStyle}>{d.deviceType}</td>
+                  <td style={{ ...tdStyle, color: statusColor(d.status) }}>
+                    {statusDot(d.status)} {d.status}
+                  </td>
+                  <td style={tdStyle}>{d.clientVersion || '\u2014'}</td>
+                  <td style={tdStyle}>
+                    {d.deviceType === 'hardware' ? (
+                      <button
+                        type="button"
+                        style={smallButtonStyle}
+                        onClick={() => handlePushUpdate(d.id)}
+                        disabled={singlePushLoading[d.id]}
+                      >
+                        {singlePushLoading[d.id] ? '...' : 'Update'}
+                      </button>
+                    ) : (
+                      <span style={{ color: 'var(--theme-elevation-500, #666)', fontSize: '0.8rem' }}>
+                        \u2014
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
@@ -335,7 +464,7 @@ export function UpdateButton() {
                   }}
                 >
                   <span style={{ width: 20, textAlign: 'center' }}>
-                    {done ? '✓' : active ? '→' : '○'}
+                    {done ? '\u2713' : active ? '\u2192' : '\u25CB'}
                   </span>
                   <span>{step.label}</span>
                 </div>

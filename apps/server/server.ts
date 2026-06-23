@@ -17,7 +17,7 @@ const handle = app.getRequestHandler()
 
 const API_URL = process.env.API_URL || `http://localhost:${port}/api`
 
-async function verifyDeviceApiKey(apiKey: string): Promise<{ id: number; departments: string[]; controllingDevice: number | null } | null> {
+async function verifyDeviceApiKey(apiKey: string): Promise<{ id: number; departments: string[]; controllingDevice: number | null; deviceType: string } | null> {
   try {
     const res = await fetch(`${API_URL}/devices?depth=0&limit=1`, {
       headers: { Authorization: `devices API-Key ${apiKey}` },
@@ -30,13 +30,14 @@ async function verifyDeviceApiKey(apiKey: string): Promise<{ id: number; departm
       id: device.id,
       departments: device.departments || [],
       controllingDevice: device.controllingDevice || null,
+      deviceType: device.deviceType || 'hardware',
     }
   } catch {
     return null
   }
 }
 
-async function verifyBrowserToken(token: string): Promise<{ id: number; departments: string[]; controllingDevice: number | null } | null> {
+async function verifyBrowserToken(token: string): Promise<{ id: number; departments: string[]; controllingDevice: number | null; deviceType: string } | null> {
   try {
     const res = await fetch(`${API_URL}/devices?where[browserToken][equals]=${encodeURIComponent(token)}&depth=0&limit=1`)
     if (!res.ok) return null
@@ -47,6 +48,7 @@ async function verifyBrowserToken(token: string): Promise<{ id: number; departme
       id: device.id,
       departments: device.departments || [],
       controllingDevice: device.controllingDevice || null,
+      deviceType: device.deviceType,
     }
   } catch {
     return null
@@ -78,7 +80,7 @@ async function verifyIntegrationAccess(
 async function handleDeviceHeartbeat(
   io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
   socket: any,
-  data: { programId: number | null; slideIndex: number }
+  data: { programId: number | null; slideIndex: number; clientVersion?: string }
 ) {
   const device = socket.data
   const payload = getPayload()
@@ -90,6 +92,7 @@ async function handleDeviceHeartbeat(
       status: 'online',
     }
     if (data.programId != null) heartbeatUpdateData.currentProgram = data.programId
+    if (data.clientVersion != null) heartbeatUpdateData.clientVersion = data.clientVersion
     await payload.update({
       collection: 'devices',
       id: device.id,
@@ -97,12 +100,16 @@ async function handleDeviceHeartbeat(
       overrideAccess: true,
     })
 
+    const storedVersion = data.clientVersion
+    deviceStateStore.set(device.id, { state: 'playing', programId: data.programId, slideIndex: data.slideIndex })
+
     for (const dep of device.departments) {
       io.to(`department:${dep}`).emit('device:status', {
         id: device.id,
         slideIndex: data.slideIndex,
         programId: data.programId,
         status: 'online',
+        clientVersion: storedVersion,
       })
     }
     io.to('admin').emit('device:status', {
@@ -110,8 +117,8 @@ async function handleDeviceHeartbeat(
       slideIndex: data.slideIndex,
       programId: data.programId,
       status: 'online',
+      clientVersion: storedVersion,
     })
-    deviceStateStore.set(device.id, { state: 'playing', programId: data.programId, slideIndex: data.slideIndex })
   } catch (err) {
     console.error('Heartbeat handler error:', err)
   }
@@ -126,7 +133,8 @@ async function handleDeviceSlideChange(
   const payload = getPayload()
   if (!payload) return
   const existing = deviceStateStore.get(device.id)
-  deviceStateStore.set(device.id, { state: 'playing', programId: existing?.programId ?? null, slideIndex: data.slideIndex })
+  const storedVersion = existing?.clientVersion
+  deviceStateStore.set(device.id, { state: 'playing', programId: existing?.programId ?? null, slideIndex: data.slideIndex, clientVersion: storedVersion })
   try {
     await payload.update({
       collection: 'devices',
@@ -145,6 +153,7 @@ async function handleDeviceSlideChange(
         slideIndex: data.slideIndex,
         programId: null,
         status: 'online',
+        clientVersion: storedVersion,
       })
     }
     io.to('admin').emit('device:status', {
@@ -152,6 +161,7 @@ async function handleDeviceSlideChange(
       slideIndex: data.slideIndex,
       programId: null,
       status: 'online',
+      clientVersion: storedVersion,
     })
 
     // Mirror forwarding
@@ -262,7 +272,9 @@ async function handleDeviceStateChange(
   const device = socket.data
   const payload = getPayload()
   if (!payload) return
-  deviceStateStore.set(device.id, { state: data.state, programId: data.programId ?? null, slideIndex: data.menuIndex ?? 0 })
+  const existingState = deviceStateStore.get(device.id)
+  const storedVersion = existingState?.clientVersion
+  deviceStateStore.set(device.id, { state: data.state, programId: data.programId ?? null, slideIndex: data.menuIndex ?? 0, clientVersion: storedVersion })
   try {
     const stateChangeUpdateData: Record<string, any> = {
       lastHeartbeat: new Date().toISOString(),
@@ -287,6 +299,7 @@ async function handleDeviceStateChange(
         slideIndex: data.menuIndex ?? 0,
         programId: data.programId ?? null,
         status: 'online',
+        clientVersion: storedVersion,
       })
       io.to(`department:${dep}`).emit('device:stateChange', {
         id: device.id,
@@ -299,6 +312,7 @@ async function handleDeviceStateChange(
       slideIndex: data.menuIndex ?? 0,
       programId: data.programId ?? null,
       status: 'online',
+      clientVersion: storedVersion,
     })
     io.to('admin').emit('device:stateChange', {
       id: device.id,
@@ -379,7 +393,7 @@ async function handleDevicePauseChange(
   if (!payload) return
 
   const existing = deviceStateStore.get(device.id) ?? { state: 'playing', programId: null, slideIndex: 0 }
-  deviceStateStore.set(device.id, { ...existing, paused: data.paused })
+  deviceStateStore.set(device.id, { ...existing, paused: data.paused, clientVersion: existing?.clientVersion })
 
   // Mirror forwarding
   const controlled = await payload.find({
@@ -576,13 +590,15 @@ app.prepare().then(async () => {
         }
       }
 
-      // Notify admin/departments
+      const storedOnConnect = deviceStateStore.get(id)
+
       for (const dep of departments || []) {
         io.to(`department:${dep}`).emit('device:status', {
           id,
           slideIndex: 0,
           programId: null,
           status: 'online',
+          clientVersion: storedOnConnect?.clientVersion,
         })
       }
       io.to('admin').emit('device:status', {
@@ -590,6 +606,7 @@ app.prepare().then(async () => {
         slideIndex: 0,
         programId: null,
         status: 'online',
+        clientVersion: storedOnConnect?.clientVersion,
       })
 
       // Ask device to report its current state
@@ -609,12 +626,14 @@ app.prepare().then(async () => {
             console.error('Failed to set device offline:', err)
           }
         }
+        const storedOnDisconnect = deviceStateStore.get(id)
         for (const dep of departments || []) {
           io.to(`department:${dep}`).emit('device:status', {
             id,
             slideIndex: 0,
             programId: null,
             status: 'offline',
+            clientVersion: storedOnDisconnect?.clientVersion,
           })
         }
         io.to('admin').emit('device:status', {
@@ -622,6 +641,7 @@ app.prepare().then(async () => {
           slideIndex: 0,
           programId: null,
           status: 'offline',
+          clientVersion: storedOnDisconnect?.clientVersion,
         })
       })
     } else if (type === 'user') {

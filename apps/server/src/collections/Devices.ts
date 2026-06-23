@@ -167,6 +167,15 @@ export const Devices: CollectionConfig = {
       },
     },
     {
+      name: 'clientVersion',
+      type: 'text',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description: 'Version of the sync agent/player running on this device.',
+      },
+    },
+    {
       name: 'status',
       type: 'select',
       defaultValue: 'offline',
@@ -174,6 +183,7 @@ export const Devices: CollectionConfig = {
         { label: 'Online', value: 'online' },
         { label: 'Offline', value: 'offline' },
         { label: 'Stale', value: 'stale' },
+        { label: 'Updating', value: 'updating' },
       ],
       admin: { readOnly: true, position: 'sidebar' },
     },
@@ -232,17 +242,6 @@ export const Devices: CollectionConfig = {
       defaultValue: false,
       admin: {
         description: 'When enabled, the list of available programs is not shown on the device. It will only play auto-scheduled programs.',
-      },
-    },
-    {
-      name: 'updateAction',
-      type: 'ui',
-      admin: {
-        components: {
-          Field: '/components/UpdateButton#UpdateButton',
-        },
-        position: 'sidebar',
-        condition: ({ user }) => user?.role === 'admin',
       },
     },
   ],

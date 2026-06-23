@@ -1,6 +1,6 @@
 // Client → Server events (from devices and admin UI)
 export interface ClientToServerEvents {
-  'device:heartbeat': (data: { programId: number | null; slideIndex: number }, callback?: (ack: { ok: boolean }) => void) => void
+  'device:heartbeat': (data: { programId: number | null; slideIndex: number; clientVersion?: string }, callback?: (ack: { ok: boolean }) => void) => void
   'device:slideChange': (data: { slideIndex: number }, callback?: (ack: { ok: boolean }) => void) => void
   'device:stateChange': (data: { state: 'idle' | 'menu' | 'playing'; programId?: number; menuIndex?: number }, callback?: (ack: { ok: boolean }) => void) => void
   'device:pauseChange': (data: { paused: boolean }, callback?: (ack: { ok: boolean }) => void) => void
@@ -26,9 +26,9 @@ export interface ServerToClientEvents {
   'remote:back': () => void
   'remote:select': () => void
   'remote:pause': () => void
-  'device:status': (data: { id: number; slideIndex: number; programId: number | null; status: string }) => void
+  'device:status': (data: { id: number; slideIndex: number; programId: number | null; status: string; clientVersion?: string }) => void
   'device:stateChange': (data: { id: number; state: 'idle' | 'menu' | 'playing'; programId?: number }) => void
-  'remote:update': (data: { version: string }) => void
+  'remote:update': (data: { version: string }, callback?: (ack: { ok: boolean }) => void) => void
 }
 
 // Inter-server events (for emitting from hooks)

@@ -21,6 +21,8 @@ const SCHEDULE_PATH = process.env.SCHEDULE_PATH || path.join(__dirname, '..', 'a
 
 if (!fs.existsSync(LOCAL_DIR)) fs.mkdirSync(LOCAL_DIR, { recursive: true });
 
+const VERSION = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8')).version
+
 console.log(ts('[sync] Sync agent starting...'));
 
 // Write empty schedule so player always has a file to fetch on startup
@@ -394,6 +396,7 @@ async function sync() {
         await axios.post(`${API_URL}/heartbeat`, {
           programId: activeProgramId,
           slideIndex: currentSlideIndex,
+          clientVersion: VERSION,
         }, {
           headers: { Authorization: `devices API-Key ${API_KEY}` },
         });
@@ -401,7 +404,7 @@ async function sync() {
         console.error('Heartbeat failed:', err.message);
       }
     } else {
-      cmsSocket.emit('device:heartbeat', { programId: activeProgramId, slideIndex: currentSlideIndex });
+      cmsSocket.emit('device:heartbeat', { programId: activeProgramId, slideIndex: currentSlideIndex, clientVersion: VERSION });
     }
 
     // Notify local player if schedule actually changed
@@ -473,13 +476,14 @@ function connectToCMS() {
     localIO?.emit('remote:pause');
   });
 
-  socket.on('remote:update', async (data) => {
+  socket.on('remote:update', async (data, callback) => {
     console.log(ts(`[sync] Received remote update command: version ${data.version}`));
     try {
       await axios.post(
         process.env.UPDATE_LISTENER_URL || 'http://host.docker.internal:5555/update',
         { version: data.version },
       );
+      if (typeof callback === 'function') callback({ ok: true });
     } catch (err) {
       console.error(ts(`[sync] Update trigger failed: ${err.message}`));
     }
