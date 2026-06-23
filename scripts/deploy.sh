@@ -31,6 +31,8 @@ report() {
   echo "$1" > "$STATUS_FILE"
 }
 
+trap 'report "done"' EXIT
+
 report "checkout"
 
 echo "Fetching tags..."

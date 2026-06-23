@@ -305,6 +305,14 @@ docker push localhost:5050/sync-agent:v1.2.0
 docker push localhost:5050/sync-agent:latest
 ```
 
+### Log Rotation
+
+Deploy scripts write logs to `/var/log/peydx-*.log`. These are not rotated automatically. Install logrotate to manage them:
+
+```bash
+sudo cp /opt/peydx/scripts/peydx-logrotate.conf /etc/logrotate.d/peydx
+```
+
 ## Troubleshooting
 
 ### Check Container Logs

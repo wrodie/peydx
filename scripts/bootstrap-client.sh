@@ -105,6 +105,7 @@ FILES=(
   "sync/update-listener.py"
   "sync/update.sh"
   "sync/update-listener.service"
+  "scripts/peydx-logrotate.conf"
 )
 
 for file in "${FILES[@]}"; do
@@ -133,7 +134,16 @@ EOF
   echo ".env written."
 fi
 
-# ---- Step 4: Install update-listener service ----
+# ---- Step 4a: Install logrotate config ----
+echo "Installing logrotate config..."
+if [ -f /etc/logrotate.d/peydx ]; then
+  echo "logrotate already configured — skipping."
+else
+  cp "$BASE_DIR/peydx-logrotate.conf" /etc/logrotate.d/peydx
+  echo "logrotate config installed."
+fi
+
+# ---- Step 4b: Install update-listener service ----
 echo "Installing update-listener service..."
 cp "$BASE_DIR/update-listener.service" "$UPDATE_SERVICE"
 systemctl daemon-reload

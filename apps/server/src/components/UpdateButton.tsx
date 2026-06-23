@@ -276,7 +276,7 @@ export function UpdateButton() {
         clearInterval(deployPollRef.current!)
         deployPollRef.current = null
         setDeploying(false)
-        setDeployStatus({ type: 'error', message: 'Server did not come back within 2 minutes. Check the server manually.' })
+        setDeployStatus({ type: 'error', message: 'Server did not come back within 8 minutes. Check the server manually.' })
       }
     }, 3000)
   }, [])
@@ -288,6 +288,7 @@ export function UpdateButton() {
         if (res.ok) {
           const data = await res.json()
           setDeployStep(data.step)
+          console.log('[deploy-poll] step:', data.step)
           if (data.step === 'done') {
             clearInterval(deployPollRef.current!)
             deployPollRef.current = null
