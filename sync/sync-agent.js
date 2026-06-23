@@ -471,14 +471,14 @@ function connectToCMS() {
     localIO?.emit('remote:pause');
   });
 
-  socket.on('remote:update', async (data) => {
+  socket.on('remote:update', async (data, callback) => {
     console.log(ts(`[sync] Received remote update command: version ${data.version}`));
     try {
       await axios.post(
         process.env.UPDATE_LISTENER_URL || 'http://host.docker.internal:5555/update',
         { version: data.version },
       );
-      socket.emit('device:updateAck', { ok: true });
+      if (typeof callback === 'function') callback({ ok: true });
     } catch (err) {
       console.error(ts(`[sync] Update trigger failed: ${err.message}`));
     }

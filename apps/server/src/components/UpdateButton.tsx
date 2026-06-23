@@ -146,7 +146,7 @@ export function UpdateButton() {
 
   const [pushStatus, setPushStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [pushLoading, setPushLoading] = useState(false)
-  const [singlePushLoading, setSinglePushLoading] = useState<Record<number, boolean>>({})
+  const [pushDeviceStatus, setPushDeviceStatus] = useState<Record<number, { type: 'loading' | 'success' | 'error'; message: string } | null>>({})
 
   const [serverInfo, setServerInfo] = useState<{
     currentVersion: string
@@ -205,7 +205,7 @@ export function UpdateButton() {
 
   const handlePushUpdate = useCallback(async (deviceId?: number) => {
     if (deviceId) {
-      setSinglePushLoading(prev => ({ ...prev, [deviceId]: true }))
+      setPushDeviceStatus(prev => ({ ...prev, [deviceId]: { type: 'loading', message: 'Sending...' } }))
     } else {
       setPushLoading(true)
     }
@@ -220,17 +220,31 @@ export function UpdateButton() {
       })
       const data = await res.json()
       if (res.ok && data.success) {
-        setPushStatus({ type: 'success', message: deviceId ? 'Update sent' : `${data.devicesUpdated} device(s) updated` })
+        if (deviceId) {
+          setPushDeviceStatus(prev => ({ ...prev, [deviceId]: { type: 'success', message: 'Sent' } }))
+          setTimeout(() => setPushDeviceStatus(prev => ({ ...prev, [deviceId]: null })), 5000)
+        } else {
+          let msg = `${data.devicesUpdated} device(s) updated`
+          if (data.warning) msg += ` (${data.warning})`
+          setPushStatus({ type: 'success', message: msg })
+        }
       } else {
-        setPushStatus({ type: 'error', message: data.error || 'Update failed' })
+        if (deviceId) {
+          setPushDeviceStatus(prev => ({ ...prev, [deviceId]: { type: 'error', message: data.error || 'Failed' } }))
+          setTimeout(() => setPushDeviceStatus(prev => ({ ...prev, [deviceId]: null })), 8000)
+        } else {
+          setPushStatus({ type: 'error', message: data.error || 'Update failed' })
+        }
       }
     } catch (err: any) {
-      setPushStatus({ type: 'error', message: err.message || 'Network error' })
+      if (deviceId) {
+        setPushDeviceStatus(prev => ({ ...prev, [deviceId]: { type: 'error', message: err.message || 'Network error' } }))
+        setTimeout(() => setPushDeviceStatus(prev => ({ ...prev, [deviceId]: null })), 8000)
+      } else {
+        setPushStatus({ type: 'error', message: err.message || 'Network error' })
+      }
     } finally {
       setPushLoading(false)
-      if (deviceId) {
-        setSinglePushLoading(prev => ({ ...prev, [deviceId]: false }))
-      }
     }
   }, [])
 
@@ -429,14 +443,29 @@ export function UpdateButton() {
                   <td style={tdStyle}>{d.clientVersion || '\u2014'}</td>
                   <td style={tdStyle}>
                     {d.deviceType === 'hardware' ? (
-                      <button
-                        type="button"
-                        style={smallButtonStyle}
-                        onClick={() => handlePushUpdate(d.id)}
-                        disabled={singlePushLoading[d.id]}
-                      >
-                        {singlePushLoading[d.id] ? '...' : 'Update'}
-                      </button>
+                      <div>
+                        <button
+                          type="button"
+                          style={smallButtonStyle}
+                          onClick={() => handlePushUpdate(d.id)}
+                          disabled={pushDeviceStatus[d.id]?.type === 'loading'}
+                        >
+                          {pushDeviceStatus[d.id]?.type === 'loading' ? 'Sending...' : 'Update'}
+                        </button>
+                        {pushDeviceStatus[d.id] && (
+                          <div style={{
+                            fontSize: '0.75rem',
+                            marginTop: 4,
+                            color: pushDeviceStatus[d.id]!.type === 'success'
+                              ? 'var(--theme-success-500, #22c55e)'
+                              : pushDeviceStatus[d.id]!.type === 'error'
+                                ? 'var(--theme-error-500, #ef4444)'
+                                : 'var(--theme-elevation-500, #666)',
+                          }}>
+                            {pushDeviceStatus[d.id]!.message}
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <span style={{ color: 'var(--theme-elevation-500, #666)', fontSize: '0.8rem' }}>
                         {'\u2014'}
