@@ -291,6 +291,7 @@ export function UpdateButton() {
           if (data.step === 'done') {
             clearInterval(deployPollRef.current!)
             deployPollRef.current = null
+            setTimeout(() => window.location.reload(), 5000)
           }
         }
       } catch {}
