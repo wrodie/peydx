@@ -33,6 +33,10 @@ if ! docker compose -f "$COMPOSE_FILE" pull sync-agent; then
   exit 1
 fi
 
-echo "Restarting sync-agent..."
+echo "Stopping old sync-agent..."
+docker compose -f "$COMPOSE_FILE" stop sync-agent || true
+sleep 2
+
+echo "Starting new sync-agent..."
 docker compose -f "$COMPOSE_FILE" up -d sync-agent
 echo "Update complete: sync-agent now running $VERSION"

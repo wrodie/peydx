@@ -223,11 +223,6 @@ async function sync() {
         program: program,
       }));
 
-    if (activeSchedule.length === 0 && activeAvailability.length === 0) {
-      console.log(ts('[sync] No active schedule or availability entries after filtering'));
-      return;
-    }
-
     const allActiveItems = [...activeSchedule, ...activeAvailability];
     const requiredFilenames = new Set();
 
