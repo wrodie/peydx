@@ -40,7 +40,7 @@ export const pushUpdate = {
     for (const s of targetSockets) {
       try {
         const ack = await Promise.race([
-          s.emitWithAck('remote:update', { version }),
+          (s as any).emitWithAck('remote:update', { version }),
           new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('timeout')), 15000)
           ),
