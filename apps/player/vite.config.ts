@@ -3,7 +3,10 @@ import react from '@vitejs/plugin-react'
 import { execSync } from 'child_process'
 import fs from 'fs'
 
-const gitHash = execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim()
+let gitHash = 'unknown'
+try {
+  gitHash = execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim()
+} catch {}
 
 export default defineConfig({
   define: {

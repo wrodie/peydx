@@ -108,7 +108,7 @@ Create a kiosk startup script at `/opt/peydx/kiosk.sh`:
 
 ```bash
 #!/bin/bash
-xinit /usr/bin/chromium-browser \
+/usr/bin/chromium-browser \
   --kiosk \
   --incognito \
   --noerrdialogs \
