@@ -1,7 +1,5 @@
 import * as migration_20260620_064437 from './20260620_064437';
 import * as migration_20260622_000000_role_standard_manager from './20260622_000000_role_standard_manager';
-import * as migration_20260620_064437 from './20260620_064437';
-import * as migration_20260622_000000_role_standard_manager from './20260622_000000_role_standard_manager';
 import * as migration_20260622_000001_migrate_basic_to_standard from './20260622_000001_migrate_basic_to_standard';
 import * as migration_20260622_000002_add_updating_status from './20260622_000002_add_updating_status';
 
