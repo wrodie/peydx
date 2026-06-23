@@ -1,16 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { execSync } from 'child_process'
 import fs from 'fs'
 
-let gitHash = 'unknown'
-try {
-  gitHash = execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim()
-} catch {}
+const pkg = JSON.parse(fs.readFileSync('../../package.json', 'utf-8'))
+const appVersion = pkg.version
 
 export default defineConfig({
   define: {
-    __GIT_HASH__: JSON.stringify(gitHash),
+    __APP_VERSION__: JSON.stringify(appVersion),
   },
   plugins: [
     react(),
@@ -18,7 +15,7 @@ export default defineConfig({
       name: 'version-json',
       writeBundle() {
         fs.mkdirSync('dist', { recursive: true })
-        fs.writeFileSync('dist/version.json', JSON.stringify({ hash: gitHash }))
+        fs.writeFileSync('dist/version.json', JSON.stringify({ version: appVersion }))
       },
     },
   ],

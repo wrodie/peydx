@@ -139,8 +139,8 @@ export function App() {
       try {
         const res = await fetch('/version.json')
         if (!res.ok) return
-        const { hash } = await res.json()
-        if (hash && hash !== __GIT_HASH__) {
+        const { version } = await res.json()
+        if (version && version !== __APP_VERSION__) {
           window.location.reload()
         }
       } catch {}
