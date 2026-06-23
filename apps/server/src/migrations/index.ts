@@ -2,6 +2,7 @@ import * as migration_20260620_064437 from './20260620_064437';
 import * as migration_20260622_000000_role_standard_manager from './20260622_000000_role_standard_manager';
 import * as migration_20260622_000001_migrate_basic_to_standard from './20260622_000001_migrate_basic_to_standard';
 import * as migration_20260622_000002_add_updating_status from './20260622_000002_add_updating_status';
+import * as migration_20260622_000003_add_client_version_column from './20260622_000003_add_client_version_column';
 
 export const migrations = [
   {
@@ -23,5 +24,10 @@ export const migrations = [
     up: migration_20260622_000002_add_updating_status.up,
     down: migration_20260622_000002_add_updating_status.down,
     name: '20260622_000002_add_updating_status'
+  },
+  {
+    up: migration_20260622_000003_add_client_version_column.up,
+    down: migration_20260622_000003_add_client_version_column.down,
+    name: '20260622_000003_add_client_version_column'
   },
 ];
