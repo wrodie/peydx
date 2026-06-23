@@ -53,8 +53,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    server = HTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"[update-listener] Listening on 127.0.0.1:{PORT}")
+    server = HTTPServer(("0.0.0.0", PORT), Handler)
+    print(f"[update-listener] Listening on 0.0.0.0:{PORT}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
