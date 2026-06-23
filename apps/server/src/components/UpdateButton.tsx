@@ -389,7 +389,18 @@ export function UpdateButton() {
             {deployLoading ? 'Starting...' : `Deploy ${latestVersion}`}
           </button>
         ) : (
-          <span style={{ ...infoStyle, marginTop: 0 }}>Up to date</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ ...infoStyle, marginTop: 0 }}>Up to date</span>
+            {serverInfo?.error && (
+              <button
+                type="button"
+                style={{ ...buttonStyle, padding: '2px 10px', fontSize: '0.8rem' }}
+                onClick={fetchServerStatus}
+              >
+                Retry
+              </button>
+            )}
+          </div>
         )}
         {deployStatus && (
           <div style={deployStatus.type === 'success' ? successStyle : errorStyle}>

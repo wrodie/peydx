@@ -80,13 +80,13 @@ class Handler(BaseHTTPRequestHandler):
             current = "dev"
 
         # Latest version from git tags (fetched from GitHub)
-        latest = current
+        latest = None
         error = None
         try:
             fetch = subprocess.run(
-                ["git", "fetch", "--tags"],
+                ["git", "fetch", "--tags", "--force"],
                 capture_output=True, text=True, cwd=PROJECT_DIR,
-                timeout=10,
+                timeout=30,
             )
             if fetch.returncode != 0:
                 error = f"git fetch failed (exit {fetch.returncode}): {fetch.stderr.strip()}"
@@ -102,7 +102,7 @@ class Handler(BaseHTTPRequestHandler):
                         ["git", "describe", "--tags", latest_commit],
                         capture_output=True, text=True, cwd=PROJECT_DIR,
                     )
-                    latest = desc_result.stdout.strip() or current
+                    latest = desc_result.stdout.strip()
                 else:
                     error = "No tags found in repository"
         except Exception as e:
@@ -112,7 +112,7 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json({
             "currentVersion": current,
             "latestVersion": latest,
-            "updateAvailable": current != latest,
+            "updateAvailable": latest is not None and current != latest,
             "error": error,
         })
 

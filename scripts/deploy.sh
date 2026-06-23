@@ -36,7 +36,7 @@ trap 'report "done"' EXIT
 report "checkout"
 
 echo "Fetching tags..."
-git fetch --tags
+git fetch --tags --force
 
 echo "Checking out $VERSION..."
 git checkout "$VERSION"
