@@ -363,14 +363,18 @@ export function UpdateButton() {
             </span>
           )}
         </div>
-        <button
-          type="button"
-          style={deployButtonStyle}
-          onClick={handleDeploy}
-          disabled={deployLoading || !hasUpdate}
-        >
-          {deployLoading ? 'Starting...' : hasUpdate ? `Deploy ${latestVersion}` : serverManagerConnected ? 'Up to date' : 'Manual update only'}
-        </button>
+        {hasUpdate ? (
+          <button
+            type="button"
+            style={deployButtonStyle}
+            onClick={handleDeploy}
+            disabled={deployLoading}
+          >
+            {deployLoading ? 'Starting...' : `Deploy ${latestVersion}`}
+          </button>
+        ) : (
+          <span style={{ ...infoStyle, marginTop: 0 }}>Up to date</span>
+        )}
         {deployStatus && (
           <div style={deployStatus.type === 'success' ? successStyle : errorStyle}>
             {deployStatus.message}
@@ -433,7 +437,7 @@ export function UpdateButton() {
                       </button>
                     ) : (
                       <span style={{ color: 'var(--theme-elevation-500, #666)', fontSize: '0.8rem' }}>
-                        \u2014
+                        {'\u2014'}
                       </span>
                     )}
                   </td>

@@ -732,6 +732,47 @@ app.prepare().then(async () => {
       handleRemoteBack(io, socket, data)
     })
 
+    socket.on('device:updateAck', async (data: any) => {
+      if (type !== 'device') return
+      const payload = getPayload()
+      const deviceId = socket.data.id
+      if (payload) {
+        try {
+          await payload.update({
+            collection: 'devices',
+            id: deviceId,
+            data: { status: 'updating' },
+            overrideAccess: true,
+          })
+        } catch (err) {
+          console.error('Failed to set device updating:', err)
+        }
+      }
+      io.to(`device:${deviceId}`).emit('device:status', {
+        id: deviceId,
+        slideIndex: 0,
+        programId: null,
+        status: 'updating',
+        clientVersion: undefined,
+      })
+      for (const dep of socket.data.departments || []) {
+        io.to(`department:${dep}`).emit('device:status', {
+          id: deviceId,
+          slideIndex: 0,
+          programId: null,
+          status: 'updating',
+          clientVersion: undefined,
+        })
+      }
+      io.to('admin').emit('device:status', {
+        id: deviceId,
+        slideIndex: 0,
+        programId: null,
+        status: 'updating',
+        clientVersion: undefined,
+      })
+    })
+
     socket.on('remote:select', async (data: any) => {
       if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
       handleRemoteSelect(io, socket, data)

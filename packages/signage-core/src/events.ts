@@ -12,6 +12,7 @@ export interface ClientToServerEvents {
   'remote:back': (data: { id: number }) => void
   'remote:select': (data: { id: number }) => void
   'remote:pause': (data: { id: number }) => void
+  'device:updateAck': (data: { ok: boolean }) => void
 }
 
 // Server → Client events (to devices and admin UI)

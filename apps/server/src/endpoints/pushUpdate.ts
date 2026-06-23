@@ -1,4 +1,4 @@
-import { getIO, getPayload } from '../websocket/io'
+import { getIO } from '../websocket/io'
 
 export const pushUpdate = {
   path: '/push-update',
@@ -18,50 +18,22 @@ export const pushUpdate = {
     const version = 'latest'
 
     const io = getIO()
-    const payload = getPayload()
     if (!io) {
       return Response.json({ error: 'WebSocket server not available' }, { status: 500 })
     }
 
-    const allSockets = (await io.in('devices').fetchSockets())
+    const sockets = (await io.in('devices').fetchSockets())
       .filter(s => s.data.deviceType === 'hardware')
 
-    const targetSockets = body.deviceId
-      ? allSockets.filter(s => s.data.id === body.deviceId)
-      : allSockets
-
-    if (body.deviceId && targetSockets.length === 0) {
-      return Response.json({ success: true, devicesUpdated: 0 })
+    if (body.deviceId) {
+      const deviceSocket = sockets.find(s => s.data.id === body.deviceId)
+      if (deviceSocket) {
+        io.to(`device:${body.deviceId}`).emit('remote:update', { version })
+      }
+      return Response.json({ success: true, devicesUpdated: deviceSocket ? 1 : 0 })
     }
 
-    let devicesUpdated = 0
-    const results = await Promise.allSettled(
-      targetSockets.map(async (s) => {
-        try {
-          await s.emitWithAck('remote:update', { version })
-          devicesUpdated++
-
-          if (payload && s.data.id) {
-            await payload.update({
-              collection: 'devices',
-              id: s.data.id,
-              data: { status: 'updating' },
-              overrideAccess: true,
-            })
-          }
-
-          io.to(`device:${s.data.id}`).emit('device:status', {
-            id: s.data.id,
-            slideIndex: 0,
-            programId: null,
-            status: 'updating',
-          })
-        } catch {
-          // Device didn't ACK — skip
-        }
-      })
-    )
-
-    return Response.json({ success: true, devicesUpdated })
+    io.to('devices').emit('remote:update', { version })
+    return Response.json({ success: true, devicesUpdated: sockets.length })
   },
 }
