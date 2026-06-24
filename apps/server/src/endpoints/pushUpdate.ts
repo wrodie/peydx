@@ -21,8 +21,22 @@ export const pushUpdate = {
       return Response.json({ error: 'WebSocket server not available' }, { status: 500 })
     }
 
-    const settings = payload ? await payload.findGlobal({ slug: 'settings', depth: 0, overrideAccess: true }) : null
-    const version = settings?.clientVersion || 'latest'
+    // Get the deployed version from the server-manager (same source as the Deploy button)
+    let version = 'latest'
+    try {
+      const managerUrl = process.env.SERVER_MANAGER_URL || 'http://host.docker.internal:5556'
+      const token = process.env.SERVER_MANAGER_TOKEN || ''
+      const res = await fetch(`${managerUrl}/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10000),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.latestVersion) version = data.latestVersion
+      }
+    } catch {
+      // Fall back to 'latest' if server-manager unreachable
+    }
 
     const deviceSockets = [...io.sockets.sockets.values()]
       .filter(s => s.data.type === 'device' && s.data.deviceType === 'hardware' && s.data.id != null)
