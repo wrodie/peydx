@@ -15,13 +15,14 @@ export const pushUpdate = {
       // body is optional
     }
 
-    const version = 'latest'
-
     const io = getIO()
     const payload = getPayload()
     if (!io) {
       return Response.json({ error: 'WebSocket server not available' }, { status: 500 })
     }
+
+    const settings = payload ? await payload.findGlobal({ slug: 'settings', depth: 0, overrideAccess: true }) : null
+    const version = settings?.clientVersion || 'latest'
 
     const deviceSockets = [...io.sockets.sockets.values()]
       .filter(s => s.data.type === 'device' && s.data.deviceType === 'hardware' && s.data.id != null)
