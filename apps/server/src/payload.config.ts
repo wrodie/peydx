@@ -32,12 +32,22 @@ export default buildConfig({
   secret: process.env.PAYLOAD_SECRET!,
   admin: {
     user: Users.slug,
+    meta: {
+      title: 'PeydX',
+      icons: [
+        { url: '/favicon.png', type: 'image/png' },
+      ],
+    },
     timezones: {
       defaultTimezone: process.env.TIMEZONE || 'UTC',
     },
     components: {
       Nav: '/components/HiddenSidebar#HiddenSidebar',
       header: ['/components/TopNavHeader#TopNavHeader'],
+      graphics: {
+        Icon: '/components/LoginLogo',
+        Logo: '/components/LoginLogo',
+      },
       views: {
         dashboard: {
           Component: '/components/DashboardView#DashboardView',

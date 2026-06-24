@@ -59,7 +59,7 @@ if [[ "$VERSION" != "latest" ]]; then
   done
   chmod +x "$HOST_DIR/update-listener.py" "$HOST_DIR/update.sh" 2>/dev/null || true
   systemctl restart update-listener 2>/dev/null || true
-  if [ -f "$HOST_DIR/peydx-logrotate.conf" ] && [ ! -f /etc/logrotate.d/peydx ]; then
+  if [ -f "$HOST_DIR/peydx-logrotate.conf" ]; then
     cp "$HOST_DIR/peydx-logrotate.conf" /etc/logrotate.d/peydx 2>/dev/null || true
   fi
 fi
