@@ -12,6 +12,14 @@ export const Config: GlobalConfig = {
   },
   fields: [
     {
+      name: 'clientVersion',
+      type: 'text',
+      admin: {
+        readOnly: true,
+        hidden: true,
+      },
+    },
+    {
       name: 'updateSection',
       type: 'ui',
       admin: {

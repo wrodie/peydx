@@ -41,25 +41,27 @@ echo "Starting new sync-agent..."
 docker compose -f "$COMPOSE_FILE" up -d sync-agent
 
 # Update host-side files from GitHub to match this version
-BASE_URL="https://raw.githubusercontent.com/wrodie/peydx/$VERSION"
-HOST_DIR="/opt/peydx"
-HOST_FILES=(
-  "sync/update-listener.py"
-  "sync/update.sh"
-  "sync/update-listener.service"
-  "scripts/peydx-logrotate.conf"
-)
-for file in "${HOST_FILES[@]}"; do
-  dest="$HOST_DIR/$(basename "$file")"
-  echo "Downloading host file: $file"
-  if ! curl -sLf "$BASE_URL/$file" -o "$dest"; then
-    echo "WARNING: Failed to download $file — skipping"
+if [[ "$VERSION" != "latest" ]]; then
+  BASE_URL="https://raw.githubusercontent.com/wrodie/peydx/$VERSION"
+  HOST_DIR="/opt/peydx"
+  HOST_FILES=(
+    "sync/update-listener.py"
+    "sync/update.sh"
+    "sync/update-listener.service"
+    "scripts/peydx-logrotate.conf"
+  )
+  for file in "${HOST_FILES[@]}"; do
+    dest="$HOST_DIR/$(basename "$file")"
+    echo "Downloading host file: $file"
+    if ! curl -sLf "$BASE_URL/$file" -o "$dest"; then
+      echo "WARNING: Failed to download $file — skipping"
+    fi
+  done
+  chmod +x "$HOST_DIR/update-listener.py" "$HOST_DIR/update.sh" 2>/dev/null || true
+  systemctl restart update-listener 2>/dev/null || true
+  if [ -f "$HOST_DIR/peydx-logrotate.conf" ] && [ ! -f /etc/logrotate.d/peydx ]; then
+    cp "$HOST_DIR/peydx-logrotate.conf" /etc/logrotate.d/peydx 2>/dev/null || true
   fi
-done
-chmod +x "$HOST_DIR/update-listener.py" "$HOST_DIR/update.sh" 2>/dev/null || true
-systemctl restart update-listener 2>/dev/null || true
-if [ -f "$HOST_DIR/peydx-logrotate.conf" ] && [ ! -f /etc/logrotate.d/peydx ]; then
-  cp "$HOST_DIR/peydx-logrotate.conf" /etc/logrotate.d/peydx 2>/dev/null || true
 fi
 
 echo "Update complete: sync-agent now running $VERSION"
