@@ -51,8 +51,8 @@ const DraggableMediaItem: FC<{
   onToggleSelect: (id: number) => void
 }> = ({ media, isSelected, selectedIds, allVisibleMedia, onToggleSelect }) => {
   const dragItems = isSelected
-    ? allVisibleMedia.filter(m => selectedIds.has(m.id)).map(m => ({ id: m.id, mimeType: m.mimeType, filename: m.filename }))
-    : [{ id: media.id, mimeType: media.mimeType, filename: media.filename }]
+    ? allVisibleMedia.filter(m => selectedIds.has(m.id)).map(m => ({ id: m.id, mimeType: m.mimeType, filename: m.filename, url: m.url, sizes: m.sizes, name: m.name }))
+    : [{ id: media.id, mimeType: media.mimeType, filename: media.filename, url: media.url, sizes: media.sizes, name: media.name }]
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({

@@ -1,7 +1,6 @@
 'use client'
 
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import { useDraggable } from '@dnd-kit/core'
 import type { FC } from 'react'
 
 type SlideCardProps = {
@@ -73,38 +72,46 @@ export const SlideCard: FC<SlideCardProps> = ({
     attributes,
     listeners,
     setNodeRef,
-    transform,
-    transition,
     isDragging,
-  } = useSortable({
+  } = useDraggable({
     id: sortableId,
     data: { type: 'slide', slide, index, segmentId, isTopLevel },
   })
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0 : 1,
   }
 
-  const getMediaId = (s: any): number | null => {
+  const getThumbnailUrl = (s: any): string | null => {
     if (!s) return null
-    if (s.blockType === 'imageBlock' && typeof s.image === 'number') return s.image
-    if (s.blockType === 'videoBlock' && typeof s.video === 'number') return s.video
-    if (s.blockType === 'audioBlock' && typeof s.audio === 'number') return s.audio
-    return null
+    if (s.blockType === 'youtubeBlock') {
+      const y = extractYouTubeId(s.youtubeId || '')
+      if (y) return `https://img.youtube.com/vi/${y}/mqdefault.jpg`
+    }
+    const mediaField = s.image || s.video || s.audio
+    if (!mediaField) return null
+    if (typeof mediaField === 'object' && mediaField !== null) {
+      return mediaField.sizes?.thumbnail?.url || mediaField.url || null
+    }
+    const item = mediaMap[mediaField]
+    return item?.thumbnailUrl || null
   }
 
-  const mediaId = getMediaId(slide)
-  const mediaItem = mediaId != null ? mediaMap[mediaId] : null
-  const ytId = slide.blockType === 'youtubeBlock' ? extractYouTubeId(slide.youtubeId || '') : null
-  const thumbnail = mediaItem?.thumbnailUrl || (
-    ytId
-      ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`
-      : null
-  )
+  const getSlideName = (s: any): string => {
+    if (!s) return ''
+    if (s.blockType === 'youtubeBlock' && s.videoTitle) return s.videoTitle
+    const mediaField = s.image || s.video || s.audio
+    if (!mediaField) return blockLabels[s.blockType] || s.blockType
+    if (typeof mediaField === 'object' && mediaField !== null) {
+      return mediaField.name || mediaField.filename || blockLabels[s.blockType] || s.blockType
+    }
+    const item = mediaMap[mediaField]
+    return item?.name || item?.filename || blockLabels[s.blockType] || s.blockType
+  }
+
+  const thumbnail = getThumbnailUrl(slide)
+  const name = getSlideName(slide)
   const icon = blockIcons[slide.blockType] || '📄'
-  const name = mediaItem?.name || mediaItem?.filename || slide.videoTitle || ytId || blockLabels[slide.blockType] || slide.blockType
   const modeLabel =
     slide.advanceMode === 'timed'
       ? formatDuration(slide.duration)

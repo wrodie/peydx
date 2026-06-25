@@ -1,11 +1,9 @@
 'use client'
 
-import { useSortable } from '@dnd-kit/sortable'
-import { useDroppable } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { useState, type FC } from 'react'
 import { SlideCard } from './SlideCard'
+import { DropGap } from './DropGap'
 
 type SegmentContainerProps = {
   segment: any
@@ -37,11 +35,8 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
     attributes,
     listeners,
     setNodeRef,
-    transform,
-    transition,
     isDragging,
-    isOver,
-  } = useSortable({
+  } = useDraggable({
     id: segmentId,
     data: { type: 'segment', segment, index, segmentId },
   })
@@ -51,14 +46,12 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
     data: { type: 'segment-drop', segmentId },
   })
 
-  const slideIds = (segment.slides || []).map(
-    (_: any, i: number) => `${segmentId}-slide-${i}`
-  )
+  const { setNodeRef: setHeaderDropRef, isOver: isHeaderOver } = useDroppable({
+    id: `${segmentId}-header-drop`,
+    data: { type: 'gap', container: segmentId, index: Infinity },
+  })
 
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+  const childSlides = (segment.slides || []) as any[]
 
   const handleNameSave = () => {
     setEditingName(false)
@@ -67,16 +60,20 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
     }
   }
 
+  const headerRef = (node: HTMLDivElement | null) => {
+    setNodeRef(node)
+    setHeaderDropRef(node)
+  }
+
   return (
     <div
-      ref={setNodeRef}
+      ref={headerRef}
       style={{
-        ...style,
         marginBottom: 8,
-        border: `1px solid ${isOver ? 'var(--theme-primary-300, #93c5fd)' : 'var(--theme-elevation-300, #d1d5db)'}`,
+        border: `1px solid ${(isDragging || isHeaderOver) ? 'var(--theme-primary-300, #93c5fd)' : 'var(--theme-elevation-300, #d1d5db)'}`,
         borderRadius: 8,
         background: isDragging ? 'var(--theme-elevation-50, #f9fafb)' : 'white',
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0 : 1,
       }}
     >
       <div
@@ -165,7 +162,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
             fontSize: '0.75rem',
           }}
         >
-          {(segment.slides || []).length > 0 && (
+          {childSlides.length > 0 && (
             <span
               style={{
                 background: 'var(--theme-elevation-200, #e5e7eb)',
@@ -173,7 +170,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
                 borderRadius: 10,
               }}
             >
-              {(segment.slides || []).length} slide{(segment.slides || []).length !== 1 ? 's' : ''}
+              {childSlides.length} slide{childSlides.length !== 1 ? 's' : ''}
             </span>
           )}
           {segment.backgroundAudio && (
@@ -246,26 +243,26 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
       </div>
 
       {!collapsed && (
-        <SortableContext items={slideIds} strategy={verticalListSortingStrategy}>
-          <div ref={setSlideAreaRef} style={{ padding: '6px 12px 12px' }}>
-            {(segment.slides || []).length === 0 ? (
-              <div
-                style={{
-                  padding: '20px 12px',
-                  textAlign: 'center',
-                  color: 'var(--theme-elevation-400, #9ca3af)',
-                  fontSize: '0.8rem',
-                  border: '1px dashed var(--theme-elevation-200, #e5e7eb)',
-                  borderRadius: 6,
-                }}
-              >
-                Drag media here or use + Add Slide
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {segment.slides.map((slide: any, i: number) => (
+        <div ref={setSlideAreaRef} style={{ padding: '6px 12px 12px' }}>
+          {childSlides.length === 0 ? (
+            <div
+              style={{
+                padding: '20px 12px',
+                textAlign: 'center',
+                color: 'var(--theme-elevation-400, #9ca3af)',
+                fontSize: '0.8rem',
+                border: '1px dashed var(--theme-elevation-200, #e5e7eb)',
+                borderRadius: 6,
+              }}
+            >
+              Drag media here or use + Add Slide
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <DropGap id={`${segmentId}-gap-0`} container={segmentId} index={0} />
+              {childSlides.map((slide: any, i: number) => (
+                <div key={`${segmentId}-slide-${i}`}>
                   <SlideCard
-                    key={`${segmentId}-slide-${i}`}
                     slide={slide}
                     index={i}
                     isTopLevel={false}
@@ -274,11 +271,12 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
                     onRemove={(idx) => onRemoveSlide(idx, segmentId)}
                     segmentId={segmentId}
                   />
-                ))}
-              </div>
-            )}
-          </div>
-        </SortableContext>
+                  <DropGap id={`${segmentId}-gap-${i + 1}`} container={segmentId} index={i + 1} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
