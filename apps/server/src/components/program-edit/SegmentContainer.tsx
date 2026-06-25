@@ -243,7 +243,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
       </div>
 
       {!collapsed && (
-        <div ref={setSlideAreaRef} style={{ padding: '6px 12px 12px' }}>
+        <div style={{ padding: '6px 12px 12px' }}>
           {childSlides.length === 0 ? (
             <div
               ref={setSlideAreaRef}

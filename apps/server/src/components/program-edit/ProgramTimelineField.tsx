@@ -9,6 +9,7 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
+  closestCorners,
 } from '@dnd-kit/core'
 import { useDocumentInfo, useForm } from '@payloadcms/ui'
 import { useState, useCallback, useMemo, useEffect, useRef, type FC } from 'react'
@@ -738,7 +739,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div
         style={{
           display: 'flex',
