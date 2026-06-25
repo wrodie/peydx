@@ -5,28 +5,44 @@ describe('cleanupMediaReferences', () => {
   let req: any
 
   beforeEach(() => {
+    vi.resetAllMocks()
     req = {
       payload: {
-        find: vi.fn(),
+        db: {
+          drizzle: {
+            execute: vi.fn(),
+          },
+        },
+        findByID: vi.fn(),
         update: vi.fn(),
+        logger: { info: vi.fn(), error: vi.fn() },
       },
+      context: {},
     }
   })
 
+  function mockBlockResult(ids: number[]) {
+    return { rows: ids.map(id => ({ _parent_id: id })) }
+  }
+
+  function mockRelsResult(ids: number[]) {
+    return { rows: ids.map(id => ({ parent_id: id })) }
+  }
+
   it('removes image slides referencing the deleted media', async () => {
-    req.payload.find.mockResolvedValue({
-      docs: [
-        {
-          id: 1,
-          title: 'Program',
-          slides: [
-            { blockType: 'imageBlock', advanceMode: 'timed', image: 5 },
-            { blockType: 'imageBlock', advanceMode: 'timed', image: { id: 5 } },
-            { blockType: 'videoBlock', advanceMode: 'onEnd', video: 10 },
-          ],
-          bulkMedia: [5, 10],
-        },
+    req.payload.db.drizzle.execute
+      .mockResolvedValueOnce(mockBlockResult([1]))
+      .mockResolvedValueOnce(mockRelsResult([1]))
+
+    req.payload.findByID.mockResolvedValue({
+      id: 1,
+      title: 'Program',
+      slides: [
+        { blockType: 'imageBlock', advanceMode: 'timed', image: 5 },
+        { blockType: 'imageBlock', advanceMode: 'timed', image: { id: 5 } },
+        { blockType: 'videoBlock', advanceMode: 'onEnd', video: 10 },
       ],
+      bulkMedia: [5, 10],
     })
 
     await cleanupMediaReferences({ data: {}, originalDoc: { id: 5, slides: [], bulkMedia: [] }, req, operation: 'delete', id: 5 } as any)
@@ -40,18 +56,18 @@ describe('cleanupMediaReferences', () => {
   })
 
   it('removes video slides referencing the deleted media', async () => {
-    req.payload.find.mockResolvedValue({
-      docs: [
-        {
-          id: 2,
-          title: 'Video Program',
-          slides: [
-            { blockType: 'videoBlock', advanceMode: 'onEnd', video: 10 },
-            { blockType: 'videoBlock', advanceMode: 'onEnd', video: { id: 10 } },
-          ],
-          bulkMedia: [],
-        },
+    req.payload.db.drizzle.execute
+      .mockResolvedValueOnce(mockBlockResult([2]))
+      .mockResolvedValueOnce(mockRelsResult([]))
+
+    req.payload.findByID.mockResolvedValue({
+      id: 2,
+      title: 'Video Program',
+      slides: [
+        { blockType: 'videoBlock', advanceMode: 'onEnd', video: 10 },
+        { blockType: 'videoBlock', advanceMode: 'onEnd', video: { id: 10 } },
       ],
+      bulkMedia: [],
     })
 
     await cleanupMediaReferences({ data: {}, originalDoc: { id: 10, slides: [], bulkMedia: [] }, req, operation: 'delete', id: 10 } as any)
@@ -61,15 +77,15 @@ describe('cleanupMediaReferences', () => {
   })
 
   it('removes media ID from bulkMedia array', async () => {
-    req.payload.find.mockResolvedValue({
-      docs: [
-        {
-          id: 3,
-          title: 'Bulk Program',
-          slides: [],
-          bulkMedia: [1, 5, 10, { id: 5 }],
-        },
-      ],
+    req.payload.db.drizzle.execute
+      .mockResolvedValueOnce(mockBlockResult([]))
+      .mockResolvedValueOnce(mockRelsResult([3]))
+
+    req.payload.findByID.mockResolvedValue({
+      id: 3,
+      title: 'Bulk Program',
+      slides: [],
+      bulkMedia: [1, 5, 10, { id: 5 }],
     })
 
     await cleanupMediaReferences({ data: {}, originalDoc: { id: 5, slides: [], bulkMedia: [] }, req, operation: 'delete', id: 5 } as any)
@@ -79,18 +95,18 @@ describe('cleanupMediaReferences', () => {
   })
 
   it('removes auto-end slide', async () => {
-    req.payload.find.mockResolvedValue({
-      docs: [
-        {
-          id: 4,
-          title: 'Program',
-          slides: [
-            { blockType: 'imageBlock', advanceMode: 'timed', image: 7 },
-            { id: 'auto-end', blockType: 'blackScreenBlock', advanceMode: 'manual' },
-          ],
-          bulkMedia: [],
-        },
+    req.payload.db.drizzle.execute
+      .mockResolvedValueOnce(mockBlockResult([4]))
+      .mockResolvedValueOnce(mockRelsResult([]))
+
+    req.payload.findByID.mockResolvedValue({
+      id: 4,
+      title: 'Program',
+      slides: [
+        { blockType: 'imageBlock', advanceMode: 'timed', image: 7 },
+        { id: 'auto-end', blockType: 'blackScreenBlock', advanceMode: 'manual' },
       ],
+      bulkMedia: [],
     })
 
     await cleanupMediaReferences({ data: {}, originalDoc: { id: 7, slides: [], bulkMedia: [] }, req, operation: 'delete', id: 7 } as any)
@@ -100,16 +116,9 @@ describe('cleanupMediaReferences', () => {
   })
 
   it('does not update programs with no references', async () => {
-    req.payload.find.mockResolvedValue({
-      docs: [
-        {
-          id: 5,
-          title: 'Unrelated',
-          slides: [{ blockType: 'videoBlock', advanceMode: 'onEnd', video: 99 }],
-          bulkMedia: [],
-        },
-      ],
-    })
+    req.payload.db.drizzle.execute
+      .mockResolvedValueOnce(mockBlockResult([]))
+      .mockResolvedValueOnce(mockRelsResult([]))
 
     await cleanupMediaReferences({ data: {}, originalDoc: { id: 5, slides: [], bulkMedia: [] }, req, operation: 'delete', id: 5 } as any)
 
@@ -117,12 +126,21 @@ describe('cleanupMediaReferences', () => {
   })
 
   it('handles multiple programs with references', async () => {
-    req.payload.find.mockResolvedValue({
-      docs: [
-        { id: 1, slides: [{ blockType: 'imageBlock', advanceMode: 'timed', image: 5 }], bulkMedia: [5] },
-        { id: 2, slides: [{ blockType: 'imageBlock', advanceMode: 'timed', image: 5 }], bulkMedia: [] },
-      ],
-    })
+    req.payload.db.drizzle.execute
+      .mockResolvedValueOnce(mockBlockResult([1, 2]))
+      .mockResolvedValueOnce(mockRelsResult([1]))
+
+    req.payload.findByID
+      .mockResolvedValueOnce({
+        id: 1,
+        slides: [{ blockType: 'imageBlock', advanceMode: 'timed', image: 5 }],
+        bulkMedia: [5],
+      })
+      .mockResolvedValueOnce({
+        id: 2,
+        slides: [{ blockType: 'imageBlock', advanceMode: 'timed', image: 5 }],
+        bulkMedia: [],
+      })
 
     await cleanupMediaReferences({ data: {}, originalDoc: { id: 5, slides: [], bulkMedia: [] }, req, operation: 'delete', id: 5 } as any)
 
