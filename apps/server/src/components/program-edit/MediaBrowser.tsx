@@ -43,11 +43,21 @@ function buildTree(docs: any[]): Folder[] {
   return roots
 }
 
-const DraggableMediaItem: FC<{ media: MediaItem }> = ({ media }) => {
+const DraggableMediaItem: FC<{
+  media: MediaItem
+  isSelected: boolean
+  selectedIds: Set<number>
+  allVisibleMedia: MediaItem[]
+  onToggleSelect: (id: number) => void
+}> = ({ media, isSelected, selectedIds, allVisibleMedia, onToggleSelect }) => {
+  const dragItems = isSelected
+    ? allVisibleMedia.filter(m => selectedIds.has(m.id)).map(m => ({ id: m.id, mimeType: m.mimeType, filename: m.filename }))
+    : [{ id: media.id, mimeType: media.mimeType, filename: media.filename }]
+
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: `media-${media.id}`,
-      data: { type: 'media', id: media.id, mimeType: media.mimeType, filename: media.filename },
+      data: { type: 'media', items: dragItems },
     })
 
   const style: React.CSSProperties = {
@@ -80,48 +90,86 @@ const DraggableMediaItem: FC<{ media: MediaItem }> = ({ media }) => {
         flexShrink: 0,
         borderRadius: 6,
         overflow: 'hidden',
-        border: '1px solid var(--theme-elevation-200, #e5e7eb)',
+        border: isSelected
+          ? '2px solid var(--theme-primary-500, #3b82f6)'
+          : '1px solid var(--theme-elevation-200, #e5e7eb)',
         background: 'white',
       }}
     >
       <div
-        style={{
-          width: '100%',
-          height: 64,
-          background: 'var(--theme-elevation-100, #f3f4f6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '1.6rem',
+        onPointerDown={(e) => {
+          if (e.ctrlKey && e.button === 0) {
+            e.stopPropagation()
+            onToggleSelect(media.id)
+          }
         }}
+        style={{ width: '100%', height: '100%' }}
       >
-        {thumbnailUrl && !isAudio ? (
-          <img
-            src={thumbnailUrl}
-            alt=""
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : (
-          icon
-        )}
-      </div>
-      <div
-        style={{
-          padding: '4px 6px',
-          fontSize: '0.65rem',
-          color: 'var(--theme-elevation-600, #4b5563)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {media.name || media.filename}
+        <div
+          style={{
+            width: '100%',
+            height: 64,
+            background: 'var(--theme-elevation-100, #f3f4f6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.6rem',
+            position: 'relative',
+          }}
+        >
+          {thumbnailUrl && !isAudio ? (
+            <img
+              src={thumbnailUrl}
+              alt=""
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            icon
+          )}
+          {isSelected && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 2,
+                right: 2,
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                background: 'var(--theme-primary-500, #3b82f6)',
+                color: 'white',
+                fontSize: '0.6rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+              }}
+            >
+              ✓
+            </div>
+          )}
+        </div>
+        <div
+          style={{
+            padding: '4px 6px',
+            fontSize: '0.65rem',
+            color: 'var(--theme-elevation-600, #4b5563)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {media.name || media.filename}
+        </div>
       </div>
     </div>
   )
 }
 
-export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({ collapsed, onToggle }) => {
+export const MediaBrowser: FC<{
+  collapsed: boolean
+  onToggle: () => void
+  clearSelectionRef?: React.MutableRefObject<(() => void) | null>
+}> = ({ collapsed, onToggle, clearSelectionRef }) => {
   const [folders, setFolders] = useState<Folder[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null)
@@ -131,7 +179,24 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), [])
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    if (clearSelectionRef) {
+      clearSelectionRef.current = clearSelection
+      return () => { clearSelectionRef.current = null }
+    }
+  }, [clearSelection, clearSelectionRef])
 
   const fetchFolders = useCallback(async () => {
     setLoading(true)
@@ -185,6 +250,7 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
   }, [selectedFolder, loadInitial])
 
   const handleSearchChange = (value: string) => {
+    clearSelection()
     setSearch(value)
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
     searchTimerRef.current = setTimeout(() => {
@@ -214,7 +280,7 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
     return (
       <div key={folder.id}>
         <div
-          onClick={() => setSelectedFolder(folder.id)}
+          onClick={() => { clearSelection(); setSelectedFolder(folder.id) }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -327,7 +393,7 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
 
       <div style={{ overflow: 'auto', maxHeight: '40%', padding: '8px 12px' }}>
         <div
-          onClick={() => setSelectedFolder(null)}
+          onClick={() => { clearSelection(); setSelectedFolder(null) }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -403,7 +469,14 @@ export const MediaBrowser: FC<{ collapsed: boolean; onToggle: () => void }> = ({
             }}
           >
             {media.map((item) => (
-              <DraggableMediaItem key={item.id} media={item} />
+              <DraggableMediaItem
+                key={item.id}
+                media={item}
+                isSelected={selectedIds.has(item.id)}
+                selectedIds={selectedIds}
+                allVisibleMedia={media}
+                onToggleSelect={toggleSelect}
+              />
             ))}
           </div>
           {page < totalPages && (

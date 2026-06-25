@@ -8,7 +8,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useDocumentInfo, useForm } from '@payloadcms/ui'
-import { useState, useCallback, useMemo, useEffect, type FC } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef, type FC } from 'react'
 import { MediaBrowser } from './MediaBrowser'
 import { ProgramTimeline } from './ProgramTimeline'
 import { SlideEditDrawer } from './SlideEditDrawer'
@@ -162,6 +162,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   const [editingSegmentId, setEditingSegmentId] = useState<string | undefined>(undefined)
   const [activeDrag, setActiveDrag] = useState<any>(null)
   const [mediaMap, setMediaMap] = useState<MediaMap>({})
+  const mediaClearRef = useRef<(() => void) | null>(null)
 
   const rawSlides = (getDataByPath(path) as any[]) || []
   const slides = rawSlides.filter(
@@ -384,58 +385,75 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
   const handleMediaDrop = useCallback(
     (activeData: any, overData: any) => {
-      const { mimeType, id: mediaId } = activeData
-      let blockType = 'imageBlock'
-      if (mimeType?.startsWith('video/')) blockType = 'videoBlock'
-      else if (mimeType?.startsWith('audio/')) blockType = 'audioBlock'
+      const items: Array<{ mimeType: string; id: number }> =
+        activeData.items || [{ mimeType: activeData.mimeType, id: activeData.id }]
 
-      const slideData = {
-        blockType,
-        transition: 'fade',
-        advanceMode: blockType === 'imageBlock' ? 'manual' : 'onEnd',
-        image: blockType === 'imageBlock' ? mediaId : undefined,
-        video: blockType === 'videoBlock' ? mediaId : undefined,
-        audio: blockType === 'audioBlock' ? mediaId : undefined,
-        loop: false,
-      }
+      const slideDatas = items.map(({ mimeType, id: mediaId }) => {
+        let blockType = 'imageBlock'
+        if (mimeType?.startsWith('video/')) blockType = 'videoBlock'
+        else if (mimeType?.startsWith('audio/')) blockType = 'audioBlock'
+        return {
+          blockType,
+          transition: 'fade',
+          advanceMode: blockType === 'imageBlock' ? 'manual' : 'onEnd',
+          image: blockType === 'imageBlock' ? mediaId : undefined,
+          video: blockType === 'videoBlock' ? mediaId : undefined,
+          audio: blockType === 'audioBlock' ? mediaId : undefined,
+          loop: false,
+        }
+      })
 
       if (overData.type === 'segment-drop') {
         const segIdx = overData.segmentId != null ? findSegmentIndex(rawSlides, overData.segmentId) : -1
         if (segIdx >= 0) {
-          addFieldRow({
-            path: `${path}.${segIdx}.slides`,
-            blockType,
-            schemaPath: `${path}.${blockType}`,
-            subFieldState: buildRowState(blockType, slideData),
-          })
+          for (const sd of slideDatas) {
+            addFieldRow({
+              path: `${path}.${segIdx}.slides`,
+              blockType: sd.blockType,
+              schemaPath: `${path}.${sd.blockType}`,
+              subFieldState: buildRowState(sd.blockType, sd),
+            })
+          }
         }
       } else if (overData.type === 'slide' && overData.isTopLevel) {
-        addFieldRow({
-          path,
-          blockType,
-          rowIndex: overData.index,
-          schemaPath: `${path}.${blockType}`,
-          subFieldState: buildRowState(blockType, slideData),
-        })
+        let idx = overData.index
+        for (const sd of slideDatas) {
+          addFieldRow({
+            path,
+            blockType: sd.blockType,
+            rowIndex: idx,
+            schemaPath: `${path}.${sd.blockType}`,
+            subFieldState: buildRowState(sd.blockType, sd),
+          })
+          idx!++
+        }
       } else if (overData.type === 'slide' && overData.segmentId) {
         const segIdx = overData.segmentId != null ? rawSlides.findIndex((s: any) => s && s.id === overData.segmentId) : -1
         if (segIdx >= 0) {
-          addFieldRow({
-            path: `${path}.${segIdx}.slides`,
-            blockType,
-            rowIndex: overData.index,
-            schemaPath: `${path}.${blockType}`,
-            subFieldState: buildRowState(blockType, slideData),
-          })
+          let idx = overData.index
+          for (const sd of slideDatas) {
+            addFieldRow({
+              path: `${path}.${segIdx}.slides`,
+              blockType: sd.blockType,
+              rowIndex: idx,
+              schemaPath: `${path}.${sd.blockType}`,
+              subFieldState: buildRowState(sd.blockType, sd),
+            })
+            idx!++
+          }
         }
       } else {
-        addFieldRow({
-          path,
-          blockType,
-          schemaPath: `${path}.${blockType}`,
-          subFieldState: buildRowState(blockType, slideData),
-        })
+        for (const sd of slideDatas) {
+          addFieldRow({
+            path,
+            blockType: sd.blockType,
+            schemaPath: `${path}.${sd.blockType}`,
+            subFieldState: buildRowState(sd.blockType, sd),
+          })
+        }
       }
+
+      mediaClearRef.current?.()
     },
     [path, addFieldRow, rawSlides]
   )
@@ -606,7 +624,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             overflow: 'hidden',
           }}
         >
-          <MediaBrowser collapsed={!mediaBrowserOpen} onToggle={() => setMediaBrowserOpen(v => !v)} />
+          <MediaBrowser collapsed={!mediaBrowserOpen} onToggle={() => setMediaBrowserOpen(v => !v)} clearSelectionRef={mediaClearRef} />
           <ProgramTimeline
             slides={slides}
             mediaMap={mediaMap}
@@ -651,7 +669,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             }}
           >
             {activeDrag.type === 'media'
-              ? `🖼 ${activeDrag.filename}`
+              ? `🖼 ${activeDrag.items?.length > 1 ? `${activeDrag.items.length} items` : (activeDrag.items?.[0]?.filename || 'Media')}`
               : activeDrag.slide
                 ? `Slide ${activeDrag.index + 1}`
                 : ''}
