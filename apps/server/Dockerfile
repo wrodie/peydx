@@ -24,7 +24,7 @@ WORKDIR /home/node/app/apps/server
 ENV NODE_ENV=production
 
 # yt-dlp (latest, for YouTube compatibility) + deno (pinned) for YouTube video conversion
-RUN apk add --no-cache unzip && \
+RUN apk add --no-cache ffmpeg unzip && \
     wget -q https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp && \
     chmod +x /usr/local/bin/yt-dlp && \
     wget -q https://github.com/denoland/deno/releases/download/v2.8.3/deno-x86_64-unknown-linux-gnu.zip -O /tmp/deno.zip && \
