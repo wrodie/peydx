@@ -39,6 +39,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+docker-compose.override.y*ml
+
 .opencode
 apps/server/.next/dev
 apps/server/media

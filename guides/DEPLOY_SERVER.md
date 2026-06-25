@@ -176,7 +176,32 @@ If you prefer direct access without Cloudflare, you can add SSL termination to n
 
 This approach requires opening port 443 on your server's firewall and managing certificate renewals.
 
-### 5. Start the Stack
+### 5. Customize Storage Volumes (Optional)
+
+By default, the three named Docker volumes (`postgres_data`, `media_data`, `registry_data`) are stored under `/var/lib/docker/volumes/`. If you need to store data on a different path (e.g. a larger attached disk), create a `docker-compose.override.yaml` alongside `docker-compose.yaml`:
+
+```yaml
+volumes:
+  postgres_data:
+    driver_opts:
+      type: none
+      device: /mnt/large-disk/postgres
+      o: bind
+  media_data:
+    driver_opts:
+      type: none
+      device: /mnt/large-disk/media
+      o: bind
+  registry_data:
+    driver_opts:
+      type: none
+      device: /mnt/large-disk/registry
+      o: bind
+```
+
+Docker Compose automatically merges `docker-compose.override.yaml` with the base file — no need to modify `docker-compose.yaml` itself. The override file is gitignored so it won't be committed.
+
+### 6. Start the Stack
 
 ```bash
 docker compose up -d --build
@@ -200,7 +225,7 @@ docker compose ps
 
 You should be able to access the CMS immediately on port 80 (e.g., `http://192.168.1.100/admin` or `http://your-server-ip/admin`). If you configured Cloudflare, it may take a minute for the tunnel to connect and the public hostname to resolve.
 
-### 6. Build Client Image
+### 7. Build Client Image
 
 Build and push the sync-agent Docker image to the local registry. This image is used by client devices to run the sync agent.
 
@@ -216,15 +241,15 @@ Verify the image is in the registry:
 curl http://localhost:5050/v2/sync-agent/tags/list
 ```
 
-### 7. Create Your First Admin User
+### 8. Create Your First Admin User
 
 Visit the admin panel in your browser (e.g., `http://192.168.1.100/admin` or `https://cms.yourchurch.org/admin` once Cloudflare is set up) and create the first admin user.
 
-### 8. Create Departments
+### 9. Create Departments
 
 In the admin panel, navigate to **Departments** and create your organizational units (e.g. "Children's Ministry", "Youth Ministry", "Digital Signage"). Each department automatically gets a root media folder and root programs folder.
 
-### 9. Create Devices
+### 10. Create Devices
 
 1. Navigate to **Devices** in the admin panel.
 2. Create a new device:
