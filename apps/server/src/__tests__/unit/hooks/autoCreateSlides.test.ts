@@ -34,8 +34,8 @@ describe('autoCreateSlides', () => {
     expect(result.slides).toHaveLength(1)
     expect(result.slides[0].blockType).toBe('imageBlock')
     expect(result.slides[0].image).toBe(1)
-    expect(result.slides[0].advanceMode).toBe('timed')
-    expect(result.slides[0].duration).toBe(5)
+    expect(result.slides[0].advanceMode).toBe('manual')
+    expect(result.slides[0].duration).toBeNull()
     expect(result.bulkMedia).toEqual([])
   })
 

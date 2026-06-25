@@ -35,8 +35,8 @@ async function createSlideFromMedia(id: string | number, req: any) {
     blockType: isVideo ? 'videoBlock' : 'imageBlock',
     blockName: null,
     [isVideo ? 'video' : 'image']: id,
-    advanceMode: isVideo ? 'onEnd' : 'timed',
-    duration: isVideo ? null : 5,
+    advanceMode: isVideo ? 'onEnd' : 'manual',
+    duration: null,
     transition: 'fade',
   }
 }
