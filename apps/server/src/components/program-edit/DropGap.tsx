@@ -19,26 +19,35 @@ export const DropGap: FC<DropGapProps> = ({ id, container, index }) => {
     <div
       ref={setNodeRef}
       style={{
-        height: 4,
+        padding: '2px 0',
         flexShrink: 0,
         width: '100%',
         position: 'relative',
       }}
     >
-      {isOver && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 8,
-            right: 8,
-            top: '50%',
-            height: 2,
-            transform: 'translateY(-50%)',
-            background: 'var(--theme-primary-500, #3b82f6)',
-            borderRadius: 1,
-          }}
-        />
-      )}
+      <div
+        style={{
+          height: 4,
+          position: 'relative',
+          background: isOver ? 'var(--theme-primary-50, #eff6ff)' : 'transparent',
+          transition: 'background 0.1s',
+        }}
+      >
+        {isOver && (
+          <div
+            style={{
+              position: 'absolute',
+              left: 8,
+              right: 8,
+              top: '50%',
+              height: 2,
+              transform: 'translateY(-50%)',
+              background: 'var(--theme-primary-500, #3b82f6)',
+              borderRadius: 1,
+            }}
+          />
+        )}
+      </div>
     </div>
   )
 }

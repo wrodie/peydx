@@ -246,16 +246,34 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
         <div ref={setSlideAreaRef} style={{ padding: '6px 12px 12px' }}>
           {childSlides.length === 0 ? (
             <div
+              ref={setSlideAreaRef}
               style={{
                 padding: '20px 12px',
                 textAlign: 'center',
                 color: 'var(--theme-elevation-400, #9ca3af)',
                 fontSize: '0.8rem',
-                border: '1px dashed var(--theme-elevation-200, #e5e7eb)',
+                border: `2px dashed ${isSlideOver ? 'var(--theme-primary-500, #3b82f6)' : 'var(--theme-elevation-200, #e5e7eb)'}`,
                 borderRadius: 6,
+                background: isSlideOver ? 'var(--theme-primary-50, #eff6ff)' : 'transparent',
+                transition: 'background 0.1s, border-color 0.1s',
+                position: 'relative',
               }}
             >
               Drag media here or use + Add Slide
+              {isSlideOver && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 8,
+                    right: 8,
+                    top: '50%',
+                    height: 2,
+                    transform: 'translateY(-50%)',
+                    background: 'var(--theme-primary-500, #3b82f6)',
+                    borderRadius: 1,
+                  }}
+                />
+              )}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>

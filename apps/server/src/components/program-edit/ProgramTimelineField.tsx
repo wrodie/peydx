@@ -548,8 +548,17 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
         removeFieldRow({ path: result.removePath, rowIndex: result.removeIndex })
 
+        let actualInsertPath = result.insertPath
+        if (result.removePath === path && result.insertPath !== path) {
+          const updatedSlides = (getDataByPath(path) as any[]) || []
+          const newSegIdx = findTopLevelSegmentIndex(updatedSlides, dst.container!)
+          if (newSegIdx >= 0) {
+            actualInsertPath = `${path}.${newSegIdx}.slides`
+          }
+        }
+
         addFieldRow({
-          path: result.insertPath,
+          path: actualInsertPath,
           blockType: movedSlide.blockType,
           rowIndex: result.insertIndex,
           schemaPath: `${path}.${movedSlide.blockType}`,
@@ -774,7 +783,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         onSave={handleSaveSlide}
       />
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={null}>
         {renderDragOverlay()}
       </DragOverlay>
     </DndContext>
