@@ -550,9 +550,12 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
         let actualInsertPath = result.insertPath
         if (result.removePath === path && result.insertPath !== path) {
-          const updatedSlides = (getDataByPath(path) as any[]) || []
-          const newSegIdx = findTopLevelSegmentIndex(updatedSlides, dst.container!)
-          if (newSegIdx >= 0) {
+          const segMatch = result.insertPath.match(/slides\.(\d+)\.slides$/)
+          if (segMatch) {
+            const originalSegIdx = parseInt(segMatch[1], 10)
+            const newSegIdx = result.removeIndex <= originalSegIdx
+              ? originalSegIdx - 1
+              : originalSegIdx
             actualInsertPath = `${path}.${newSegIdx}.slides`
           }
         }

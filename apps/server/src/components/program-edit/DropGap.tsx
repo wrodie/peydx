@@ -19,7 +19,7 @@ export const DropGap: FC<DropGapProps> = ({ id, container, index }) => {
     <div
       ref={setNodeRef}
       style={{
-        padding: '2px 0',
+        padding: '6px 0',
         flexShrink: 0,
         width: '100%',
         position: 'relative',
