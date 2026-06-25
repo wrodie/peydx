@@ -94,7 +94,9 @@ export function TopNavHeader() {
   const { user } = useAuth<any>()
   const { config } = useConfig()
   const [adminOpen, setAdminOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const accountDropdownRef = useRef<HTMLDivElement>(null)
 
   const adminRoute = config.routes?.admin || '/admin'
   const isAdmin = user?.role === 'admin'
@@ -110,6 +112,17 @@ export function TopNavHeader() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [adminOpen])
+
+  useEffect(() => {
+    if (!accountOpen) return
+    function handleClick(e: MouseEvent) {
+      if (accountDropdownRef.current && !accountDropdownRef.current.contains(e.target as Node)) {
+        setAccountOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [accountOpen])
 
   const isActive = (href: string) => {
     if (pathname === href) return true
@@ -194,12 +207,33 @@ export function TopNavHeader() {
             </a>
           )}
 
-          <a
-            href={adminRoute + '/account'}
-            className="top-nav-header__link top-nav-header__account"
-          >
-            <AccountIcon />
-          </a>
+          <div className="top-nav-header__dropdown top-nav-header__account" ref={accountDropdownRef}>
+            <button
+              type="button"
+              className={`top-nav-header__link top-nav-header__dropdown-toggle ${accountOpen ? 'top-nav-header__link--active' : ''}`}
+              onClick={() => setAccountOpen(!accountOpen)}
+            >
+              <AccountIcon />
+            </button>
+            {accountOpen && (
+              <div className="top-nav-header__dropdown-menu top-nav-header__dropdown-menu--right">
+                <a
+                  href={adminRoute + '/account'}
+                  className="top-nav-header__dropdown-item"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  Account
+                </a>
+                <a
+                  href={`${adminRoute}/logout`}
+                  className="top-nav-header__dropdown-item"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  Logout
+                </a>
+              </div>
+            )}
+          </div>
         </nav>
       </div>
     </header>

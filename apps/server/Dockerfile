@@ -40,6 +40,7 @@ RUN cd /home/node/app && npm install --omit=dev && npm install tsx
 
 # Copy built files from builder
 COPY --from=builder /home/node/app/apps/server/.next /home/node/app/apps/server/.next
+COPY --from=builder /home/node/app/apps/server/public /home/node/app/apps/server/public
 COPY --from=builder /home/node/app/apps/server/server.ts /home/node/app/apps/server/server.ts
 COPY --from=builder /home/node/app/apps/server/next.config.ts /home/node/app/apps/server/next.config.ts
 COPY --from=builder /home/node/app/apps/server/payload.config.ts /home/node/app/apps/server/payload.config.ts
