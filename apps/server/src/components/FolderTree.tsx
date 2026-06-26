@@ -319,13 +319,16 @@ export function FolderTree() {
               userSelect: 'none',
               fontSize: '0.8rem',
               color: 'var(--theme-elevation-500, #9ca3af)',
-              width: 12,
+              width: 32,
               flexShrink: 0,
               textAlign: 'center',
-              lineHeight: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 8px',
             }}
           >
-            {hasChildren ? (isExpanded ? <ExpandCircleDownIcon size={16} /> : <ExpandCircleRightIcon size={16} />) : ' '}
+            {hasChildren ? (isExpanded ? <ExpandCircleDownIcon size={24} /> : <ExpandCircleRightIcon size={24} />) : ' '}
           </span>
           <span onClick={() => navigateToFolder(folder.id)} style={s.label(isActive)}>
             {folder.name}
