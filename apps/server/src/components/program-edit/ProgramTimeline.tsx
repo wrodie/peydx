@@ -21,6 +21,7 @@ type ProgramTimelineProps = {
   onRemoveSegment: (segmentIndex: number) => void
   onModeChange?: (slide: any, index: number, segmentId: string | undefined, newMode: string) => void
   onDurationChange?: (slide: any, index: number, segmentId: string | undefined, newDuration: number) => void
+  onLoopChange?: (slide: any, index: number, segmentId: string | undefined, newLoop: boolean) => void
 }
 
 export const ProgramTimeline: FC<ProgramTimelineProps> = ({
@@ -35,6 +36,7 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
   onRemoveSegment,
   onModeChange,
   onDurationChange,
+  onLoopChange,
 }) => {
   const [importModalOpen, setImportModalOpen] = useState(false)
 
@@ -139,6 +141,7 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
                       onRemoveSegment={() => handleRemoveSegmentWrapper(i)}
                       onModeChange={onModeChange}
                       onDurationChange={onDurationChange}
+                      onLoopChange={onLoopChange}
                     />
                     <DropGap id={`tl-gap-${i + 1}`} container={null} index={i + 1} />
                   </div>
@@ -155,6 +158,7 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
                     onRemove={(idx) => onRemoveSlide(idx)}
                     onModeChange={onModeChange}
                     onDurationChange={onDurationChange}
+                    onLoopChange={onLoopChange}
                   />
                   <DropGap id={`tl-gap-${i + 1}`} container={null} index={i + 1} />
                 </div>

@@ -4,6 +4,13 @@ import { useAuth } from '@payloadcms/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import type { ServerToClientEvents, ClientToServerEvents } from 'signage-core'
+import {
+  FiberManualRecordIcon,
+  PendingIcon,
+  RadioButtonUncheckedIcon,
+  CheckIcon,
+  ArrowForwardIcon,
+} from './icons'
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
@@ -93,11 +100,11 @@ function getStepInfo(step: string | null) {
   return { idx, current: step }
 }
 
-function statusDot(status: string): string {
+function statusDot(status: string): React.ReactNode {
   switch (status) {
-    case 'online': return '\u25CF'
-    case 'updating': return '\u25D1'
-    default: return '\u25CB'
+    case 'online': return <FiberManualRecordIcon size={12} style={{ color: '#22c55e' }} />
+    case 'updating': return <PendingIcon size={12} style={{ color: '#f59e0b' }} />
+    default: return <RadioButtonUncheckedIcon size={12} style={{ color: '#6b7280' }} />
   }
 }
 
@@ -510,7 +517,7 @@ export function UpdateButton() {
                   }}
                 >
                   <span style={{ width: 20, textAlign: 'center' }}>
-                    {done ? '\u2713' : active ? '\u2192' : '\u25CB'}
+                    {done ? <CheckIcon size={16} /> : active ? <ArrowForwardIcon size={16} /> : <RadioButtonUncheckedIcon size={16} />}
                   </span>
                   <span>{step.label}</span>
                 </div>

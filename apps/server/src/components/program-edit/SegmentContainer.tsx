@@ -4,6 +4,15 @@ import { useState, type FC } from 'react'
 import { SlideCard } from './SlideCard'
 import { DropGap } from './DropGap'
 import { AdvanceModeInlineControl } from './AdvanceModeInlineControl'
+import {
+  DragIndicatorIcon,
+  ExpandCircleDownIcon,
+  ExpandCircleRightIcon,
+  FolderIcon,
+  MusicNote2Icon,
+  EditIcon,
+  DeleteIcon,
+} from '../icons'
 
 
 type SegmentContainerProps = {
@@ -17,6 +26,7 @@ type SegmentContainerProps = {
   onRemoveSegment: () => void
   onModeChange?: (slide: any, index: number, segmentId: string | undefined, newMode: string) => void
   onDurationChange?: (slide: any, index: number, segmentId: string | undefined, newDuration: number) => void
+  onLoopChange?: (slide: any, index: number, segmentId: string | undefined, newLoop: boolean) => void
 }
 
 export const SegmentContainer: FC<SegmentContainerProps> = ({
@@ -30,6 +40,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
   onRemoveSegment,
   onModeChange,
   onDurationChange,
+  onLoopChange,
 }) => {
   const [collapsed, setCollapsed] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -103,7 +114,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
             flexShrink: 0,
           }}
         >
-          ≡
+          <DragIndicatorIcon size={20} />
         </div>
 
         <span
@@ -114,10 +125,10 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
             flexShrink: 0,
           }}
         >
-          {collapsed ? '▸' : '▾'}
+          {collapsed ? <ExpandCircleRightIcon size={16} /> : <ExpandCircleDownIcon size={16} />}
         </span>
 
-        <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>📁</span>
+        <FolderIcon size={20} />
 
         {editingName ? (
           <input
@@ -154,7 +165,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
               whiteSpace: 'nowrap',
             }}
           >
-            {segment.name || 'Unnamed Segment'}
+            {segment.name || 'Unnamed Segment'}{childSlides.length > 0 ? ` (${childSlides.length} slide${childSlides.length !== 1 ? 's' : ''})` : ''}
           </span>
         )}
 
@@ -167,40 +178,17 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
             fontSize: '0.75rem',
           }}
         >
-          {childSlides.length > 0 && (
-            <span
-              style={{
-                background: 'var(--theme-elevation-200, #e5e7eb)',
-                padding: '2px 8px',
-                borderRadius: 10,
-              }}
-            >
-              {childSlides.length} slide{childSlides.length !== 1 ? 's' : ''}
-            </span>
-          )}
           {segment.backgroundAudio && (
-            <span style={{ fontSize: '0.875rem' }} title="Background Audio">
-              🎵
-            </span>
-          )}
-          {segment.loop && (
-            <span
-              style={{
-                background: 'var(--theme-warning-100, #fef3c7)',
-                padding: '2px 8px',
-                borderRadius: 10,
-                color: 'var(--theme-warning-800, #92400e)',
-              }}
-            >
-              Loop
-            </span>
+            <MusicNote2Icon size={16} title="Background Audio" style={{ color: '#3b82f6' }} />
           )}
           <AdvanceModeInlineControl
             variant="segment"
             advanceMode={segment.advanceMode}
             duration={segment.duration}
+            loop={segment.loop}
             onModeChange={(newMode) => onModeChange?.(segment, index, undefined, newMode)}
             onDurationChange={(newDur) => onDurationChange?.(segment, index, undefined, newDur)}
+            onLoopChange={(newLoop) => onLoopChange?.(segment, index, undefined, newLoop)}
           />
           {!editingName && (
             <button
@@ -217,7 +205,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
               }}
               title="Edit segment properties"
             >
-              ✏️
+              <EditIcon size={16} />
             </button>
           )}
           <button
@@ -230,12 +218,11 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
               border: 'none',
               cursor: 'pointer',
               padding: '2px 6px',
-              color: 'var(--theme-error-500, #ef4444)',
               fontSize: '0.875rem',
             }}
             title="Remove segment"
           >
-            🗑
+            <DeleteIcon size={16} />
           </button>
         </div>
       </div>

@@ -4,6 +4,15 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
 import { flattenProgram } from 'signage-core'
+import {
+  SkipPreviousIcon,
+  PauseIcon,
+  SkipNextIcon,
+  StopIcon,
+  MovieIcon,
+  YouTubeIcon,
+  CaptureIcon,
+} from './icons'
 
 function extractYouTubeId(input: string): string | null {
   if (!input) return null
@@ -29,11 +38,11 @@ function getThumbnailUrl(slide: any): string | null {
   return null
 }
 
-function getBlockIcon(slide: any): string | null {
+function getBlockIcon(slide: any): React.ReactNode {
   if (!slide) return null
-  if (slide.blockType === 'videoBlock') return '🎬'
-  if (slide.blockType === 'youtubeBlock') return '▶️'
-  if (slide.blockType === 'blackScreenBlock') return '◼'
+  if (slide.blockType === 'videoBlock') return <MovieIcon size={24} />
+  if (slide.blockType === 'youtubeBlock') return <YouTubeIcon size={24} />
+  if (slide.blockType === 'blackScreenBlock') return <CaptureIcon size={24} />
   return null
 }
 
@@ -428,7 +437,7 @@ export function RemoteControlView() {
                   color: 'var(--theme-text, #333)',
                 }}
               >
-                ◀ Prev
+                <SkipPreviousIcon size={18} /> Prev
               </button>
               <button
                 onClick={handlePause}
@@ -443,7 +452,7 @@ export function RemoteControlView() {
                   color: 'var(--theme-text, #333)',
                 }}
               >
-                ⏸ Pause
+                <PauseIcon size={18} /> Pause
               </button>
               <button
                 onClick={handleAdvance}
@@ -459,7 +468,7 @@ export function RemoteControlView() {
                   fontWeight: 600,
                 }}
               >
-                {isLastSlide ? 'End ◼' : 'Next ▶'}
+                {isLastSlide ? <><StopIcon size={18} /> End</> : <>Next <SkipNextIcon size={18} /></>}
               </button>
             </div>
 
@@ -509,7 +518,7 @@ export function RemoteControlView() {
                           justifyContent: 'center',
                         }}
                       >
-                        <span style={{ color: '#666', fontSize: '0.65rem' }}>◼</span>
+                        <CaptureIcon size={14} />
                       </div>
                     ) : url ? (
                       <img

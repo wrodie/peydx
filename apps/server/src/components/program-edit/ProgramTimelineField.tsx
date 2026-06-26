@@ -18,6 +18,15 @@ import { ProgramTimeline } from './ProgramTimeline'
 import { SlideEditDrawer } from './SlideEditDrawer'
 import { computeMove, findTopLevelSegmentIndex } from './computeMove'
 import { stripInternal } from './stripInternal'
+import {
+  ImageIcon,
+  MovieIcon,
+  YouTubeIcon,
+  MusicNote2Icon,
+  CaptureIcon,
+  FolderIcon,
+  DescriptionIcon,
+} from '../icons'
 
 type ProgramTimelineFieldProps = {
   path: string
@@ -194,13 +203,13 @@ function resolveDestination(
 
 // --- block icons ---
 
-const blockIcons: Record<string, string> = {
-  imageBlock: '\uD83D\uDDBC',
-  videoBlock: '\uD83C\uDFAC',
-  youtubeBlock: '\u25B6',
-  audioBlock: '\uD83C\uDFB5',
-  blackScreenBlock: '\u25FC',
-  segmentBlock: '\uD83D\uDCC1',
+const blockIcons: Record<string, any> = {
+  imageBlock: <ImageIcon size={20} />,
+  videoBlock: <MovieIcon size={20} />,
+  youtubeBlock: <YouTubeIcon size={20} />,
+  audioBlock: <MusicNote2Icon size={20} />,
+  blackScreenBlock: <CaptureIcon size={20} />,
+  segmentBlock: <FolderIcon size={20} />,
 }
 
 const blockLabels: Record<string, string> = {
@@ -545,6 +554,29 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     [path, getDataByPath, replaceFieldRow, id, persistSlides]
   )
 
+  const handleLoopChange = useCallback(
+    (slide: any, index: number, segmentId: string | undefined, newLoop: boolean) => {
+      let rowPath: string
+      if (segmentId) {
+        const segIdx = findTopLevelSegmentIndex(
+          (getDataByPath(path) as any[]) || [],
+          segmentId,
+        )
+        if (segIdx < 0) return
+        rowPath = `${path}.${segIdx}.slides`
+      } else {
+        rowPath = path
+      }
+      dispatchFields({
+        type: 'UPDATE',
+        path: `${rowPath}.${index}.loop`,
+        value: newLoop,
+      })
+      if (id) persistSlides(id)
+    },
+    [path, getDataByPath, dispatchFields, id, persistSlides]
+  )
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveDrag(event.active.data.current)
   }, [])
@@ -720,7 +752,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           >
             {thumbUrl
               ? <img src={thumbUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <span style={{ fontSize: '1.1rem', opacity: 0.5 }}>🖼</span>
+              : <ImageIcon size={18} style={{ opacity: 0.5 }} />
             }
           </div>
           <span style={{ fontWeight: 600 }}>
@@ -756,7 +788,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             whiteSpace: 'nowrap',
           }}
         >
-          <span style={{ fontSize: '1.1rem' }}>📁</span>
+          <FolderIcon size={18} />
           <span style={{ fontWeight: 600 }}>{seg?.name || 'Segment'}</span>
           <span style={{ color: 'var(--theme-elevation-500, #6b7280)', fontSize: '0.8rem' }}>
             {count} slide{count !== 1 ? 's' : ''}
@@ -767,7 +799,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
     if (d.type === 'slide') {
       const slide = d.slide
-      const icon = blockIcons[slide?.blockType] || '📄'
+      const icon = blockIcons[slide?.blockType] || <DescriptionIcon size={20} />
       const label = blockLabels[slide?.blockType] || slide?.blockType
 
       const getThumbnailUrl = (s: any): string | null => {
@@ -876,6 +908,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             onRemoveSegment={handleRemoveSegment}
             onModeChange={handleModeChange}
             onDurationChange={handleDurationChange}
+            onLoopChange={handleLoopChange}
           />
         </div>
 

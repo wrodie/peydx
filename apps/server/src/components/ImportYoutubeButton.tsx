@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { CloseIcon } from './icons'
 
 type ModalState =
   | { status: 'idle' }
@@ -91,7 +92,7 @@ export function ImportYoutubeButton() {
                       fontSize: 20, color: 'var(--theme-elevation-500)', padding: 0, lineHeight: 1,
                     }}
                   >
-                    ×
+                    <CloseIcon size={20} />
                   </button>
                 </div>
                 <input
@@ -174,7 +175,7 @@ export function ImportYoutubeButton() {
                       fontSize: 20, color: 'var(--theme-elevation-500)', padding: 0, lineHeight: 1,
                     }}
                   >
-                    ×
+                    <CloseIcon size={20} />
                   </button>
                 </div>
                 <p style={{ fontSize: 14, color: 'var(--theme-text)', margin: '0 0 16px' }}>

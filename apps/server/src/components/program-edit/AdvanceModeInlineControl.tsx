@@ -1,14 +1,22 @@
 'use client'
 
 import { useState, useRef, useEffect, type FC } from 'react'
+import {
+  PanToolIcon,
+  TimerIcon,
+  SkipNextIcon,
+  RepeatIcon,
+} from '../icons'
 
 type AdvanceModeInlineControlProps = {
   variant: 'slide' | 'segment'
   blockType?: string | undefined
   advanceMode: string | undefined
   duration: number | null | undefined
+  loop?: boolean
   onModeChange: (newMode: string) => void
   onDurationChange: (newDuration: number) => void
+  onLoopChange?: (newLoop: boolean) => void
 }
 
 const btnStyle: React.CSSProperties = {
@@ -49,16 +57,15 @@ const suffixStyle: React.CSSProperties = {
   color: 'var(--theme-elevation-500, #6b7280)',
 }
 
-const supportsOnEnd = (blockType?: string) =>
-  blockType === 'videoBlock' || blockType === 'youtubeBlock' || blockType === 'audioBlock'
-
 export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
   variant,
   blockType,
   advanceMode,
   duration,
+  loop,
   onModeChange,
   onDurationChange,
+  onLoopChange,
 }) => {
   const [localDuration, setLocalDuration] = useState(String(duration ?? ''))
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -73,7 +80,7 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
     }
   }, [])
 
-  const modeBtn = (mode: string, icon: string, title: string, disabled?: boolean) => {
+  const modeBtn = (mode: string, icon: React.ReactNode, title: string) => {
     const active = advanceMode === mode
     return (
       <button
@@ -81,12 +88,9 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
         title={title}
         style={{
           ...btnStyle,
-          border: active ? '1.5px solid var(--theme-primary-500, #3b82f6)' : 'none',
           color: active ? 'var(--theme-primary-500, #3b82f6)' : 'var(--theme-elevation-400, #9ca3af)',
-          opacity: disabled && !active ? 0.4 : 1,
-          cursor: disabled && !active ? 'default' : 'pointer',
         }}
-        onClick={disabled && !active ? undefined : (e) => {
+        onClick={(e) => {
           e.stopPropagation()
           if (!active) onModeChange(mode)
         }}
@@ -109,6 +113,7 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
         disabled={!isTimed}
         style={{
           ...inputStyle,
+          border: isTimed ? '1.5px solid var(--theme-primary-500, #3b82f6)' : '1px solid var(--theme-elevation-300, #d1d5db)',
           opacity: isTimed ? 1 : 0.4,
           cursor: isTimed ? 'text' : 'default',
         }}
@@ -133,15 +138,34 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
     </div>
   )
 
+  const loopActive = !!loop
+
+  const supportsOnEnd = blockType === 'videoBlock' || blockType === 'youtubeBlock' || blockType === 'audioBlock'
+
   if (variant === 'slide') {
     return (
       <>
         <style>{`input.adv-dur::-webkit-outer-spin-button,input.adv-dur::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}input.adv-dur{-moz-appearance:textfield}`}</style>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-        {modeBtn('manual', '✋', 'Manual - requires user click to advance')}
-        {modeBtn('timed', '⏱', 'Timed - auto-advance after duration')}
+        {supportsOnEnd && (
+          <>
+            <button
+              type="button"
+              title={loopActive ? 'Looping - click to disable' : 'Loop - repeat this slide'}
+              style={{
+                ...btnStyle,
+                color: loopActive ? 'var(--theme-primary-500, #3b82f6)' : 'var(--theme-elevation-400, #9ca3af)',
+              }}
+              onClick={(e) => { e.stopPropagation(); onLoopChange?.(!loop) }}
+            >
+              <RepeatIcon size={18} />
+            </button>
+            {modeBtn('onEnd', <SkipNextIcon size={18} />, 'On End - advance when media finishes')}
+          </>
+        )}
+        {modeBtn('manual', <PanToolIcon size={18} />, 'Manual - requires user click to advance')}
+        {modeBtn('timed', <TimerIcon size={18} />, 'Timed - auto-advance after duration')}
         {timedInput}
-        {modeBtn('onEnd', '⏭', 'On End - advance when media finishes', !supportsOnEnd(blockType))}
       </div>
       </>
     )
@@ -151,10 +175,21 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
     <>
       <style>{`input.adv-dur::-webkit-outer-spin-button,input.adv-dur::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}input.adv-dur{-moz-appearance:textfield}`}</style>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-      {modeBtn('slides', '⤵', 'Slides - advance after all child slides')}
-      {modeBtn('timed', '⏱', 'Timed - auto-advance after duration')}
+      <button
+        type="button"
+        title={loopActive ? 'Looping - click to disable' : 'Loop - repeat this segment'}
+        style={{
+          ...btnStyle,
+          color: loopActive ? 'var(--theme-primary-500, #3b82f6)' : 'var(--theme-elevation-400, #9ca3af)',
+        }}
+        onClick={(e) => { e.stopPropagation(); onLoopChange?.(!loop) }}
+      >
+        <RepeatIcon size={18} />
+      </button>
+      {modeBtn('slides', <SkipNextIcon size={18} />, 'On End - advance after all child slides')}
+      {modeBtn('manual', <PanToolIcon size={18} />, 'Manual - requires user click to advance')}
+      {modeBtn('timed', <TimerIcon size={18} />, 'Timed - auto-advance after duration')}
       {timedInput}
-      {modeBtn('manual', '✋', 'Manual - requires user click to advance')}
       </div>
     </>
   )

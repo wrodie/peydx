@@ -2,7 +2,19 @@
 import { useDraggable } from '@dnd-kit/core'
 import type { FC } from 'react'
 import { AdvanceModeInlineControl } from './AdvanceModeInlineControl'
-
+import {
+  ImageIcon,
+  MovieIcon,
+  YouTubeIcon,
+  MusicNote2Icon,
+  CaptureIcon,
+  FolderIcon,
+  DescriptionIcon,
+  VolumeUpIcon,
+  DragIndicatorIcon,
+  EditIcon,
+  DeleteIcon,
+} from '../icons'
 
 type SlideCardProps = {
   slide: any
@@ -14,20 +26,17 @@ type SlideCardProps = {
   onRemove: (index: number, segmentId?: string) => void
   onModeChange?: (slide: any, index: number, segmentId: string | undefined, newMode: string) => void
   onDurationChange?: (slide: any, index: number, segmentId: string | undefined, newDuration: number) => void
+  onLoopChange?: (slide: any, index: number, segmentId: string | undefined, newLoop: boolean) => void
   segmentId?: string
 }
 
 const blockIcons: Record<string, any> = {
-  imageBlock: '🖼',
-  videoBlock: '🎬',
-  youtubeBlock: (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="#FF0000">
-      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-    </svg>
-  ),
-  audioBlock: '🎵',
-  blackScreenBlock: '◼',
-  segmentBlock: '📁',
+  imageBlock: <ImageIcon size={20} />,
+  videoBlock: <MovieIcon size={20} />,
+  youtubeBlock: <YouTubeIcon size={20} />,
+  audioBlock: <MusicNote2Icon size={20} />,
+  blackScreenBlock: <CaptureIcon size={20} />,
+  segmentBlock: <FolderIcon size={20} />,
 }
 
 const blockLabels: Record<string, string> = {
@@ -61,6 +70,7 @@ export const SlideCard: FC<SlideCardProps> = ({
   onRemove,
   onModeChange,
   onDurationChange,
+  onLoopChange,
   segmentId,
 }) => {
   const sortableId = segmentId ? `${segmentId}-slide-${index}` : `slide-${index}`
@@ -108,7 +118,7 @@ export const SlideCard: FC<SlideCardProps> = ({
 
   const thumbnail = getThumbnailUrl(slide)
   const name = getSlideName(slide)
-  const icon = blockIcons[slide.blockType] || '📄'
+  const icon = blockIcons[slide.blockType] || <DescriptionIcon size={20} />
   const transitionLabel = transitionLabels[slide.transition] || slide.transition
 
   return (
@@ -144,7 +154,7 @@ export const SlideCard: FC<SlideCardProps> = ({
           flexShrink: 0,
         }}
       >
-        ≡
+        <DragIndicatorIcon size={20} />
       </div>
 
       <div
@@ -161,9 +171,7 @@ export const SlideCard: FC<SlideCardProps> = ({
         }}
       >
         {slide.blockType === 'audioBlock' ? (
-          <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 28, height: 28, opacity: 0.5 }}>
-            <path d="M3 9v6h4l5 5V4L7 9H3zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
-          </svg>
+          <VolumeUpIcon size={28} style={{ opacity: 0.5 }} />
         ) : thumbnail ? (
           <img
             src={thumbnail}
@@ -215,15 +223,16 @@ export const SlideCard: FC<SlideCardProps> = ({
           blockType={slide.blockType}
           advanceMode={slide.advanceMode}
           duration={slide.duration}
+          loop={slide.loop}
           onModeChange={(newMode) => onModeChange?.(slide, index, segmentId, newMode)}
           onDurationChange={(newDur) => onDurationChange?.(slide, index, segmentId, newDur)}
+          onLoopChange={(newLoop) => onLoopChange?.(slide, index, segmentId, newLoop)}
         />
         {transitionLabel && (
           <span
             style={{
-              background: 'var(--theme-elevation-100, #f3f4f6)',
-              padding: '2px 8px',
-              borderRadius: 10,
+              minWidth: 40,
+              textAlign: 'center',
               color: 'var(--theme-elevation-600, #4b5563)',
             }}
           >
@@ -249,7 +258,7 @@ export const SlideCard: FC<SlideCardProps> = ({
             }}
             title="Edit slide"
           >
-            ✏️
+            <EditIcon size={18} />
           </button>
           <button
             onClick={(e) => {
@@ -266,7 +275,7 @@ export const SlideCard: FC<SlideCardProps> = ({
             }}
             title="Remove slide"
           >
-            🗑
+            <DeleteIcon size={18} />
           </button>
         </div>
       )}
