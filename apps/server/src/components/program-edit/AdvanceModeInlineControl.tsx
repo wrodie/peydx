@@ -68,11 +68,21 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
   onLoopChange,
 }) => {
   const [localDuration, setLocalDuration] = useState(String(duration ?? ''))
+  const [localLoop, setLocalLoop] = useState(loop)
+  const [localMode, setLocalMode] = useState(advanceMode)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     setLocalDuration(String(duration ?? ''))
   }, [duration])
+
+  useEffect(() => {
+    setLocalLoop(loop)
+  }, [loop])
+
+  useEffect(() => {
+    setLocalMode(advanceMode)
+  }, [advanceMode])
 
   useEffect(() => {
     return () => {
@@ -81,7 +91,7 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
   }, [])
 
   const modeBtn = (mode: string, icon: React.ReactNode, title: string) => {
-    const active = advanceMode === mode
+    const active = localMode === mode
     return (
       <button
         type="button"
@@ -92,7 +102,7 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
         }}
         onClick={(e) => {
           e.stopPropagation()
-          if (!active) onModeChange(mode)
+          if (!active) { setLocalMode(mode); onModeChange(mode) }
         }}
       >
         {icon}
@@ -100,7 +110,7 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
     )
   }
 
-  const isTimed = advanceMode === 'timed'
+  const isTimed = localMode === 'timed'
   const unit = variant === 'segment' ? 'min' : 's'
 
   const timedInput = (
@@ -129,7 +139,10 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
           }, 400)
         }}
         onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => {
+          e.stopPropagation()
+          if (!isTimed) { setLocalMode('timed'); onModeChange('timed') }
+        }}
       />
       <span style={{
         ...suffixStyle,
@@ -138,7 +151,7 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
     </div>
   )
 
-  const loopActive = !!loop
+  const loopActive = !!localLoop
 
   const supportsOnEnd = blockType === 'videoBlock' || blockType === 'youtubeBlock' || blockType === 'audioBlock'
 
@@ -156,7 +169,7 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
                 ...btnStyle,
                 color: loopActive ? 'var(--theme-primary-500, #3b82f6)' : 'var(--theme-elevation-400, #9ca3af)',
               }}
-              onClick={(e) => { e.stopPropagation(); onLoopChange?.(!loop) }}
+              onClick={(e) => { e.stopPropagation(); const next = !localLoop; setLocalLoop(next); onLoopChange?.(next) }}
             >
               <RepeatIcon size={18} />
             </button>
@@ -182,7 +195,7 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
           ...btnStyle,
           color: loopActive ? 'var(--theme-primary-500, #3b82f6)' : 'var(--theme-elevation-400, #9ca3af)',
         }}
-        onClick={(e) => { e.stopPropagation(); onLoopChange?.(!loop) }}
+        onClick={(e) => { e.stopPropagation(); const next = !localLoop; setLocalLoop(next); onLoopChange?.(next) }}
       >
         <RepeatIcon size={18} />
       </button>
