@@ -325,7 +325,7 @@ export function FolderTree() {
               lineHeight: '24px',
             }}
           >
-            {hasChildren ? (isExpanded ? <ExpandCircleDownIcon size={12} /> : <ExpandCircleRightIcon size={12} />) : ' '}
+            {hasChildren ? (isExpanded ? <ExpandCircleDownIcon size={16} /> : <ExpandCircleRightIcon size={16} />) : ' '}
           </span>
           <span onClick={() => navigateToFolder(folder.id)} style={s.label(isActive)}>
             {folder.name}

@@ -294,10 +294,11 @@ export const MediaBrowser: FC<{
           style={{
             display: 'flex',
             alignItems: 'center',
-            padding: '3px 0',
+            gap: 6,
+            padding: '1px 0',
             paddingLeft: depth * 12 + 8,
             cursor: 'pointer',
-            fontSize: '0.8rem',
+            fontSize: '1rem',
             background: isSelected ? 'var(--theme-elevation-200, #e5e7eb)' : 'transparent',
             borderRadius: 4,
             fontWeight: isSelected ? 600 : 400,
@@ -309,18 +310,18 @@ export const MediaBrowser: FC<{
               if (hasChildren) toggleExpand(folder.id)
             }}
             style={{
-              width: 24,
+              width: 32,
               flexShrink: 0,
               fontSize: '1rem',
               color: 'var(--theme-elevation-400, #9ca3af)',
               cursor: hasChildren ? 'pointer' : 'default',
-              padding: '4px 6px',
+              padding: '0 8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            {hasChildren ? (isExpanded ? <ExpandCircleDownIcon size={16} /> : <ExpandCircleRightIcon size={16} />) : ' '}
+            {hasChildren ? (isExpanded ? <ExpandCircleDownIcon size={24} /> : <ExpandCircleRightIcon size={24} />) : ' '}
           </span>
           <FolderIcon size={16} /> {folder.name}
         </div>
