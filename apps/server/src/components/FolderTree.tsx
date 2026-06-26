@@ -2,6 +2,12 @@
 
 import { useAuth, useListQuery, usePreferences } from '@payloadcms/ui'
 import { useCallback, useEffect, useState } from 'react'
+import {
+  ExpandCircleDownIcon,
+  ExpandCircleRightIcon,
+  CloseIcon,
+  AddIcon,
+} from './icons'
 
 interface Folder {
   id: number
@@ -282,7 +288,7 @@ export function FolderTree() {
         style={s.inlineInput}
       />
       <button onClick={() => handleCreateFolder(parentId)} style={s.inlineBtn}>OK</button>
-      <button onClick={cancelNewFolder} style={s.inlineBtn}>✕</button>
+      <button onClick={cancelNewFolder} style={s.inlineBtn}><CloseIcon size={14} /></button>
     </div>
   )
 
@@ -313,13 +319,16 @@ export function FolderTree() {
               userSelect: 'none',
               fontSize: '0.8rem',
               color: 'var(--theme-elevation-500, #9ca3af)',
-              width: 12,
+              width: 32,
               flexShrink: 0,
               textAlign: 'center',
-              lineHeight: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 8px',
             }}
           >
-            {hasChildren ? (isExpanded ? '▾' : '▸') : ' '}
+            {hasChildren ? (isExpanded ? <ExpandCircleDownIcon size={24} /> : <ExpandCircleRightIcon size={24} />) : ' '}
           </span>
           <span onClick={() => navigateToFolder(folder.id)} style={s.label(isActive)}>
             {folder.name}
@@ -333,7 +342,7 @@ export function FolderTree() {
               style={s.addBtn}
               title="Add subfolder"
             >
-              +
+              <AddIcon size={14} />
             </button>
           )}
         </div>
@@ -381,7 +390,7 @@ export function FolderTree() {
 
       {showNewFolder !== 'root' && (
         <button onClick={() => startNewFolder('root')} style={s.newFolderBtn}>
-          + New Folder
+          <AddIcon size={14} /> New Folder
         </button>
       )}
     </div>

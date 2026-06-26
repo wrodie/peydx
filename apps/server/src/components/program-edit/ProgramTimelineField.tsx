@@ -5,13 +5,28 @@ import {
   type DragEndEvent,
   type DragStartEvent,
   DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
 } from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
 import { useDocumentInfo, useForm } from '@payloadcms/ui'
 import { useState, useCallback, useMemo, useEffect, useRef, type FC } from 'react'
 import { MediaBrowser } from './MediaBrowser'
 import { ProgramTimeline } from './ProgramTimeline'
 import { SlideEditDrawer } from './SlideEditDrawer'
+import { computeMove, findTopLevelSegmentIndex } from './computeMove'
+import { stripInternal } from './stripInternal'
+import {
+  ImageIcon,
+  MovieIcon,
+  YouTubeIcon,
+  MusicNote2Icon,
+  CaptureIcon,
+  FolderIcon,
+  DescriptionIcon,
+} from '../icons'
 
 type ProgramTimelineFieldProps = {
   path: string
@@ -120,14 +135,6 @@ function buildRowState(blockType: string, data?: any): Record<string, any> {
   return s
 }
 
-function findSegmentIndex(slides: any[], segmentId: string): number {
-  return slides.findIndex(
-    (s: any, i: number) =>
-      s.blockType === 'segmentBlock' &&
-      (s.id === segmentId || `seg-${i}` === segmentId)
-  )
-}
-
 export type MediaMap = Record<number, {
   url: string
   thumbnailUrl: string | null
@@ -151,9 +158,79 @@ function extractMediaIds(slides: any[]): number[] {
   return [...ids]
 }
 
+// --- resolveDestination ---
+
+function resolveDestination(
+  overData: any,
+  topLevelCount: number,
+  segmentCounts: Record<string, number>,
+): { container: string | null; index: number } | null {
+  if (!overData) return null
+
+  if (overData.type === 'gap') {
+    const count = overData.container === null
+      ? topLevelCount
+      : (segmentCounts[overData.container] || 0)
+    return {
+      container: overData.container,
+      index: overData.index === Infinity ? count : overData.index,
+    }
+  }
+
+  if (overData.type === 'segment-drop') {
+    const count = segmentCounts[overData.segmentId] || 0
+    return { container: overData.segmentId, index: count }
+  }
+
+  if (overData.type === 'slide' && overData.isTopLevel) {
+    return { container: null, index: overData.index }
+  }
+
+  if (overData.type === 'slide' && !overData.isTopLevel) {
+    return { container: overData.segmentId, index: overData.index }
+  }
+
+  if (overData.type === 'segment') {
+    return { container: null, index: overData.index }
+  }
+
+  if (overData.type === 'timeline') {
+    return { container: null, index: topLevelCount }
+  }
+
+  return null
+}
+
+// --- block icons ---
+
+const blockIcons: Record<string, any> = {
+  imageBlock: <ImageIcon size={20} />,
+  videoBlock: <MovieIcon size={20} />,
+  youtubeBlock: <YouTubeIcon size={20} />,
+  audioBlock: <MusicNote2Icon size={20} />,
+  blackScreenBlock: <CaptureIcon size={20} />,
+  segmentBlock: <FolderIcon size={20} />,
+}
+
+const blockLabels: Record<string, string> = {
+  imageBlock: 'Image',
+  videoBlock: 'Video',
+  youtubeBlock: 'YouTube',
+  audioBlock: 'Audio',
+  blackScreenBlock: 'Black',
+  segmentBlock: 'Segment',
+}
+
+// --- main component ---
+
 export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) => {
   const { id } = useDocumentInfo()
-  const { getDataByPath, addFieldRow, removeFieldRow, moveFieldRow, replaceFieldRow, dispatchFields } = useForm()
+  const { getDataByPath, addFieldRow, removeFieldRow, moveFieldRow, replaceFieldRow, dispatchFields, submit } = useForm()
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  )
 
   const [mediaBrowserOpen, setMediaBrowserOpen] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -163,6 +240,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   const [activeDrag, setActiveDrag] = useState<any>(null)
   const [mediaMap, setMediaMap] = useState<MediaMap>({})
   const mediaClearRef = useRef<(() => void) | null>(null)
+  const activeDragRef = useRef(activeDrag)
+  activeDragRef.current = activeDrag
+  const durationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const rawSlides = (getDataByPath(path) as any[]) || []
   const slides = rawSlides.filter(
@@ -170,6 +250,17 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   )
 
   const mediaIds = useMemo(() => extractMediaIds(slides), [slides])
+
+  const segmentCounts = useMemo(() => {
+    const map: Record<string, number> = {}
+    slides.forEach((s: any, i: number) => {
+      if (s.blockType === 'segmentBlock') {
+        const segId = s.id || `seg-${i}`
+        map[segId] = (s.slides || []).length
+      }
+    })
+    return map
+  }, [slides])
 
   useEffect(() => {
     if (mediaIds.length === 0) { setMediaMap({}); return }
@@ -357,6 +448,141 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     [path, rawSlides.length, addFieldRow]
   )
 
+  const handleModeChange = useCallback(
+    (slide: any, index: number, segmentId: string | undefined, newMode: string) => {
+      if (durationTimerRef.current) {
+        clearTimeout(durationTimerRef.current)
+        durationTimerRef.current = null
+      }
+
+      let rowPath: string
+      if (segmentId) {
+        const segIdx = findTopLevelSegmentIndex(
+          (getDataByPath(path) as any[]) || [],
+          segmentId,
+        )
+        if (segIdx < 0) return
+        rowPath = `${path}.${segIdx}.slides`
+      } else {
+        rowPath = path
+      }
+
+      const sourceSlides = (getDataByPath(rowPath) as any[]) || []
+      const currentSlide = sourceSlides?.[index]
+      if (!currentSlide) return
+
+      if (currentSlide.blockType === 'segmentBlock') {
+        dispatchFields({
+          type: 'UPDATE',
+          path: `${rowPath}.${index}.advanceMode`,
+          value: newMode,
+        })
+        if (newMode === 'timed') {
+          if (currentSlide.duration == null || currentSlide.duration <= 0) {
+            dispatchFields({
+              type: 'UPDATE',
+              path: `${rowPath}.${index}.duration.value`,
+              value: 1,
+            })
+          }
+        } else if (currentSlide.advanceMode === 'timed') {
+          dispatchFields({
+            type: 'UPDATE',
+            path: `${rowPath}.${index}.duration.value`,
+            value: null,
+          })
+        }
+      } else {
+        const updated = { ...currentSlide }
+        updated.advanceMode = newMode
+
+        if (newMode === 'timed') {
+          if (updated.duration == null || updated.duration <= 0) {
+            updated.duration = 5
+          }
+        } else if (currentSlide.advanceMode === 'timed') {
+          updated.duration = null
+        }
+
+        replaceFieldRow({
+          path: rowPath,
+          rowIndex: index,
+          schemaPath: `${path}.${updated.blockType}`,
+          subFieldState: buildRowState(updated.blockType, updated),
+        })
+      }
+
+      submit()
+    },
+    [path, getDataByPath, replaceFieldRow, dispatchFields, submit]
+  )
+
+  const handleDurationChange = useCallback(
+    (slide: any, index: number, segmentId: string | undefined, newDuration: number) => {
+      let rowPath: string
+      if (segmentId) {
+        const segIdx = findTopLevelSegmentIndex(
+          (getDataByPath(path) as any[]) || [],
+          segmentId,
+        )
+        if (segIdx < 0) return
+        rowPath = `${path}.${segIdx}.slides`
+      } else {
+        rowPath = path
+      }
+
+      const sourceSlides = (getDataByPath(rowPath) as any[]) || []
+      const currentSlide = sourceSlides?.[index]
+      if (!currentSlide) return
+
+      if (currentSlide.blockType === 'segmentBlock') {
+        dispatchFields({
+          type: 'UPDATE',
+          path: `${rowPath}.${index}.duration.value`,
+          value: newDuration,
+        })
+      } else {
+        const updated = { ...currentSlide, duration: newDuration }
+        replaceFieldRow({
+          path: rowPath,
+          rowIndex: index,
+          schemaPath: `${path}.${updated.blockType}`,
+          subFieldState: buildRowState(updated.blockType, updated),
+        })
+      }
+
+      if (durationTimerRef.current) clearTimeout(durationTimerRef.current)
+      durationTimerRef.current = setTimeout(() => {
+        durationTimerRef.current = null
+        submit()
+      }, 600)
+    },
+    [path, getDataByPath, replaceFieldRow, dispatchFields, submit]
+  )
+
+  const handleLoopChange = useCallback(
+    (slide: any, index: number, segmentId: string | undefined, newLoop: boolean) => {
+      let rowPath: string
+      if (segmentId) {
+        const segIdx = findTopLevelSegmentIndex(
+          (getDataByPath(path) as any[]) || [],
+          segmentId,
+        )
+        if (segIdx < 0) return
+        rowPath = `${path}.${segIdx}.slides`
+      } else {
+        rowPath = path
+      }
+      dispatchFields({
+        type: 'UPDATE',
+        path: `${rowPath}.${index}.loop`,
+        value: newLoop,
+      })
+      submit()
+    },
+    [path, getDataByPath, dispatchFields, id, submit]
+  )
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveDrag(event.active.data.current)
   }, [])
@@ -377,22 +603,28 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       }
 
       if (activeData.type === 'slide' || activeData.type === 'segment') {
-        handleSlideMove(activeData, overData)
+        moveSlideTo(activeData, overData)
       }
     },
-    [slides]
+    [slides, segmentCounts]
   )
 
   const handleMediaDrop = useCallback(
     (activeData: any, overData: any) => {
+      const dst = resolveDestination(overData, slides.length, segmentCounts)
+      if (!dst) return
+
       const items: Array<{ mimeType: string; id: number }> =
         activeData.items || [{ mimeType: activeData.mimeType, id: activeData.id }]
 
-      const slideDatas = items.map(({ mimeType, id: mediaId }) => {
+      let insertIdx = dst.index
+
+      for (const { mimeType, id: mediaId } of items) {
         let blockType = 'imageBlock'
         if (mimeType?.startsWith('video/')) blockType = 'videoBlock'
         else if (mimeType?.startsWith('audio/')) blockType = 'audioBlock'
-        return {
+
+        const slideData = {
           blockType,
           transition: 'fade',
           advanceMode: blockType === 'imageBlock' ? 'manual' : 'onEnd',
@@ -401,214 +633,259 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           audio: blockType === 'audioBlock' ? mediaId : undefined,
           loop: false,
         }
-      })
 
-      if (overData.type === 'segment-drop') {
-        const segIdx = overData.segmentId != null ? findSegmentIndex(rawSlides, overData.segmentId) : -1
-        if (segIdx >= 0) {
-          for (const sd of slideDatas) {
-            addFieldRow({
-              path: `${path}.${segIdx}.slides`,
-              blockType: sd.blockType,
-              schemaPath: `${path}.${sd.blockType}`,
-              subFieldState: buildRowState(sd.blockType, sd),
-            })
-          }
-        }
-      } else if (overData.type === 'slide' && overData.isTopLevel) {
-        let idx = overData.index
-        for (const sd of slideDatas) {
+        if (dst.container === null) {
           addFieldRow({
             path,
-            blockType: sd.blockType,
-            rowIndex: idx,
-            schemaPath: `${path}.${sd.blockType}`,
-            subFieldState: buildRowState(sd.blockType, sd),
+            blockType: slideData.blockType,
+            rowIndex: insertIdx,
+            schemaPath: `${path}.${slideData.blockType}`,
+            subFieldState: buildRowState(slideData.blockType, slideData),
           })
-          idx!++
-        }
-      } else if (overData.type === 'slide' && overData.segmentId) {
-        const segIdx = overData.segmentId != null ? rawSlides.findIndex((s: any) => s && s.id === overData.segmentId) : -1
-        if (segIdx >= 0) {
-          let idx = overData.index
-          for (const sd of slideDatas) {
-            addFieldRow({
-              path: `${path}.${segIdx}.slides`,
-              blockType: sd.blockType,
-              rowIndex: idx,
-              schemaPath: `${path}.${sd.blockType}`,
-              subFieldState: buildRowState(sd.blockType, sd),
-            })
-            idx!++
-          }
-        }
-      } else {
-        for (const sd of slideDatas) {
+        } else {
+          const segIdx = findTopLevelSegmentIndex(rawSlides, dst.container)
+          if (segIdx < 0) return
           addFieldRow({
-            path,
-            blockType: sd.blockType,
-            schemaPath: `${path}.${sd.blockType}`,
-            subFieldState: buildRowState(sd.blockType, sd),
+            path: `${path}.${segIdx}.slides`,
+            blockType: slideData.blockType,
+            rowIndex: insertIdx,
+            schemaPath: `${path}.${slideData.blockType}`,
+            subFieldState: buildRowState(slideData.blockType, slideData),
           })
         }
+
+        insertIdx++
       }
 
       mediaClearRef.current?.()
     },
-    [path, addFieldRow, rawSlides]
+    [path, addFieldRow, rawSlides, slides.length, segmentCounts]
   )
 
-  const handleSlideMove = useCallback(
+  const moveSlideTo = useCallback(
     (activeData: any, overData: any) => {
-      const activeSegId = activeData.segmentId
-      const overSegId = overData.segmentId
+      const dst = resolveDestination(overData, slides.length, segmentCounts)
+      if (!dst) return
 
-      if (activeData.type === 'segment') {
-        const activeId = activeData.segment?.id
-        const activeRawIdx = rawSlides.findIndex((s: any) => s && s.id === activeId)
-        if (activeRawIdx < 0) return
+      if (activeData.type === 'segment' && dst.container !== null) return
 
-        let targetRawIdx: number | null = null
-        if (overData.type === 'segment-drop' || (overData.type === 'slide' && overData.segmentId)) {
-          targetRawIdx = rawSlides.findIndex((s: any) => s && s.id === overData.segmentId)
-        } else if (overData.type === 'segment') {
-          const overId = (overData as any).segment?.id
-          targetRawIdx = overId != null ? rawSlides.findIndex((s: any) => s && s.id === overId) : null
-        } else if (overData.type === 'slide' && overData.isTopLevel) {
-          const overId = overData.slide?.id
-          targetRawIdx = overId != null ? rawSlides.findIndex((s: any) => s && s.id === overId) : overData.index
-        }
-        if (targetRawIdx != null && rawSlides.length > 1 && targetRawIdx !== activeRawIdx) {
-          moveFieldRow({ path, moveFromIndex: activeRawIdx, moveToIndex: targetRawIdx })
-        }
-        return
-      }
+      const srcContainer = activeData.segmentId ?? null
+      const srcIndex = activeData.index
 
-      if (activeData.type === 'slide' && overData.type === 'segment-drop' && overData.segmentId) {
-        if (activeData.segmentId !== overData.segmentId) {
-          const destSegIdx = findSegmentIndex(rawSlides, overData.segmentId)
-          if (destSegIdx >= 0) {
-            if (activeData.segmentId) {
-              const srcSegIdx = findSegmentIndex(rawSlides, activeData.segmentId)
-              if (srcSegIdx < 0) return
-              const srcSlides = rawSlides[srcSegIdx]?.slides || []
-              const movedSlide = srcSlides[activeData.index]
-              if (!movedSlide) return
-              removeFieldRow({ path: `${path}.${srcSegIdx}.slides`, rowIndex: activeData.index })
-              addFieldRow({
-                path: `${path}.${destSegIdx}.slides`,
-                blockType: movedSlide.blockType,
-                schemaPath: `${path}.${movedSlide.blockType}`,
-                subFieldState: buildRowState(movedSlide.blockType, movedSlide),
-              })
-            } else {
-              const currentSlides = getDataByPath(path) as any[]
-              const movedSlide = currentSlides?.[activeData.index]
-              if (!movedSlide) return
-              removeFieldRow({ path, rowIndex: activeData.index })
-              addFieldRow({
-                path: `${path}.${destSegIdx}.slides`,
-                blockType: movedSlide.blockType,
-                schemaPath: `${path}.${movedSlide.blockType}`,
-                subFieldState: buildRowState(movedSlide.blockType, movedSlide),
-              })
-            }
-            return
+      const result = computeMove({
+        rootPath: path,
+        topLevelSlides: slides,
+        srcContainer,
+        srcIndex,
+        dstContainer: dst.container,
+        dstIndex: dst.index,
+      })
+      if (!result) return
+
+      if (result.kind === 'same-container') {
+        moveFieldRow({
+          path: result.path,
+          moveFromIndex: result.moveFromIndex,
+          moveToIndex: result.moveToIndex,
+        })
+      } else {
+        const removeArr = getDataByPath(result.removePath) as any[] | undefined
+        const movedSlide = removeArr?.[result.removeIndex]
+        if (!movedSlide) return
+
+        removeFieldRow({ path: result.removePath, rowIndex: result.removeIndex })
+
+        let actualInsertPath = result.insertPath
+        if (result.removePath === path && result.insertPath !== path) {
+          const segMatch = result.insertPath.match(/slides\.(\d+)\.slides$/)
+          if (segMatch) {
+            const originalSegIdx = parseInt(segMatch[1], 10)
+            const newSegIdx = result.removeIndex <= originalSegIdx
+              ? originalSegIdx - 1
+              : originalSegIdx
+            actualInsertPath = `${path}.${newSegIdx}.slides`
           }
         }
-      }
 
-      const sameLevel = !activeSegId && !overSegId
-      const sameSegment = activeSegId && overSegId && activeSegId === overSegId
-
-      if (sameLevel) {
-        if (rawSlides.length > 1) {
-          const overId = overData.slide?.id
-          const targetRawIdx = overId != null ? rawSlides.findIndex((s: any) => s && s.id === overId) : overData.index
-          const activeId = activeData.slide?.id
-          const activeRawIdx = activeId != null ? rawSlides.findIndex((s: any) => s && s.id === activeId) : activeData.index
-          if (activeRawIdx >= 0 && targetRawIdx >= 0 && targetRawIdx !== activeRawIdx) {
-            moveFieldRow({ path, moveFromIndex: activeRawIdx, moveToIndex: targetRawIdx })
-          }
-        }
-        return
-      }
-
-      if (sameSegment) {
-        const segIdx = findSegmentIndex(rawSlides, activeSegId!)
-        if (segIdx < 0) return
-        const segSlides = rawSlides[segIdx]?.slides || []
-        if (segSlides.length > 1) {
-          moveFieldRow({
-            path: `${path}.${segIdx}.slides`,
-            moveFromIndex: activeData.index,
-            moveToIndex: overData.index,
-          })
-        }
-        return
-      }
-
-      if (activeSegId && !overSegId) {
-        const currentSlides = getDataByPath(path) as any[]
-        if (!currentSlides) return
-        const segIdx = findSegmentIndex(currentSlides, activeSegId)
-        if (segIdx < 0) return
-        const segSlides = currentSlides[segIdx]?.slides || []
-        const movedSlide = segSlides[activeData.index]
-        if (!movedSlide) return
-        removeFieldRow({ path: `${path}.${segIdx}.slides`, rowIndex: activeData.index })
         addFieldRow({
-          path,
+          path: actualInsertPath,
           blockType: movedSlide.blockType,
-          rowIndex: overData.type === 'slide' && overData.isTopLevel ? overData.index : undefined,
-          schemaPath: `${path}.${movedSlide.blockType}`,
-          subFieldState: buildRowState(movedSlide.blockType, movedSlide),
-        })
-        return
-      }
-
-      if (!activeSegId && overSegId) {
-        const currentSlides = getDataByPath(path) as any[]
-        if (!currentSlides) return
-        const segIdx = findSegmentIndex(currentSlides, overSegId)
-        if (segIdx < 0) return
-        const movedSlide = currentSlides[activeData.index]
-        if (!movedSlide) return
-        removeFieldRow({ path, rowIndex: activeData.index })
-        addFieldRow({
-          path: `${path}.${segIdx}.slides`,
-          blockType: movedSlide.blockType,
-          rowIndex: overData.type === 'slide' ? overData.index : undefined,
-          schemaPath: `${path}.${movedSlide.blockType}`,
-          subFieldState: buildRowState(movedSlide.blockType, movedSlide),
-        })
-        return
-      }
-
-      if (activeSegId && overSegId && activeSegId !== overSegId) {
-        const currentSlides = getDataByPath(path) as any[]
-        if (!currentSlides) return
-        const srcSegIdx = findSegmentIndex(currentSlides, activeSegId)
-        const dstSegIdx = findSegmentIndex(currentSlides, overSegId)
-        if (srcSegIdx < 0 || dstSegIdx < 0) return
-        const srcSlides = currentSlides[srcSegIdx]?.slides || []
-        const movedSlide = srcSlides[activeData.index]
-        if (!movedSlide) return
-        removeFieldRow({ path: `${path}.${srcSegIdx}.slides`, rowIndex: activeData.index })
-        addFieldRow({
-          path: `${path}.${dstSegIdx}.slides`,
-          blockType: movedSlide.blockType,
-          rowIndex: overData.type === 'slide' ? overData.index : undefined,
+          rowIndex: result.insertIndex,
           schemaPath: `${path}.${movedSlide.blockType}`,
           subFieldState: buildRowState(movedSlide.blockType, movedSlide),
         })
       }
     },
-    [path, slides, rawSlides, moveFieldRow, removeFieldRow, addFieldRow, getDataByPath]
+    [path, slides, segmentCounts, moveFieldRow, removeFieldRow, addFieldRow, getDataByPath]
   )
 
+  const renderDragOverlay = () => {
+    const d = activeDragRef.current
+    if (!d) return null
+
+    if (d.type === 'media') {
+      const items = d.items || []
+      const first = items[0]
+      const thumbUrl = first?.sizes?.thumbnail?.url || first?.url || null
+
+      return (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 14px',
+            background: 'white',
+            border: '1px solid var(--theme-elevation-300, #d1d5db)',
+            borderRadius: 6,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            fontSize: '0.85rem',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <div
+            style={{
+              width: 48,
+              height: 36,
+              borderRadius: 4,
+              overflow: 'hidden',
+              flexShrink: 0,
+              background: 'var(--theme-elevation-100, #f3f4f6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {thumbUrl
+              ? <img src={thumbUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <ImageIcon size={18} style={{ opacity: 0.5 }} />
+            }
+          </div>
+          <span style={{ fontWeight: 600 }}>
+            {items.length > 1
+              ? `${items.length} items`
+              : (first?.name || first?.filename || 'Media')
+            }
+          </span>
+          {items.length > 1 && (
+            <span style={{ color: 'var(--theme-elevation-500, #6b7280)', fontSize: '0.75rem' }}>
+              +{items.length - 1} more
+            </span>
+          )}
+        </div>
+      )
+    }
+
+    if (d.type === 'segment') {
+      const seg = d.segment
+      const count = (seg?.slides || []).length
+      return (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 16px',
+            background: 'white',
+            border: '1px solid var(--theme-elevation-300, #d1d5db)',
+            borderRadius: 8,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            fontSize: '0.875rem',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <FolderIcon size={18} />
+          <span style={{ fontWeight: 600 }}>{seg?.name || 'Segment'}</span>
+          <span style={{ color: 'var(--theme-elevation-500, #6b7280)', fontSize: '0.8rem' }}>
+            {count} slide{count !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )
+    }
+
+    if (d.type === 'slide') {
+      const slide = d.slide
+      const icon = blockIcons[slide?.blockType] || <DescriptionIcon size={20} />
+      const label = blockLabels[slide?.blockType] || slide?.blockType
+
+      const getThumbnailUrl = (s: any): string | null => {
+        if (!s) return null
+        if (s.blockType === 'youtubeBlock' && s.youtubeId) {
+          const m = String(s.youtubeId).match(/[a-zA-Z0-9_-]{11}/)
+          if (m) return `https://img.youtube.com/vi/${m[0]}/mqdefault.jpg`
+        }
+        const mediaField = s.image || s.video || s.audio
+        if (!mediaField) return null
+        if (typeof mediaField === 'object' && mediaField !== null) {
+          return mediaField.sizes?.thumbnail?.url || mediaField.url || null
+        }
+        const item = mediaMap[mediaField]
+        return item?.thumbnailUrl || null
+      }
+
+      const getName = (s: any): string => {
+        if (!s) return label
+        if (s.blockType === 'youtubeBlock' && s.videoTitle) return s.videoTitle
+        const mediaField = s.image || s.video || s.audio
+        if (!mediaField) return label
+        if (typeof mediaField === 'object' && mediaField !== null) {
+          return mediaField.name || mediaField.filename || label
+        }
+        const item = mediaMap[mediaField]
+        return item?.name || item?.filename || label
+      }
+
+      const thumbnail = getThumbnailUrl(slide)
+      const name = getName(slide)
+
+      return (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 14px',
+            background: 'white',
+            border: '1px solid var(--theme-elevation-300, #d1d5db)',
+            borderRadius: 6,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            fontSize: '0.85rem',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <div
+            style={{
+              width: 48,
+              height: 36,
+              borderRadius: 4,
+              overflow: 'hidden',
+              flexShrink: 0,
+              background: 'var(--theme-elevation-100, #f3f4f6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {thumbnail
+              ? <img src={thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span style={{ fontSize: '1.1rem', opacity: 0.5 }}>{icon}</span>
+            }
+          </div>
+          <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
+            {name}
+          </span>
+          <span style={{ color: 'var(--theme-elevation-500, #6b7280)', fontSize: '0.75rem' }}>
+            #{d.index + 1}
+          </span>
+        </div>
+      )
+    }
+
+    return null
+  }
+
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div
         style={{
           display: 'flex',
@@ -635,6 +912,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             onRemoveSlide={handleRemoveSlide}
             onEditSegmentName={handleEditSegmentName}
             onRemoveSegment={handleRemoveSegment}
+            onModeChange={handleModeChange}
+            onDurationChange={handleDurationChange}
+            onLoopChange={handleLoopChange}
           />
         </div>
 
@@ -656,25 +936,8 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         onSave={handleSaveSlide}
       />
 
-      <DragOverlay>
-        {activeDrag && (
-          <div
-            style={{
-              padding: '8px 16px',
-              background: 'white',
-              border: '1px solid var(--theme-elevation-300, #d1d5db)',
-              borderRadius: 6,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              fontSize: '0.85rem',
-            }}
-          >
-            {activeDrag.type === 'media'
-              ? `🖼 ${activeDrag.items?.length > 1 ? `${activeDrag.items.length} items` : (activeDrag.items?.[0]?.filename || 'Media')}`
-              : activeDrag.slide
-                ? `Slide ${activeDrag.index + 1}`
-                : ''}
-          </div>
-        )}
+      <DragOverlay dropAnimation={null}>
+        {renderDragOverlay()}
       </DragOverlay>
     </DndContext>
   )

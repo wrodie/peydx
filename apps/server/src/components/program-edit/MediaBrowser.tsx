@@ -2,6 +2,18 @@
 
 import { useDraggable } from '@dnd-kit/core'
 import { useCallback, useEffect, useRef, useState, type FC } from 'react'
+import {
+  ImageIcon,
+  MovieIcon,
+  VolumeUpIcon,
+  DescriptionIcon,
+  CheckIcon,
+  FolderIcon,
+  ExpandCircleDownIcon,
+  ExpandCircleRightIcon,
+  MenuOpenIcon,
+  ChevronLeftIcon,
+} from '../icons'
 
 interface Folder {
   id: number
@@ -51,8 +63,8 @@ const DraggableMediaItem: FC<{
   onToggleSelect: (id: number) => void
 }> = ({ media, isSelected, selectedIds, allVisibleMedia, onToggleSelect }) => {
   const dragItems = isSelected
-    ? allVisibleMedia.filter(m => selectedIds.has(m.id)).map(m => ({ id: m.id, mimeType: m.mimeType, filename: m.filename }))
-    : [{ id: media.id, mimeType: media.mimeType, filename: media.filename }]
+    ? allVisibleMedia.filter(m => selectedIds.has(m.id)).map(m => ({ id: m.id, mimeType: m.mimeType, filename: m.filename, url: m.url, sizes: m.sizes, name: m.name }))
+    : [{ id: media.id, mimeType: media.mimeType, filename: media.filename, url: media.url, sizes: media.sizes, name: media.name }]
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -72,11 +84,9 @@ const DraggableMediaItem: FC<{
   const isVideo = media.mimeType?.startsWith('video/')
   const isAudio = media.mimeType?.startsWith('audio/')
 
-  const icon = isImage ? '🖼' : isVideo ? '🎬' : isAudio ? (
-    <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 36, height: 36, opacity: 0.6 }}>
-      <path d="M3 9v6h4l5 5V4L7 9H3zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
-    </svg>
-  ) : '📄'
+  const icon = isImage ? <ImageIcon size={36} style={{ opacity: 0.6 }} /> : isVideo ? <MovieIcon size={36} style={{ opacity: 0.6 }} /> : isAudio ? (
+    <VolumeUpIcon size={36} style={{ opacity: 0.6 }} />
+  ) : <DescriptionIcon size={36} style={{ opacity: 0.6 }} />
   const thumbnailUrl = media.sizes?.thumbnail?.url || (isImage ? media.url : null)
 
   return (
@@ -144,7 +154,7 @@ const DraggableMediaItem: FC<{
                 fontWeight: 700,
               }}
             >
-              ✓
+              <CheckIcon size={10} />
             </div>
           )}
         </div>
@@ -284,10 +294,11 @@ export const MediaBrowser: FC<{
           style={{
             display: 'flex',
             alignItems: 'center',
-            padding: '3px 0',
+            gap: 6,
+            padding: '1px 0',
             paddingLeft: depth * 12 + 8,
             cursor: 'pointer',
-            fontSize: '0.8rem',
+            fontSize: '1rem',
             background: isSelected ? 'var(--theme-elevation-200, #e5e7eb)' : 'transparent',
             borderRadius: 4,
             fontWeight: isSelected ? 600 : 400,
@@ -299,20 +310,20 @@ export const MediaBrowser: FC<{
               if (hasChildren) toggleExpand(folder.id)
             }}
             style={{
-              width: 24,
+              width: 32,
               flexShrink: 0,
               fontSize: '1rem',
               color: 'var(--theme-elevation-400, #9ca3af)',
               cursor: hasChildren ? 'pointer' : 'default',
-              padding: '4px 6px',
+              padding: '0 8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            {hasChildren ? (isExpanded ? '▾' : '▸') : ' '}
+            {hasChildren ? (isExpanded ? <ExpandCircleDownIcon size={24} /> : <ExpandCircleRightIcon size={24} />) : ' '}
           </span>
-          📁 {folder.name}
+          <FolderIcon size={16} /> {folder.name}
         </div>
         {isExpanded && folder.children.map((child) => renderFolderNode(child, depth + 1))}
       </div>
@@ -345,7 +356,7 @@ export const MediaBrowser: FC<{
           }}
           title="Open Media Browser"
         >
-          ▶
+          <MenuOpenIcon size={16} />
         </button>
       </div>
     )
@@ -372,7 +383,7 @@ export const MediaBrowser: FC<{
         }}
       >
         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--theme-elevation-600, #4b5563)' }}>
-          📁 Media Browser
+          <FolderIcon size={16} /> Media Browser
         </span>
         <button
           onClick={onToggle}
@@ -387,7 +398,7 @@ export const MediaBrowser: FC<{
           }}
           title="Toggle Media Browser"
         >
-          ◀
+          <ChevronLeftIcon size={16} />
         </button>
       </div>
 

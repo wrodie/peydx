@@ -1,19 +1,28 @@
 'use client'
 
 import { useState, useRef, useEffect, type FC } from 'react'
+import {
+  ImageIcon,
+  MovieIcon,
+  YouTubeIcon,
+  MusicNote2Icon,
+  CaptureIcon,
+  FolderIcon,
+  ArrowDropDownIcon,
+} from '../icons'
 
 type AddSlideMenuProps = {
   onAddSlide: (blockType: string) => void
 }
 
 const slideTypes = [
-  { type: 'imageBlock', label: 'Image Slide', icon: '🖼' },
-  { type: 'videoBlock', label: 'Video Slide', icon: '🎬' },
-  { type: 'youtubeBlock', label: 'YouTube Slide', icon: '▶️' },
-  { type: 'audioBlock', label: 'Audio Slide', icon: '🎵' },
-  { type: 'blackScreenBlock', label: 'Black Screen Slide', icon: '◼' },
-  { type: 'divider', label: '---', icon: '' },
-  { type: 'segmentBlock', label: 'Segment', icon: '📁' },
+  { type: 'imageBlock', label: 'Image Slide', icon: <ImageIcon size={20} /> },
+  { type: 'videoBlock', label: 'Video Slide', icon: <MovieIcon size={20} /> },
+  { type: 'youtubeBlock', label: 'YouTube Slide', icon: <YouTubeIcon size={20} /> },
+  { type: 'audioBlock', label: 'Audio Slide', icon: <MusicNote2Icon size={20} /> },
+  { type: 'blackScreenBlock', label: 'Black Screen Slide', icon: <CaptureIcon size={20} /> },
+  { type: 'divider', label: '---', icon: null },
+  { type: 'segmentBlock', label: 'Segment', icon: <FolderIcon size={20} /> },
 ]
 
 export const AddSlideMenu: FC<AddSlideMenuProps> = ({ onAddSlide }) => {
@@ -45,7 +54,7 @@ export const AddSlideMenu: FC<AddSlideMenuProps> = ({ onAddSlide }) => {
           fontWeight: 500,
         }}
       >
-        + Add Slide ▾
+        + Add Slide <ArrowDropDownIcon size={18} />
       </button>
       {open && (
         <div

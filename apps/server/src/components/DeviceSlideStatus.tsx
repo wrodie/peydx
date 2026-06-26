@@ -4,6 +4,12 @@ import { useDocumentInfo, useField } from '@payloadcms/ui'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
+import {
+  MovieIcon,
+  YouTubeIcon,
+  CaptureIcon,
+  ImageIcon,
+} from './icons'
 
 function getMediaUrl(slide: any): string | null {
   if (!slide) return null
@@ -22,11 +28,11 @@ function getMediaUrl(slide: any): string | null {
   return null
 }
 
-function getBlockIcon(slide: any): string | null {
+function getBlockIcon(slide: any): React.ReactNode {
   if (!slide) return null
-  if (slide.blockType === 'videoBlock') return '🎬'
-  if (slide.blockType === 'youtubeBlock') return '▶️'
-  if (slide.blockType === 'blackScreenBlock') return '◼'
+  if (slide.blockType === 'videoBlock') return <MovieIcon size={24} />
+  if (slide.blockType === 'youtubeBlock') return <YouTubeIcon size={24} />
+  if (slide.blockType === 'blackScreenBlock') return <CaptureIcon size={24} />
   return null
 }
 

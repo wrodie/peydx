@@ -2,6 +2,7 @@
 
 import { useDocumentInfo } from '@payloadcms/ui'
 import { useState, useEffect, useMemo, type FC } from 'react'
+import { CloseIcon } from '../icons'
 
 interface ProgramItem {
   id: number
@@ -101,7 +102,7 @@ export const ImportProgramModal: FC<ImportProgramModalProps> = ({ isOpen, onClos
               padding: 0,
             }}
           >
-            ✕
+            <CloseIcon size={20} />
           </button>
         </div>
 

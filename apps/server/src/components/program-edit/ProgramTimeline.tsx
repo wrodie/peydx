@@ -1,11 +1,11 @@
 'use client'
 
 import { useDroppable } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useState, type FC } from 'react'
 import { AddSlideMenu } from './AddSlideMenu'
 import { ImportProgramModal } from './ImportProgramModal'
 import { ExportPptxButton } from './ExportPptxButton'
+import { DropGap } from './DropGap'
 import { SlideCard } from './SlideCard'
 import { SegmentContainer } from './SegmentContainer'
 
@@ -19,6 +19,9 @@ type ProgramTimelineProps = {
   onRemoveSlide: (index: number, segmentId?: string) => void
   onEditSegmentName: (segmentId: string, name: string, segmentIndex: number) => void
   onRemoveSegment: (segmentIndex: number) => void
+  onModeChange?: (slide: any, index: number, segmentId: string | undefined, newMode: string) => void
+  onDurationChange?: (slide: any, index: number, segmentId: string | undefined, newDuration: number) => void
+  onLoopChange?: (slide: any, index: number, segmentId: string | undefined, newLoop: boolean) => void
 }
 
 export const ProgramTimeline: FC<ProgramTimelineProps> = ({
@@ -31,19 +34,15 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
   onRemoveSlide,
   onEditSegmentName,
   onRemoveSegment,
+  onModeChange,
+  onDurationChange,
+  onLoopChange,
 }) => {
   const [importModalOpen, setImportModalOpen] = useState(false)
 
   const { setNodeRef, isOver } = useDroppable({
     id: 'timeline-drop',
-    data: { type: 'timeline' },
-  })
-
-  const topLevelIds = slides.map((s: any, i: number) => {
-    if (s.blockType === 'segmentBlock') {
-      return s.id || `seg-${i}`
-    }
-    return `slide-${i}`
+    data: { type: 'gap', container: null, index: slides.length },
   })
 
   const handleEditSlideWrapper = (slide: any, idx: number, segId?: string) => {
@@ -100,38 +99,38 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
         <ExportPptxButton />
       </div>
 
-      <SortableContext items={topLevelIds} strategy={verticalListSortingStrategy}>
-        <div
-          ref={setNodeRef}
-          style={{
-            flex: 1,
-            overflow: 'auto',
-            padding: '16px',
-            background: isOver ? 'var(--theme-primary-50, #eff6ff)' : 'transparent',
-            transition: 'background 0.15s',
-          }}
-        >
-          {slides.length === 0 ? (
-            <div
-              style={{
-                padding: '40px 20px',
-                textAlign: 'center',
-                color: 'var(--theme-elevation-400, #9ca3af)',
-                fontSize: '0.85rem',
-                border: '2px dashed var(--theme-elevation-200, #e5e7eb)',
-                borderRadius: 8,
-              }}
-            >
-              Drag media from the browser or use + Add Slide to build your program
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {slides.map((slide: any, i: number) => {
-                if (slide.blockType === 'segmentBlock') {
-                  const segId = slide.id || `seg-${i}`
-                  return (
+      <div
+        ref={setNodeRef}
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          padding: '16px',
+          background: isOver ? 'var(--theme-primary-50, #eff6ff)' : 'transparent',
+          transition: 'background 0.15s',
+        }}
+      >
+        {slides.length === 0 ? (
+          <div
+            style={{
+              padding: '40px 20px',
+              textAlign: 'center',
+              color: 'var(--theme-elevation-400, #9ca3af)',
+              fontSize: '0.85rem',
+              border: '2px dashed var(--theme-elevation-200, #e5e7eb)',
+              borderRadius: 8,
+            }}
+          >
+            Drag media from the browser or use + Add Slide to build your program
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <DropGap id="tl-gap-0" container={null} index={0} />
+            {slides.map((slide: any, i: number) => {
+              if (slide.blockType === 'segmentBlock') {
+                const segId = slide.id || `seg-${i}`
+                return (
+                  <div key={segId}>
                     <SegmentContainer
-                      key={segId}
                       segment={slide}
                       index={i}
                       mediaMap={mediaMap}
@@ -140,25 +139,34 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
                       onRemoveSlide={handleRemoveSlideWrapper}
                       onEditSegmentName={(name) => handleEditSegmentNameWrapper(name, segId)}
                       onRemoveSegment={() => handleRemoveSegmentWrapper(i)}
+                      onModeChange={onModeChange}
+                      onDurationChange={onDurationChange}
+                      onLoopChange={onLoopChange}
                     />
-                  )
-                }
-                return (
+                    <DropGap id={`tl-gap-${i + 1}`} container={null} index={i + 1} />
+                  </div>
+                )
+              }
+              return (
+                <div key={`slide-${i}`}>
                   <SlideCard
-                    key={`slide-${i}`}
                     slide={slide}
                     index={i}
                     isTopLevel
                     mediaMap={mediaMap}
                     onEdit={(s, idx) => onEditSlide(s, idx)}
                     onRemove={(idx) => onRemoveSlide(idx)}
+                    onModeChange={onModeChange}
+                    onDurationChange={onDurationChange}
+                    onLoopChange={onLoopChange}
                   />
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </SortableContext>
+                  <DropGap id={`tl-gap-${i + 1}`} container={null} index={i + 1} />
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       <ImportProgramModal
         isOpen={importModalOpen}

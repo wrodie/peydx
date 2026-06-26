@@ -5,6 +5,11 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { io, type Socket } from 'socket.io-client'
 import type { ServerToClientEvents, ClientToServerEvents } from 'signage-core'
+import {
+  MusicNote2Icon,
+  CaptureIcon,
+  RepeatIcon,
+} from './icons'
 
 function extractYouTubeId(input: string): string | null {
   if (!input) return null
@@ -30,10 +35,10 @@ function getThumbnailUrl(slide: any): string | null {
   return null
 }
 
-function getBlockIcon(slide: any): string | null {
+function getBlockIcon(slide: any): React.ReactNode {
   if (!slide) return null
-  if (slide.blockType === 'audioBlock') return '\uD83C\uDFB5'
-  if (slide.blockType === 'blackScreenBlock') return '\u25FC'
+  if (slide.blockType === 'audioBlock') return <MusicNote2Icon size={32} />
+  if (slide.blockType === 'blackScreenBlock') return <CaptureIcon size={32} />
   return null
 }
 
@@ -385,7 +390,7 @@ export function DashboardView() {
                     <div style={{ fontSize: '0.8rem', color: 'var(--theme-elevation-500)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span>{slides.length} slides</span>
                       {p.loop && (
-                        <span style={{ fontSize: '0.75rem', background: 'var(--theme-elevation-100)', padding: '1px 6px', borderRadius: '4px' }}>{'\uD83D\uDD01'}</span>
+                        <span style={{ fontSize: '0.75rem', background: 'var(--theme-elevation-100)', padding: '1px 6px', borderRadius: '4px' }}>                        <RepeatIcon size={14} /></span>
                       )}
                     </div>
                   </div>
@@ -474,7 +479,7 @@ export function DashboardView() {
                     <div style={{ fontSize: '0.8rem', color: 'var(--theme-elevation-500)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span>{slides.length} slides</span>
                       {p.loop && (
-                        <span style={{ fontSize: '0.75rem', background: 'var(--theme-elevation-100)', padding: '1px 6px', borderRadius: '4px' }}>{'\uD83D\uDD01'}</span>
+                        <span style={{ fontSize: '0.75rem', background: 'var(--theme-elevation-100)', padding: '1px 6px', borderRadius: '4px' }}>                        <RepeatIcon size={14} /></span>
                       )}
                     </div>
                   </div>
