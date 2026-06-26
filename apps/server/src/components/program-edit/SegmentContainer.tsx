@@ -1,9 +1,10 @@
 'use client'
-
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { useState, type FC } from 'react'
 import { SlideCard } from './SlideCard'
 import { DropGap } from './DropGap'
+import { AdvanceModeInlineControl } from './AdvanceModeInlineControl'
+
 
 type SegmentContainerProps = {
   segment: any
@@ -14,6 +15,8 @@ type SegmentContainerProps = {
   onRemoveSlide: (idx: number, segmentId: string) => void
   onEditSegmentName: (name: string) => void
   onRemoveSegment: () => void
+  onModeChange?: (slide: any, index: number, segmentId: string | undefined, newMode: string) => void
+  onDurationChange?: (slide: any, index: number, segmentId: string | undefined, newDuration: number) => void
 }
 
 export const SegmentContainer: FC<SegmentContainerProps> = ({
@@ -25,6 +28,8 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
   onRemoveSlide,
   onEditSegmentName,
   onRemoveSegment,
+  onModeChange,
+  onDurationChange,
 }) => {
   const [collapsed, setCollapsed] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -190,20 +195,13 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
               Loop
             </span>
           )}
-          {segment.advanceMode && segment.advanceMode !== 'slides' && (
-            <span
-              style={{
-                background: 'var(--theme-elevation-100, #f3f4f6)',
-                padding: '2px 8px',
-                borderRadius: 10,
-                color: 'var(--theme-elevation-600, #4b5563)',
-              }}
-            >
-              {segment.advanceMode === 'timed'
-                ? (segment.duration ? `${segment.duration} min` : 'Timed')
-                : 'Manual'}
-            </span>
-          )}
+          <AdvanceModeInlineControl
+            variant="segment"
+            advanceMode={segment.advanceMode}
+            duration={segment.duration}
+            onModeChange={(newMode) => onModeChange?.(segment, index, undefined, newMode)}
+            onDurationChange={(newDur) => onDurationChange?.(segment, index, undefined, newDur)}
+          />
           {!editingName && (
             <button
               onClick={(e) => {
@@ -287,6 +285,8 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
                     mediaMap={mediaMap}
                     onEdit={(s, idx) => onEditSlide(s, idx, segmentId)}
                     onRemove={(idx) => onRemoveSlide(idx, segmentId)}
+                    onModeChange={onModeChange}
+                    onDurationChange={onDurationChange}
                     segmentId={segmentId}
                   />
                   <DropGap id={`${segmentId}-gap-${i + 1}`} container={segmentId} index={i + 1} />

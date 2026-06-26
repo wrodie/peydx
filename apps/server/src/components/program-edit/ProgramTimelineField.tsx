@@ -17,6 +17,7 @@ import { MediaBrowser } from './MediaBrowser'
 import { ProgramTimeline } from './ProgramTimeline'
 import { SlideEditDrawer } from './SlideEditDrawer'
 import { computeMove, findTopLevelSegmentIndex } from './computeMove'
+import { stripInternal } from './stripInternal'
 
 type ProgramTimelineFieldProps = {
   path: string
@@ -232,6 +233,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   const mediaClearRef = useRef<(() => void) | null>(null)
   const activeDragRef = useRef(activeDrag)
   activeDragRef.current = activeDrag
+  const durationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const rawSlides = (getDataByPath(path) as any[]) || []
   const slides = rawSlides.filter(
@@ -435,6 +437,112 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       }
     },
     [path, rawSlides.length, addFieldRow]
+  )
+
+  const persistSlides = useCallback(
+    (docId: number | string) => {
+      const currentSlides = (getDataByPath(path) as any[]) || []
+      const cleaned = stripInternal(currentSlides)
+      fetch(`/api/programs/${docId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slides: cleaned }),
+      }).then((res) => {
+        if (!res.ok) {
+          console.error('[persistSlides] PATCH failed', res.status)
+          res.text().then((body) => console.error('[persistSlides] body:', body))
+        }
+      }).catch((err) => {
+        console.error('[persistSlides] fetch error', err)
+      })
+    },
+    [path, getDataByPath]
+  )
+
+  const handleModeChange = useCallback(
+    (slide: any, index: number, segmentId: string | undefined, newMode: string) => {
+      if (durationTimerRef.current) {
+        clearTimeout(durationTimerRef.current)
+        durationTimerRef.current = null
+      }
+
+      let rowPath: string
+      let sourceSlides: any[]
+      if (segmentId) {
+        const segIdx = findTopLevelSegmentIndex(
+          (getDataByPath(path) as any[]) || [],
+          segmentId,
+        )
+        if (segIdx < 0) return
+        rowPath = `${path}.${segIdx}.slides`
+        sourceSlides = (getDataByPath(rowPath) as any[]) || []
+      } else {
+        rowPath = path
+        sourceSlides = (getDataByPath(path) as any[]) || []
+      }
+
+      const currentSlide = sourceSlides?.[index]
+      if (!currentSlide) return
+
+      const updated = { ...currentSlide }
+      updated.advanceMode = newMode
+
+      if (newMode === 'timed') {
+        if (updated.duration == null || updated.duration <= 0) {
+          updated.duration = updated.blockType === 'segmentBlock' ? 1 : 5
+        }
+      } else if (currentSlide.advanceMode === 'timed') {
+        updated.duration = null
+      }
+
+      replaceFieldRow({
+        path: rowPath,
+        rowIndex: index,
+        schemaPath: `${path}.${updated.blockType}`,
+        subFieldState: buildRowState(updated.blockType, updated),
+      })
+
+      if (id) persistSlides(id)
+    },
+    [path, getDataByPath, replaceFieldRow, id, persistSlides]
+  )
+
+  const handleDurationChange = useCallback(
+    (slide: any, index: number, segmentId: string | undefined, newDuration: number) => {
+      let rowPath: string
+      let sourceSlides: any[]
+      if (segmentId) {
+        const segIdx = findTopLevelSegmentIndex(
+          (getDataByPath(path) as any[]) || [],
+          segmentId,
+        )
+        if (segIdx < 0) return
+        rowPath = `${path}.${segIdx}.slides`
+        sourceSlides = (getDataByPath(rowPath) as any[]) || []
+      } else {
+        rowPath = path
+        sourceSlides = (getDataByPath(path) as any[]) || []
+      }
+
+      const currentSlide = sourceSlides?.[index]
+      if (!currentSlide) return
+
+      const updated = { ...currentSlide, duration: newDuration }
+
+      replaceFieldRow({
+        path: rowPath,
+        rowIndex: index,
+        schemaPath: `${path}.${updated.blockType}`,
+        subFieldState: buildRowState(updated.blockType, updated),
+      })
+
+      if (durationTimerRef.current) clearTimeout(durationTimerRef.current)
+      durationTimerRef.current = setTimeout(() => {
+        durationTimerRef.current = null
+        if (id) persistSlides(id)
+      }, 600)
+    },
+    [path, getDataByPath, replaceFieldRow, id, persistSlides]
   )
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -766,6 +874,8 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             onRemoveSlide={handleRemoveSlide}
             onEditSegmentName={handleEditSegmentName}
             onRemoveSegment={handleRemoveSegment}
+            onModeChange={handleModeChange}
+            onDurationChange={handleDurationChange}
           />
         </div>
 

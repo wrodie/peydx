@@ -1,7 +1,8 @@
 'use client'
-
 import { useDraggable } from '@dnd-kit/core'
 import type { FC } from 'react'
+import { AdvanceModeInlineControl } from './AdvanceModeInlineControl'
+
 
 type SlideCardProps = {
   slide: any
@@ -11,6 +12,8 @@ type SlideCardProps = {
   mediaMap: Record<number, { url: string; thumbnailUrl: string | null; name: string; filename: string }>
   onEdit: (slide: any, index: number, segmentId?: string) => void
   onRemove: (index: number, segmentId?: string) => void
+  onModeChange?: (slide: any, index: number, segmentId: string | undefined, newMode: string) => void
+  onDurationChange?: (slide: any, index: number, segmentId: string | undefined, newDuration: number) => void
   segmentId?: string
 }
 
@@ -42,14 +45,6 @@ const transitionLabels: Record<string, string> = {
   slide: 'Slide',
 }
 
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds <= 0) return ''
-  if (seconds < 60) return `${seconds}s`
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return s > 0 ? `${m}m ${s}s` : `${m}m`
-}
-
 function extractYouTubeId(input: string): string | null {
   if (!input) return null
   const m = input.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})|^([a-zA-Z0-9_-]{11})$/)
@@ -64,6 +59,8 @@ export const SlideCard: FC<SlideCardProps> = ({
   mediaMap,
   onEdit,
   onRemove,
+  onModeChange,
+  onDurationChange,
   segmentId,
 }) => {
   const sortableId = segmentId ? `${segmentId}-slide-${index}` : `slide-${index}`
@@ -112,12 +109,6 @@ export const SlideCard: FC<SlideCardProps> = ({
   const thumbnail = getThumbnailUrl(slide)
   const name = getSlideName(slide)
   const icon = blockIcons[slide.blockType] || '📄'
-  const modeLabel =
-    slide.advanceMode === 'timed'
-      ? formatDuration(slide.duration)
-      : slide.advanceMode === 'onEnd'
-        ? 'onEnd'
-        : 'manual'
   const transitionLabel = transitionLabels[slide.transition] || slide.transition
 
   return (
@@ -219,18 +210,14 @@ export const SlideCard: FC<SlideCardProps> = ({
           fontSize: '0.75rem',
         }}
       >
-        {modeLabel && (
-          <span
-            style={{
-              background: 'var(--theme-elevation-100, #f3f4f6)',
-              padding: '2px 8px',
-              borderRadius: 10,
-              color: 'var(--theme-elevation-600, #4b5563)',
-            }}
-          >
-            {modeLabel}
-          </span>
-        )}
+        <AdvanceModeInlineControl
+          variant="slide"
+          blockType={slide.blockType}
+          advanceMode={slide.advanceMode}
+          duration={slide.duration}
+          onModeChange={(newMode) => onModeChange?.(slide, index, segmentId, newMode)}
+          onDurationChange={(newDur) => onDurationChange?.(slide, index, segmentId, newDur)}
+        />
         {transitionLabel && (
           <span
             style={{
