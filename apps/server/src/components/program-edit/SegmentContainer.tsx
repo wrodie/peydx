@@ -179,7 +179,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
           }}
         >
           {segment.backgroundAudio && (
-            <MusicNote2Icon size={16} title="Background Audio" style={{ color: '#3b82f6' }} />
+            <MusicNote2Icon size={16} style={{ color: '#3b82f6' }} />
           )}
           <AdvanceModeInlineControl
             variant="segment"
