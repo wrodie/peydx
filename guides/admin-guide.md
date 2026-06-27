@@ -73,7 +73,7 @@ The top navigation bar provides quick access to all major sections:
 | 🖥 | Remote Control | Control what's playing on devices |
 | 👤 | Account | Change your name, email, or password |
 
-**Admin Dropdown** (visible to admins only, labeled "Admin" with a gear icon):
+**Admin Dropdown** (visible to admins only, labeled "Admin" with a settings icon):
 
 - Departments
 - Folders
