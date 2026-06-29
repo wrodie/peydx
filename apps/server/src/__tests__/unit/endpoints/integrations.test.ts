@@ -569,12 +569,14 @@ describe('GET /external/v1/schedules', () => {
   it('returns active schedules filtered by day and date', async () => {
     const req = makeReq()
     const now = new Date()
-    const dayName = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][now.getUTCDay()]
+    const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+    const dayName = days[now.getUTCDay()]
+    const otherDay = days.find(d => d !== dayName)!
     const today = now.toISOString().split('T')[0]
     req.payload.find.mockResolvedValue({
       docs: [
         { id: 1, daysOfWeek: [dayName], startTime: `${today}T10:00:00Z`, endTime: `${today}T11:00:00Z` },
-        { id: 2, daysOfWeek: ['mon'], startTime: `${today}T10:00:00Z`, endTime: `${today}T11:00:00Z` },
+        { id: 2, daysOfWeek: [otherDay], startTime: `${today}T10:00:00Z`, endTime: `${today}T11:00:00Z` },
       ],
     })
     const res = asResponse(await ep('/external/v1/schedules', 'get').handler(req))
