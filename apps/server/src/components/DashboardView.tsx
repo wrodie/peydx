@@ -239,7 +239,7 @@ export function DashboardView() {
   }
 
   return (
-    <div style={{ fontFamily: 'system-ui', padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="dash-outer" style={{ fontFamily: 'system-ui', padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Devices Section */}
       <section style={{ marginBottom: '40px' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: '0 0 16px 0', color: 'var(--theme-text)' }}>
@@ -256,6 +256,7 @@ export function DashboardView() {
               return (
                 <div
                   key={d.id}
+                  className="dash-device-card"
                   style={{
                     width: '240px',
                     padding: '16px',
@@ -331,6 +332,7 @@ export function DashboardView() {
                 <a
                   key={p.id}
                   href={`/admin/collections/programs/${p.id}`}
+                  className="prog-card"
                   style={{
                     textDecoration: 'none',
                     color: 'inherit',
@@ -420,6 +422,7 @@ export function DashboardView() {
                 <a
                   key={p.id}
                   href={`/admin/collections/programs/${p.id}`}
+                  className="prog-card"
                   style={{
                     textDecoration: 'none',
                     color: 'inherit',
