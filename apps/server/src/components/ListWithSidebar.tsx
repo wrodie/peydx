@@ -32,7 +32,9 @@ export function ListWithSidebar(props: ListViewClientProps) {
         .list-with-sidebar__content { flex: 1; min-width: 0; }
         .list-with-sidebar__tree-toggle { display: none; }
         @media (max-width: 768px) {
-          .list-with-sidebar { flex-direction: column; }
+          .list-with-sidebar {
+            display: block;
+          }
           .list-with-sidebar__sidebar {
             width: 100%; border-right: none;
             border-bottom: 1px solid var(--theme-elevation-100, #f3f4f6);
