@@ -70,8 +70,22 @@ export default buildConfig({
     Users,
     Devices,
     Integrations,
-  ],
-  globals: [ConfigGlobal],
+  ].map(c => ({
+    ...c,
+    admin: {
+      ...((c as any).admin || {}),
+      hideAPIURL: true,
+    },
+  })),
+  globals: [
+    ConfigGlobal,
+  ].map(g => ({
+    ...g,
+    admin: {
+      ...((g as any).admin || {}),
+      hideAPIURL: true,
+    },
+  })),
   endpoints: [deploy, deployStatus, heartbeat, pushUpdate, serverStatus, youtubeInfo, timezone, mediaImportYoutube, ...externalApiEndpoints, exportProgram],
   editor: lexicalEditor({}),
   db: postgresAdapter({

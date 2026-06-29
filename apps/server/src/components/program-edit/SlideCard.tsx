@@ -122,8 +122,16 @@ export const SlideCard: FC<SlideCardProps> = ({
   const transitionLabel = transitionLabels[slide.transition] || slide.transition
 
   return (
-    <div
+    <>
+      <style>{`
+        @media (max-width: 1500px) {
+          .slide-card { flex-wrap: wrap; }
+          .slide-card-controls { flex: 1 1 100%; justify-content: flex-end; margin-top: 4px; }
+        }
+      `}</style>
+      <div
       ref={setNodeRef}
+      className="slide-card"
       style={{
         ...style,
         display: 'flex',
@@ -209,76 +217,79 @@ export const SlideCard: FC<SlideCardProps> = ({
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          flexShrink: 0,
-          fontSize: '0.75rem',
-        }}
-      >
-        <AdvanceModeInlineControl
-          variant="slide"
-          blockType={slide.blockType}
-          advanceMode={slide.advanceMode}
-          duration={slide.duration}
-          loop={slide.loop}
-          onModeChange={(newMode) => onModeChange?.(slide, index, segmentId, newMode)}
-          onDurationChange={(newDur) => onDurationChange?.(slide, index, segmentId, newDur)}
-          onLoopChange={(newLoop) => onLoopChange?.(slide, index, segmentId, newLoop)}
-        />
-        {transitionLabel && (
-          <span
-            style={{
-              minWidth: 40,
-              textAlign: 'center',
-              color: 'var(--theme-elevation-600, #4b5563)',
-            }}
-          >
-            {transitionLabel}
-          </span>
+      <div className="slide-card-controls" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            flexShrink: 0,
+            fontSize: '0.75rem',
+          }}
+        >
+          <AdvanceModeInlineControl
+            variant="slide"
+            blockType={slide.blockType}
+            advanceMode={slide.advanceMode}
+            duration={slide.duration}
+            loop={slide.loop}
+            onModeChange={(newMode) => onModeChange?.(slide, index, segmentId, newMode)}
+            onDurationChange={(newDur) => onDurationChange?.(slide, index, segmentId, newDur)}
+            onLoopChange={(newLoop) => onLoopChange?.(slide, index, segmentId, newLoop)}
+          />
+          {transitionLabel && (
+            <span
+              style={{
+                minWidth: 40,
+                textAlign: 'center',
+                color: 'var(--theme-elevation-600, #4b5563)',
+              }}
+            >
+              {transitionLabel}
+            </span>
+          )}
+        </div>
+
+        {!isAutoEnd && (
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit(slide, index, segmentId)
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                borderRadius: 4,
+                fontSize: '0.875rem',
+              }}
+              title="Edit slide"
+            >
+              <EditIcon size={18} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onRemove(index, segmentId)
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                borderRadius: 4,
+                fontSize: '0.875rem',
+              }}
+              title="Remove slide"
+            >
+              <DeleteIcon size={18} />
+            </button>
+          </div>
         )}
       </div>
-
-      {!isAutoEnd && (
-        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onEdit(slide, index, segmentId)
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px 8px',
-              borderRadius: 4,
-              fontSize: '0.875rem',
-            }}
-            title="Edit slide"
-          >
-            <EditIcon size={18} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onRemove(index, segmentId)
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px 8px',
-              borderRadius: 4,
-              fontSize: '0.875rem',
-            }}
-            title="Remove slide"
-          >
-            <DeleteIcon size={18} />
-          </button>
-        </div>
-      )}
     </div>
+    </>
   )
 }

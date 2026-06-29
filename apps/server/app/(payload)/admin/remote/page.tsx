@@ -7,7 +7,7 @@ export default function RemoteControlPage() {
   return (
     <>
       <TopNavHeader />
-      <div style={{ fontFamily: 'system-ui' }}>
+      <div className="remote-page-content" style={{ fontFamily: 'system-ui' }}>
         <RemoteControlView />
       </div>
     </>

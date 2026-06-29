@@ -97,3 +97,5 @@ export const ChevronRightIcon = createIcon(['M530-481 332-679l43-43 241 241-241 
 export const ChevronLeftIcon = createIcon(['M561-240 320-481l241-241 43 43-198 198 198 198-43 43Z'])
 
 export const ArrowDropDownIcon = createIcon(['M480-360 280-559h400L480-360Z'])
+
+export const MenuIcon = createIcon(['M120-240v-60h720v60H120Zm0-210v-60h720v60H120Zm0-210v-60h720v60H120Z'])

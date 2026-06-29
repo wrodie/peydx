@@ -86,12 +86,13 @@ export default function HealthDashboard() {
   ).length
 
   return (
-    <div style={{ padding: 40, fontFamily: 'system-ui', maxWidth: 1000 }}>
+    <div className="health-outer" style={{ padding: 40, fontFamily: 'system-ui', maxWidth: 1000 }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: 8 }}>
         Device Health Dashboard
       </h1>
 
       <div
+        className="health-summary-row"
         style={{
           display: 'flex',
           gap: 24,
@@ -143,6 +144,7 @@ export default function HealthDashboard() {
       {devices.length === 0 ? (
         <p style={{ color: '#888' }}>No devices registered.</p>
       ) : (
+        <div className="health-table-wrap">
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr
@@ -258,6 +260,7 @@ export default function HealthDashboard() {
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )

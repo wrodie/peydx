@@ -233,6 +233,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   )
 
   const [mediaBrowserOpen, setMediaBrowserOpen] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingSlide, setEditingSlide] = useState<any>(null)
   const [editingSlideIndex, setEditingSlideIndex] = useState(-1)
@@ -243,6 +244,13 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   const activeDragRef = useRef(activeDrag)
   activeDragRef.current = activeDrag
   const durationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   const rawSlides = (getDataByPath(path) as any[]) || []
   const slides = rawSlides.filter(
@@ -901,7 +909,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             overflow: 'hidden',
           }}
         >
-          <MediaBrowser collapsed={!mediaBrowserOpen} onToggle={() => setMediaBrowserOpen(v => !v)} clearSelectionRef={mediaClearRef} />
+          {!isMobile && (
+            <MediaBrowser collapsed={!mediaBrowserOpen} onToggle={() => setMediaBrowserOpen(v => !v)} clearSelectionRef={mediaClearRef} />
+          )}
           <ProgramTimeline
             slides={slides}
             mediaMap={mediaMap}

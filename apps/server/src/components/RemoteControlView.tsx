@@ -265,7 +265,7 @@ export function RemoteControlView() {
 
   return (
     <div style={{ fontFamily: 'system-ui' }}>
-      <div style={{ padding: 16, maxWidth: 600 }}>
+      <div className="remote-wrap" style={{ padding: 16, maxWidth: 600 }}>
         <select
           value={selectedDeviceId || ''}
           onChange={(e) => setSelectedDeviceId(e.target.value || null)}
@@ -334,7 +334,7 @@ export function RemoteControlView() {
             </button>
           </div>
         ) : selectedDeviceId ? (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+          <div className="remote-load-program-row" style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
             <select
               value={selectedProgramId}
               onChange={(e) => setSelectedProgramId(e.target.value)}
