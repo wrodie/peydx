@@ -672,12 +672,16 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
   const moveSlideTo = useCallback(
     (activeData: any, overData: any) => {
-      const dst = resolveDestination(overData, slides.length, segmentCounts)
+      let dst = resolveDestination(overData, slides.length, segmentCounts)
       if (!dst) return
 
-      if (activeData.type === 'segment' && dst.container !== null) return
+      if (activeData.type === 'segment' && dst.container !== null) {
+        const targetSegIdx = findTopLevelSegmentIndex(slides, dst.container)
+        if (targetSegIdx < 0) return
+        dst = { container: null, index: targetSegIdx }
+      }
 
-      const srcContainer = activeData.segmentId ?? null
+      const srcContainer = activeData.type === 'segment' ? null : (activeData.segmentId ?? null)
       const srcIndex = activeData.index
 
       const result = computeMove({
