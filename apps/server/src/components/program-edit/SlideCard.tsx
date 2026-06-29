@@ -124,7 +124,7 @@ export const SlideCard: FC<SlideCardProps> = ({
   return (
     <>
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: 1500px) {
           .slide-card { flex-wrap: wrap; }
           .slide-card-controls { flex: 1 1 100%; justify-content: flex-end; margin-top: 4px; }
         }
