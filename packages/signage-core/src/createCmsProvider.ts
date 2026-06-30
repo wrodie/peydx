@@ -48,7 +48,8 @@ export function createCmsProvider(deviceId: string, token: string): DeviceProvid
         const deviceRes = await fetch(`/api/devices/${deviceId}?depth=1`, { headers: authHeaders })
         const device = await deviceRes.json()
         const bg = device?.defaultBackground
-        bgUrl = bg ? (bg.sizes?.fullHD?.url || bg.url || null) : null
+        const rawUrl = bg ? (bg.sizes?.fullHD?.url || bg.url || null) : null
+        bgUrl = rawUrl ? resolveMediaUrl(rawUrl) : null
         deviceName = device?.name || null
         hideProgramList = device?.hideProgramList || false
       } catch {}
