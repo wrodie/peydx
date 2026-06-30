@@ -103,7 +103,7 @@ const DraggableMediaItem: FC<{
         border: isSelected
           ? '2px solid var(--theme-primary-500, #3b82f6)'
           : '1px solid var(--theme-elevation-200, #e5e7eb)',
-        background: 'white',
+        background: 'var(--theme-elevation-0)',
       }}
     >
       <div

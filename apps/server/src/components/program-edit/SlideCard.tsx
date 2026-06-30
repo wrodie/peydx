@@ -142,7 +142,7 @@ export const SlideCard: FC<SlideCardProps> = ({
           ? 'var(--theme-elevation-50, #f9fafb)'
           : isDragging
             ? 'var(--theme-elevation-100, #f3f4f6)'
-            : 'white',
+            : 'var(--theme-elevation-0)',
         border: `1px solid ${isDragging ? 'var(--theme-primary-300, #93c5fd)' : 'var(--theme-elevation-200, #e5e7eb)'}`,
         borderRadius: 6,
         cursor: 'default',

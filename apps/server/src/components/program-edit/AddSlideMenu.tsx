@@ -62,7 +62,7 @@ export const AddSlideMenu: FC<AddSlideMenuProps> = ({ onAddSlide }) => {
             position: 'absolute',
             top: '100%',
             left: 0,
-            background: 'white',
+            background: 'var(--theme-elevation-0)',
             border: '1px solid var(--theme-elevation-200, #e5e7eb)',
             borderRadius: 6,
             boxShadow: '0 4px 16px rgba(0,0,0,0.1)',

@@ -175,7 +175,7 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '2rem',
-                  color: 'var(--theme-elevance-400, #9ca3af)',
+                  color: 'var(--theme-elevation-400, #9ca3af)',
                 }}
               >
                 {mimeFilter === 'audio' ? (
@@ -499,7 +499,7 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
           right: 0,
           bottom: 0,
           width: 360,
-          background: 'white',
+          background: 'var(--theme-elevation-0)',
           boxShadow: '-4px 0 16px rgba(0,0,0,0.1)',
           zIndex: 9999,
           display: 'flex',

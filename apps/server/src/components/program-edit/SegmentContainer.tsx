@@ -88,7 +88,7 @@ export const SegmentContainer: FC<SegmentContainerProps> = ({
         marginBottom: 8,
         border: `1px solid ${(isDragging || isHeaderOver) ? 'var(--theme-primary-300, #93c5fd)' : 'var(--theme-elevation-300, #d1d5db)'}`,
         borderRadius: 8,
-        background: isDragging ? 'var(--theme-elevation-50, #f9fafb)' : 'white',
+        background: isDragging ? 'var(--theme-elevation-50, #f9fafb)' : 'var(--theme-elevation-0)',
         opacity: isDragging ? 0 : 1,
       }}
     >

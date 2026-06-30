@@ -70,7 +70,7 @@ export const ImportProgramModal: FC<ImportProgramModalProps> = ({ isOpen, onClos
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: 'white',
+          background: 'var(--theme-elevation-0)',
           borderRadius: 8,
           width: 480,
           maxHeight: '70vh',
