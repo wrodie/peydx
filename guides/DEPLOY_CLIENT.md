@@ -101,13 +101,14 @@ The device should appear as "online" in the CMS dashboard within 30 seconds.
 Install Chromium:
 
 ```bash
-sudo apt-get install -y chromium-browser
+sudo apt-get install -y chromium-browser unclutter
 ```
 
 Create a kiosk startup script at `/opt/peydx/kiosk.sh`:
 
 ```bash
 #!/bin/bash
+unclutter -idle 0 &
 /usr/bin/chromium-browser \
   --kiosk \
   --incognito \
