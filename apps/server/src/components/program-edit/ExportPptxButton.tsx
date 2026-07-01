@@ -52,7 +52,7 @@ export const ExportPptxButton: FC = () => {
         opacity: exporting ? 0.6 : 1,
       }}
     >
-      {exporting ? 'Exporting...' : 'Export PPTX'}
+      {exporting ? 'Exporting...' : 'Export as PPTX'}
     </button>
   )
 }

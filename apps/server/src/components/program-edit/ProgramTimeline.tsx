@@ -77,9 +77,7 @@ export const ProgramTimeline: FC<ProgramTimelineProps> = ({
           gap: 12,
         }}
       >
-        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--theme-elevation-600, #4b5563)' }}>
-          -- Program Timeline --
-        </span>
+
         <AddSlideMenu onAddSlide={onAddSlide} />
         <button
           onClick={() => setImportModalOpen(true)}
