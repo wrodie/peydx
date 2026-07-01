@@ -1,6 +1,7 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 
-export const mediaFolderAutoAssign: CollectionBeforeChangeHook = async ({ data, req }) => {
+export const mediaFolderAutoAssign: CollectionBeforeChangeHook = async ({ data, req, context }) => {
+  if ((context as any)?.skipFolderAutoAssign) return data
   if (!data.folder && req.user) {
     const user = req.user as any
     const prefs = await req.payload.find({

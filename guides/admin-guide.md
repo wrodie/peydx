@@ -359,6 +359,19 @@ If the system is configured with `YOUTUBE_DOWNLOAD_ENABLED=true`, you'll see an 
 
 If YouTube import is not enabled, YouTube content can still be used via the YouTube slide type in programs (which embeds the video via iframe).
 
+### Importing from PowerPoint
+
+The **Import PPTX** button appears on the Programs list view (not the Media list). This is because importing a `.pptx` file creates both media items and a program.
+
+See the [User Guide — Importing a PowerPoint File](../guides/user-guide.md#importing-a-powerpoint-file) for step-by-step instructions.
+
+**Technical details:**
+- The endpoint `POST /api/import-pptx` accepts a `.pptx` file via multipart form.
+- Incompatible codecs (EMF, WMF, WMV) are automatically skipped with logged warnings.
+- Audio tracks set to "play across slides" (`numSld > 1` in the PPTX timing tree) are wrapped in a Segment block with background audio.
+- The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content.
+- Thumbnail generation and duration extraction run in the background after the import completes.
+
 ### Organizing Media with Folders
 
 Use the folder sidebar to browse and create media folders. See [Managing Folders](#managing-folders) for details on folder organization.
@@ -386,6 +399,8 @@ The programs list has a folder sidebar (programs-type folders) on the left and a
 3. Enter a **Title** (required) — this appears in schedules, the dashboard, and on devices.
 4. The **Folder** field is hidden on creation and auto-assigned based on your current folder selection.
 5. Click **Save** to create the program, then add slides.
+
+Alternatively, you can create a program by importing a PowerPoint file — see [Importing from PowerPoint](#importing-from-powerpoint).
 
 ### Program Editor Layout
 

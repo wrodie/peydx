@@ -122,6 +122,33 @@ If your system has YouTube import enabled, you'll see an **"Import from YouTube"
 2. Paste a YouTube video URL or video ID.
 3. The video will be downloaded and added to your media library. (This may take some time - so please be patient.)
 
+### Importing a PowerPoint File
+
+You can import a `.pptx` file directly from the Programs page. This creates a new program with slides created from your PowerPoint content.
+
+1. Click **Programs** in the top navigation.
+2. Click the **Import PPTX** button above the program list.
+3. Select a `.pptx` file from your computer.
+4. If you belong to multiple departments, choose which department to import into.
+5. Click **Import**.
+
+The import process:
+- Parses the file and shows progress as each media file is processed
+- Creates a new **program** with your slides in order
+- Creates a **media subfolder** named after your file
+- Imports full-screen images, videos, and audio into that subfolder
+
+**What gets imported:**
+- ✅ Full-screen images (photos that fill the entire slide)
+- ✅ Video files
+- ✅ Audio files (including "play across slides" audio, which becomes a segment with background audio)
+- ❌ **Not imported:** Text, shapes, logos, small graphics, charts, or complex layouts — PowerPoint slides are complex documents and this importer focuses on media content only.
+
+> **Tips:**
+> - The new program will have `advanceMode: "manual"` for images and `"onEnd"` for video/audio — you can adjust these in the program editor.
+> - The program is placed in your department's programs root folder. You can move it later.
+> - Depending on the file size, importing may take some time — the progress bar shows you what's happening.
+
 ---
 
 ## Create & Edit Programs
