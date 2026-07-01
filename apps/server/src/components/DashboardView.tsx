@@ -187,7 +187,14 @@ export function DashboardView() {
         )
 
         const upcomingSchedules = (schedData.docs || []).filter((s: any) => {
-          if (s.daysOfWeek?.length > 0) return true
+          if (s.daysOfWeek?.length) {
+            if (s.untilDate) {
+              const untilStr = new Intl.DateTimeFormat('en-CA', { timeZone: serverTz }).format(new Date(s.untilDate))
+              const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: serverTz }).format(now)
+              if (untilStr < todayStr) return false
+            }
+            return true
+          }
           if (s.endTime && new Date(s.endTime) < now) return false
           return true
         })
@@ -550,7 +557,10 @@ export function DashboardView() {
                       </span>
                     ))}
                     <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--theme-text)', whiteSpace: 'nowrap' }}>
-                      {s.startTime ? new Date(s.startTime).toLocaleString(locale, fmtOpts) : '--'} &ndash; {s.endTime ? new Date(s.endTime).toLocaleString(locale, fmtOpts) : '--'}
+                      {s.startTime ? (s.daysOfWeek?.length
+                        ? `${new Date(s.startTime).toLocaleString(locale, { hour: '2-digit', minute: '2-digit', timeZone: serverTz })} – ${new Date(s.endTime || s.startTime).toLocaleString(locale, { hour: '2-digit', minute: '2-digit', timeZone: serverTz })}`
+                        : `${new Date(s.startTime).toLocaleString(locale, fmtOpts)} – ${new Date(s.endTime || s.startTime).toLocaleString(locale, fmtOpts)}`
+                      ) : '––'}
                     </span>
                   </div>
                 </a>
