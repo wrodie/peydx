@@ -1,15 +1,27 @@
 'use client'
 
+import { createPortal } from 'react-dom'
 import { DefaultListView, useListDrawerContext } from '@payloadcms/ui'
 import type { ListViewClientProps } from 'payload'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FolderTree } from './FolderTree'
 import { DrawerRowInterceptor } from './DrawerRowInterceptor'
 import { ExpandCircleDownIcon } from './icons'
+import { ImportPptxButton } from './ImportPptxButton'
 
 export function ListWithSidebar(props: ListViewClientProps) {
   const { isInDrawer } = useListDrawerContext()
   const [treeOpen, setTreeOpen] = useState(false)
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!isInDrawer) {
+      const el = document.querySelector('.list-header__title-actions')
+      if (el instanceof HTMLElement) setPortalTarget(el)
+    } else {
+      setPortalTarget(null)
+    }
+  }, [isInDrawer])
 
   if (isInDrawer) {
     return (
@@ -21,6 +33,7 @@ export function ListWithSidebar(props: ListViewClientProps) {
 
   return (
     <>
+      {portalTarget && createPortal(<ImportPptxButton />, portalTarget)}
       <style>{`
         .list-with-sidebar { display: flex; align-items: flex-start; }
         .list-with-sidebar__sidebar {
@@ -65,6 +78,25 @@ export function ListWithSidebar(props: ListViewClientProps) {
           .list-with-sidebar__sidebar--collapsed .FolderTree {
             display: none;
           }
+        }
+        .list-header__title-actions {
+          align-items: center;
+        }
+        .list-header__title-actions .btn {
+          margin-block: 0;
+          --btn-padding-block-start: 6px;
+          --btn-padding-inline-end: 14px;
+          --btn-padding-block-end: 6px;
+          --btn-padding-inline-start: 14px;
+          --bg-color: var(--theme-elevation-100);
+          --color: var(--theme-text);
+          --btn-border: 1px solid var(--theme-elevation-250);
+          --hover-bg: var(--theme-elevation-150);
+          --hover-btn-border: 1px solid var(--theme-elevation-250);
+          --hover-color: var(--theme-text);
+          border-radius: 4px;
+          font-size: 13px;
+          line-height: normal;
         }
       `}</style>
       <div className="list-with-sidebar">

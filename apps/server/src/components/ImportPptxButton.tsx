@@ -163,16 +163,10 @@ export function ImportPptxButton() {
 
       {modal.status === 'idle' && (
         <button
+          type="button"
+          className="btn btn--style-pill btn--size-small"
           onClick={triggerFile}
-          style={{
-            padding: '6px 14px',
-            background: 'var(--theme-elevation-100)',
-            border: '1px solid var(--theme-elevation-250)',
-            borderRadius: 4,
-            cursor: 'pointer',
-            fontSize: 13,
-            whiteSpace: 'nowrap',
-          }}
+          style={{ whiteSpace: 'nowrap' }}
         >
           Import PPTX
         </button>
