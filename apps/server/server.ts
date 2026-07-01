@@ -7,6 +7,7 @@ import { getPayload as initPayload } from 'payload'
 
 import config from './src/payload.config'
 import { setPayload, getPayload, setIO } from './src/websocket/io'
+import { verifyControlAccess, verifyProgramDepartmentAccess } from './src/websocket/verifyControlAccess'
 import { deviceStateStore } from './src/websocket/deviceState'
 
 const dev = process.env.NODE_ENV !== 'production'
@@ -55,27 +56,6 @@ async function verifyBrowserToken(token: string): Promise<{ id: number; departme
   }
 }
 
-async function verifyIntegrationAccess(
-  socket: any,
-  deviceId: number,
-  payload: any
-): Promise<boolean> {
-  if (socket.data.type !== 'integration') return true
-  const depts = socket.data.departments || []
-  if (depts.length === 0) return true
-
-  const device = await payload.findByID({
-    collection: 'devices',
-    id: deviceId,
-    depth: 0,
-    overrideAccess: true,
-  })
-  if (!device) return false
-  const deviceDepts: number[] = (device.departments || []).map((d: any) =>
-    typeof d === 'object' ? d.id : d
-  )
-  return deviceDepts.some((d: number) => depts.includes(d))
-}
 
 async function handleDeviceHeartbeat(
   io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>,
@@ -703,42 +683,43 @@ app.prepare().then(async () => {
     })
 
     socket.on('remote:advance', async (data: any) => {
-      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
+      if (!await verifyControlAccess(socket.data, data.id, getPayload())) return
       handleRemoteAdvance(io, socket, data)
     })
 
     socket.on('remote:previous', async (data: any) => {
-      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
+      if (!await verifyControlAccess(socket.data, data.id, getPayload())) return
       handleRemotePrevious(io, socket, data)
     })
 
     socket.on('remote:goto', async (data: any) => {
-      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
+      if (!await verifyControlAccess(socket.data, data.id, getPayload())) return
       handleRemoteGoto(io, socket, data)
     })
 
     socket.on('remote:program', async (data: any) => {
-      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
+      if (!await verifyControlAccess(socket.data, data.id, getPayload())) return
+      if (!await verifyProgramDepartmentAccess(socket.data, data.programId, getPayload())) return
       handleRemoteProgram(io, socket, data)
     })
 
     socket.on('remote:menu', async (data: any) => {
-      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
+      if (!await verifyControlAccess(socket.data, data.id, getPayload())) return
       handleRemoteMenu(io, socket, data)
     })
 
     socket.on('remote:back', async (data: any) => {
-      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
+      if (!await verifyControlAccess(socket.data, data.id, getPayload())) return
       handleRemoteBack(io, socket, data)
     })
 
     socket.on('remote:select', async (data: any) => {
-      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
+      if (!await verifyControlAccess(socket.data, data.id, getPayload())) return
       handleRemoteSelect(io, socket, data)
     })
 
     socket.on('remote:pause', async (data: any) => {
-      if (!await verifyIntegrationAccess(socket, data.id, getPayload())) return
+      if (!await verifyControlAccess(socket.data, data.id, getPayload())) return
       handleRemotePause(io, socket, data)
     })
 
