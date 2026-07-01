@@ -27,7 +27,7 @@ console.log(ts('[sync] Sync agent starting...'));
 
 // Write empty schedule so player always has a file to fetch on startup
 if (!fs.existsSync(SCHEDULE_PATH)) {
-  const empty = JSON.stringify({ lastUpdated: new Date().toISOString(), schedule: [], availability: [], defaultBackground: null }, null, 2) + '\n'
+  const empty = JSON.stringify({ lastUpdated: new Date().toISOString(), timezone: TIMEZONE, schedule: [], availability: [], defaultBackground: null }, null, 2) + '\n'
   const dir = path.dirname(SCHEDULE_PATH)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   const tmp = SCHEDULE_PATH + '.tmp'
@@ -212,8 +212,12 @@ async function sync() {
         if (!program.availableFrom) return false;
         const deviceIds = (program.availableDevices || []).map(d => typeof d === 'object' ? d.id : d);
         if (!deviceIds.includes(numericId)) return false;
-        if (program.availableFrom.slice(0, 10) > todayDateStr) return false;
-        if (program.availableUntil && program.availableUntil.slice(0, 10) < todayDateStr) return false;
+        const fromDate = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date(program.availableFrom))
+        if (fromDate > todayDateStr) return false;
+        if (program.availableUntil) {
+          const untilDate = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date(program.availableUntil))
+          if (untilDate < todayDateStr) return false;
+        }
         return true;
       })
       // Normalize to availability-entry shape (program sub-object)

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { normalizeApiSchedule } from 'signage-core'
 import { resolveScheduleState } from 'signage-core'
 import type { ResolvedSchedule, ScheduleEntry } from 'signage-core'
@@ -374,5 +374,110 @@ describe('resolveActiveProgram (via resolveScheduleState)', () => {
   it('returns null when no active schedule', () => {
     const result = resolveScheduleState([], [])
     expect(result.activeAutoPlay).toBeNull()
+  })
+})
+describe('resolveScheduleState with timezone', () => {
+  afterEach(() => { vi.useRealTimers() })
+
+  it('uses timezone-aware day of week for recurring schedules (Australia/Melbourne UTC+11)', () => {
+    const melbourneMonday9am = new Date('2024-01-14T22:00:00Z')
+    vi.setSystemTime(melbourneMonday9am)
+
+    const entries = [{
+      programId: 1,
+      scheduleType: 'autoplay' as const,
+      startTime: '2024-01-14T22:00:00.000Z',
+      endTime: '2024-01-14T23:00:00.000Z',
+      daysOfWeek: ['mon'],
+      untilDate: null,
+      program: { id: 1, title: 'Monday Service', slides: [] },
+    }]
+    const result = resolveScheduleState(entries, [], 'Australia/Melbourne')
+    expect(result.activeAutoPlay).toBeTruthy()
+  })
+
+  it('uses timezone-aware day of week to filter non-matching day', () => {
+    const melbourneTuesday9am = new Date('2024-01-15T22:00:00Z')
+    vi.setSystemTime(melbourneTuesday9am)
+
+    const entries = [{
+      programId: 1,
+      scheduleType: 'autoplay' as const,
+      startTime: '2024-01-14T22:00:00.000Z',
+      endTime: '2024-01-14T23:00:00.000Z',
+      daysOfWeek: ['mon'],
+      untilDate: null,
+      program: { id: 1, title: 'Monday Service', slides: [] },
+    }]
+    const result = resolveScheduleState(entries, [], 'Australia/Melbourne')
+    expect(result.activeAutoPlay).toBeNull()
+  })
+
+  it('uses timezone-aware time-of-day for schedule window', () => {
+    const melbourneMonday930am = new Date('2024-01-14T22:30:00Z')
+    vi.setSystemTime(melbourneMonday930am)
+
+    const entries = [{
+      programId: 1,
+      scheduleType: 'autoplay' as const,
+      startTime: '2024-01-14T22:00:00.000Z',
+      endTime: '2024-01-14T23:00:00.000Z',
+      daysOfWeek: ['mon'],
+      untilDate: null,
+      program: { id: 1, title: 'Monday Service', slides: [] },
+    }]
+    const result = resolveScheduleState(entries, [], 'Australia/Melbourne')
+    expect(result.activeAutoPlay).toBeTruthy()
+  })
+
+  it('uses timezone-aware time-of-day to exclude outside window', () => {
+    const melbourneMonday830am = new Date('2024-01-14T21:30:00Z')
+    vi.setSystemTime(melbourneMonday830am)
+
+    const entries = [{
+      programId: 1,
+      scheduleType: 'autoplay' as const,
+      startTime: '2024-01-14T22:00:00.000Z',
+      endTime: '2024-01-14T23:00:00.000Z',
+      daysOfWeek: ['mon'],
+      untilDate: null,
+      program: { id: 1, title: 'Monday Service', slides: [] },
+    }]
+    const result = resolveScheduleState(entries, [], 'Australia/Melbourne')
+    expect(result.activeAutoPlay).toBeNull()
+  })
+
+  it('uses timezone-aware date for one-off schedules', () => {
+    const melbourneJan15at10am = new Date('2024-01-14T23:00:00Z')
+    vi.setSystemTime(melbourneJan15at10am)
+
+    const entries = [{
+      programId: 1,
+      scheduleType: 'autoplay' as const,
+      startTime: '2024-01-14T23:00:00.000Z',
+      endTime: '2024-01-15T01:00:00.000Z',
+      daysOfWeek: [],
+      untilDate: null,
+      program: { id: 1, title: 'One-off Event', slides: [] },
+    }]
+    const result = resolveScheduleState(entries, [], 'Australia/Melbourne')
+    expect(result.activeAutoPlay).toBeTruthy()
+  })
+
+  it('defaults to UTC when no timezone provided', () => {
+    const now = new Date('2025-06-16T10:00:00Z')
+    vi.setSystemTime(now)
+
+    const entries = [{
+      programId: 1,
+      scheduleType: 'autoplay' as const,
+      startTime: '2025-06-16T09:30:00.000Z',
+      endTime: '2025-06-16T11:00:00.000Z',
+      daysOfWeek: [],
+      untilDate: null,
+      program: { id: 1, title: 'Test', slides: [] },
+    }]
+    const result = resolveScheduleState(entries, [])
+    expect(result.activeAutoPlay).toBeTruthy()
   })
 })

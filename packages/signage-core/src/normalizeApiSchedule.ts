@@ -7,6 +7,7 @@ export interface NormalizeApiScheduleOptions {
   deviceName?: string | null
   hideProgramList?: boolean
   resolveMediaUrl?: (url: string) => string
+  timezone?: string | null
 }
 
 function mapProgram(entry: any, resolveUrl: (url: string) => string): Program {
@@ -29,7 +30,7 @@ export function normalizeApiSchedule(
   programsData?: any,
   options: NormalizeApiScheduleOptions = {},
 ): ResolvedSchedule {
-  const { deviceId, defaultBackgroundUrl, deviceName, hideProgramList, resolveMediaUrl } = options
+  const { deviceId, defaultBackgroundUrl, deviceName, hideProgramList, resolveMediaUrl, timezone } = options
   const resolveUrl = resolveMediaUrl ?? ((url: string) => url)
 
   const scheduleDocs = apiData?.docs || []
@@ -55,6 +56,7 @@ export function normalizeApiSchedule(
 
   return {
     lastUpdated: new Date().toISOString(),
+    timezone: timezone || 'UTC',
     schedule: scheduleDocs.map((entry: any) => ({
       programId: entry.program?.id,
       scheduleType: 'autoplay' as const,

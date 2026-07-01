@@ -96,6 +96,7 @@ export interface AvailabilityEntry {
 
 export interface ResolvedSchedule {
   lastUpdated: string
+  timezone?: string | null
   schedule: ScheduleEntry[]
   availability: AvailabilityEntry[]
   defaultBackground?: string | null

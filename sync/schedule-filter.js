@@ -49,8 +49,12 @@ function filterAvailability(programs, numericDeviceId, timeZone, todayStr) {
       if (!program.availableFrom) return false
       const deviceIds = (program.availableDevices || []).map(d => typeof d === 'object' ? d.id : d)
       if (!deviceIds.includes(numericDeviceId)) return false
-      if (program.availableFrom.slice(0, 10) > dateStr) return false
-      if (program.availableUntil && program.availableUntil.slice(0, 10) < dateStr) return false
+      const fromDate = new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(program.availableFrom))
+      if (fromDate > dateStr) return false
+      if (program.availableUntil) {
+        const untilDate = new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(program.availableUntil))
+        if (untilDate < dateStr) return false
+      }
       return true
     })
     .map(program => ({

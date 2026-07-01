@@ -97,7 +97,7 @@ SERVER_MANAGER_TOKEN=<paste-generated-value-here>
 
 Replace the values with your own secure credentials. `your-secure-password` must match in both `DATABASE_URI` and `POSTGRES_PASSWORD`.
 
-- `TIMEZONE` should be an IANA timezone string (e.g. `America/New_York`, `Europe/London`, `Australia/Sydney`) and is used by the sync agent for schedule evaluation.
+- `TIMEZONE` should be an IANA timezone string (e.g. `America/New_York`, `Europe/London`, `Australia/Sydney`). It is used both by the CMS server (Payload admin default timezone and the `/api/timezone` endpoint that drives the dashboard) and by the client sync agent for schedule evaluation. Setting it here ensures the admin dashboard renders in the same timezone the player uses to evaluate schedules.
 - `CORS_ORIGIN` is a comma-separated list of allowed origins for WebSocket connections (e.g. `https://cms.yourchurch.org,https://signage.yourchurch.org`). Required in production — if not set, no cross-origin WebSocket connections are allowed.
 - `SERVER_MANAGER_TOKEN` is used to authenticate the server manager service. If you are not using the remote deploy feature, you can leave this blank — but it must be present to avoid a warning on startup.
 

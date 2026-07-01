@@ -32,13 +32,15 @@ export function createCmsProvider(deviceId: string, token: string): DeviceProvid
     },
 
     async fetchSchedule(): Promise<ResolvedSchedule> {
-      const [scheduleRes, programsRes] = await Promise.all([
+      const [scheduleRes, programsRes, tzRes] = await Promise.all([
         fetch(`/api/schedule?where[devices][contains]=${deviceId}&depth=3&sort=startTime`, { headers: authHeaders }),
         fetch(`/api/programs?depth=2`, { headers: authHeaders }),
+        fetch(`/api/timezone`, { headers: authHeaders }),
       ])
-      const [scheduleData, programsData] = await Promise.all([
+      const [scheduleData, programsData, tzData] = await Promise.all([
         scheduleRes.json(),
         programsRes.json(),
+        tzRes.json().catch(() => ({ timezone: 'UTC' })),
       ])
 
       let bgUrl: string | null = null
@@ -60,6 +62,7 @@ export function createCmsProvider(deviceId: string, token: string): DeviceProvid
         deviceName,
         hideProgramList,
         resolveMediaUrl,
+        timezone: tzData.timezone || 'UTC',
       })
     },
 

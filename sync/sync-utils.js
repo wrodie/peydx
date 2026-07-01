@@ -94,6 +94,7 @@ function buildScheduleJson(scheduleItems, availabilityItems, backgroundUrl, devi
 
   return {
     lastUpdated: new Date().toISOString(),
+    timezone: process.env.TIMEZONE || 'UTC',
     schedule,
     availability,
     defaultBackground: backgroundUrl || null,

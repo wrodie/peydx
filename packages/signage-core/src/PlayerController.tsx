@@ -25,37 +25,44 @@ interface PlayerControllerProps {
   onPauseChange?: (paused: boolean) => void
 }
 
-const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
-
-function stripTime(iso: string): string {
-  return new Date(iso).toISOString().split('T')[0]
+function tzDateStr(date: Date, tz: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date)
 }
 
-function timeOfDayMinutes(iso: string): number {
-  const d = new Date(iso)
-  return d.getUTCHours() * 60 + d.getUTCMinutes()
+function tzDayName(date: Date, tz: string): string {
+  return new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(date).toLowerCase().slice(0, 3)
+}
+
+function tzMinutes(date: Date, tz: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', { 
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false 
+  }).formatToParts(date)
+  const h = Number(parts.find(p => p.type === 'hour')!.value) % 24
+  const m = Number(parts.find(p => p.type === 'minute')!.value)
+  return h * 60 + m
 }
 
 export function resolveScheduleState(
   scheduleEntries: ScheduleEntry[],
   availabilityEntries: AvailabilityEntry[],
+  timezone?: string | null,
 ): {
   activeAutoPlay: ScheduleEntry | null
   availablePrograms: AvailabilityEntry[]
 } {
+  const tz = timezone || 'UTC'
   const now = new Date()
-  const today = now.toISOString().split('T')[0]
-  const todayDayName = DAY_NAMES[now.getUTCDay()]
+  const today = tzDateStr(now, tz)
+  const todayDayName = tzDayName(now, tz)
 
   const availablePrograms = availabilityEntries.filter((e) => {
     if (!e.startDate) return false
-    const start = new Date(e.startDate)
-    const end = e.endDate ? new Date(e.endDate) : null
-    const todayDate = new Date(today)
-    if (start > todayDate) return false
-    if (end) {
-      const endPlusGrace = new Date(end.getTime() + 24 * 60 * 60 * 1000)
-      if (now > endPlusGrace) return false
+    const startDateStr = tzDateStr(new Date(e.startDate), tz)
+    if (startDateStr > today) return false
+    if (e.endDate) {
+      const endDateStr = tzDateStr(new Date(e.endDate), tz)
+      const endPlusGrace = new Date(endDateStr + 'T00:00:00Z').getTime() + 24 * 60 * 60 * 1000
+      if (now.getTime() > endPlusGrace) return false
     }
     return true
   })
@@ -70,14 +77,14 @@ export function resolveScheduleState(
     if (isRecurring) {
       if (!daysOfWeek.includes(todayDayName)) continue
     } else {
-      if (stripTime(entry.startTime) !== today) continue
+      if (tzDateStr(new Date(entry.startTime), tz) !== today) continue
     }
 
-    if (entry.untilDate && new Date(entry.untilDate).toISOString().split('T')[0] < today) continue
+    if (entry.untilDate && tzDateStr(new Date(entry.untilDate), tz) < today) continue
 
-    const startMin = timeOfDayMinutes(entry.startTime)
-    const endMin = entry.endTime ? timeOfDayMinutes(entry.endTime) : startMin + 60
-    const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes()
+    const startMin = tzMinutes(new Date(entry.startTime), tz)
+    const endMin = entry.endTime ? tzMinutes(new Date(entry.endTime), tz) : startMin + 60
+    const nowMin = tzMinutes(now, tz)
 
     if (nowMin < startMin || nowMin >= endMin) continue
 
@@ -89,10 +96,11 @@ export function resolveScheduleState(
   return { activeAutoPlay, availablePrograms }
 }
 
-function getNextAutoPlay(scheduleEntries: ScheduleEntry[]): ScheduleEntry | null {
+function getNextAutoPlay(scheduleEntries: ScheduleEntry[], timezone?: string | null): ScheduleEntry | null {
+  const tz = timezone || 'UTC'
   const now = new Date()
-  const today = now.toISOString().split('T')[0]
-  const todayDayName = DAY_NAMES[now.getUTCDay()]
+  const today = tzDateStr(now, tz)
+  const todayDayName = tzDayName(now, tz)
   let next: ScheduleEntry | null = null
 
   for (const entry of scheduleEntries) {
@@ -104,10 +112,10 @@ function getNextAutoPlay(scheduleEntries: ScheduleEntry[]): ScheduleEntry | null
     if (isRecurring) {
       if (!daysOfWeek.includes(todayDayName)) continue
     } else {
-      if (stripTime(entry.startTime) !== today) continue
+      if (tzDateStr(new Date(entry.startTime), tz) !== today) continue
     }
 
-    if (entry.untilDate && new Date(entry.untilDate).toISOString().split('T')[0] < today) continue
+    if (entry.untilDate && tzDateStr(new Date(entry.untilDate), tz) < today) continue
 
     const start = new Date(entry.startTime)
     if (start > now) {
@@ -349,7 +357,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         initialUrlProgramConsumed.current = true
       }
 
-      const { activeAutoPlay, availablePrograms } = resolveScheduleState(scheduleData.schedule, scheduleData.availability ?? [])
+      const { activeAutoPlay, availablePrograms } = resolveScheduleState(scheduleData.schedule, scheduleData.availability ?? [], scheduleData.timezone)
       const currentState = stateRef.current
       const currentProgramId = activeProgramRef.current?.id
 
@@ -412,7 +420,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       if (!sched) return
 
       const interval = setInterval(() => {
-        const next = getNextAutoPlay(sched.schedule)
+        const next = getNextAutoPlay(sched.schedule, sched.timezone)
         if (!next) return
 
         const now = new Date()
@@ -440,7 +448,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       const interval = setInterval(() => {
         if (new Date() >= new Date(currentScheduleEntry.endTime!)) {
           const schedule = scheduleDataRef.current
-          const { availablePrograms } = resolveScheduleState(schedule?.schedule ?? [], schedule?.availability ?? [])
+          const { availablePrograms } = resolveScheduleState(schedule?.schedule ?? [], schedule?.availability ?? [], schedule?.timezone)
           if (availablePrograms.length > 0 && !schedule?.hideProgramList) {
             setAvailableEntries(availablePrograms)
             setMenuIndex(0)

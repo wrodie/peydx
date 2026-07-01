@@ -114,7 +114,8 @@ export const scheduleBeforeChange: CollectionBeforeChangeHook = async ({ data, r
           const dateATs = new Date(dateA).getTime()
           if (untilB && dateATs > new Date(untilB).getTime()) continue
           if (!entryIsOneOff) {
-            const dayName = DAY_NAMES[new Date(dateA).getUTCDay()]
+            const tz = process.env.TIMEZONE || 'UTC'
+            const dayName = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(new Date(dateA)).toLowerCase().slice(0, 3)
             if (!entryDaysOfWeek.includes(dayName)) continue
           }
         }
@@ -123,7 +124,8 @@ export const scheduleBeforeChange: CollectionBeforeChangeHook = async ({ data, r
           const dateBTs = new Date(dateB).getTime()
           if (untilA && dateBTs > new Date(untilA).getTime()) continue
           if (!isOneOff) {
-            const dayName = DAY_NAMES[new Date(dateB).getUTCDay()]
+            const tz = process.env.TIMEZONE || 'UTC'
+            const dayName = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(new Date(dateB)).toLowerCase().slice(0, 3)
             if (!daysOfWeek.includes(dayName)) continue
           }
         }

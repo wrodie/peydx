@@ -70,6 +70,7 @@ export function DashboardView() {
   const [schedules, setSchedules] = useState<any[]>([])
   const [devices, setDevices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [serverTz, setServerTz] = useState('UTC')
 
   useEffect(() => {
     let cancelled = false
@@ -114,6 +115,7 @@ export function DashboardView() {
           fetch(deviceQuery).then((r) => r.json()),
         ])
         const serverTz = tzRes.timezone || 'UTC'
+        setServerTz(serverTz)
         if (cancelled) return
 
         const now = new Date()
@@ -185,7 +187,7 @@ export function DashboardView() {
         )
 
         const upcomingSchedules = (schedData.docs || []).filter((s: any) => {
-          if (s.dayBits) return true
+          if (s.daysOfWeek?.length > 0) return true
           if (s.endTime && new Date(s.endTime) < now) return false
           return true
         })
@@ -502,9 +504,9 @@ export function DashboardView() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {schedules.map((s) => {
               const deviceNames = (s.devices || []).map((d: any) => d.name || `Device ${d.id}`).join(', ')
-              const dayLabels = getDayLabel(s.dayBits || 0)
+              const dayLabels = (s.daysOfWeek || []).map((d: string) => d.charAt(0).toUpperCase() + d.slice(1))
               const locale = typeof navigator !== 'undefined' ? navigator.language : 'en-AU'
-              const fmtOpts: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+              const fmtOpts: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: serverTz }
               return (
                 <a
                   key={s.id}
@@ -532,7 +534,7 @@ export function DashboardView() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    {dayLabels.length > 0 && dayLabels.map((day) => (
+                    {dayLabels.length > 0 && dayLabels.map((day: string) => (
                       <span
                         key={day}
                         style={{

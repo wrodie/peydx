@@ -18,7 +18,7 @@
     "test:core": "npm run test -w packages/signage-core",
     "test:player": "npm run test -w apps/player",
     "test:server": "npm run test -w apps/server",
-    "test:sync": "node --import tsx node_modules/.bin/vitest run --config sync/vitest.config.ts"
+    "test:sync": "cd sync && npx vitest run --config vitest.config.mts"
   },
   "dependencies": {
     "axios": "^1.6.0",
