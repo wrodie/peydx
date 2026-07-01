@@ -268,7 +268,7 @@ The Nginx reverse proxy handles these paths:
 
 - **`/api/youtube-info`** and **`/api/timezone`** — Rate-limited (10 req/min per IP) unauthenticated utility endpoints.
 - **`/api/ws`** — WebSocket proxy for real-time communication (device heartbeats, remote control, schedule updates). The `proxy_read_timeout 86400` (24 hours) prevents long-lived WebSocket connections from being dropped. Not rate-limited.
-- **`/api/`** — Rate-limited (30 req/min per IP) catch-all for REST API requests.
+- **`/api/`** — Standard HTTP proxy to the Payload CMS REST API. No rate limit applied.
 - **`/`** — Standard HTTP proxy to the Payload CMS application.
 - **Port 5050** — Docker registry proxy restricted to private IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). External internet access is blocked.
 

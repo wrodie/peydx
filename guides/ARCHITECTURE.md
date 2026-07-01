@@ -9,7 +9,7 @@ graph TB
         subgraph LocalServer["Local Server (Docker)"]
         PG["PostgreSQL 16"]
         CMS["Payload CMS v3<br/>(Next.js :3000)"]
-        NX["Nginx<br/>(:80/:443)"]
+        NX["Nginx<br/>(:80)"]
         WS["Socket.IO Server<br/>/api/ws"]
         REG["Docker Registry<br/>:5050"]
         PG --- CMS
@@ -60,7 +60,7 @@ graph TB
 
 ### Server (`apps/server/`)
 
-Payload CMS v3 running inside Next.js, serving the admin dashboard and REST API. Collections define the data model (Users, Departments, Media, Programs, Schedule, Devices, Folders). Hooks enforce access control, auto-create slides from bulk media, inherit folder departments, and emit WebSocket events on data changes.
+Payload CMS v3 running inside Next.js, serving the admin dashboard and REST API. Collections define the data model (Users, Departments, Media, Programs, Schedule, Devices, Folders, Integrations). Hooks enforce access control, auto-create slides from bulk media, inherit folder departments, and emit WebSocket events on data changes.
 
 ### Player (`apps/player/`)
 
@@ -68,12 +68,12 @@ React + Vite single-page application. Detects its mode from URL parameters:
 - **Hardware mode** (default) — connects to the local sync agent via WebSocket and fetches `schedule.json` for fully offline playback.
 - **Browser mode** (`?id=X&token=Y`) — connects directly to the CMS via WebSocket and fetches programs from the API. Requires internet.
   - Both modes accept optional `&program=<id>&slide=<index>` to automatically load an available program at a specific slide on startup.
-- **Version self-check** — on build, `dist/version.json` is written with the current git hash. The player polls this file every 5 minutes and reloads if the hash differs, picking up new code without manual refresh.
+- **Version self-check** — on build, `dist/version.json` is written with the current package version. The player polls this file every 5 minutes and reloads if the version differs from the compile-time `__APP_VERSION__` constant, picking up new code without manual refresh.
 
 ### Signage Core (`packages/signage-core/`)
 
 Shared package containing the slide rendering engine:
-- **SlideEngine** — renders the current slide with transitions (fade, cut, slide, zoom) and advance logic (timed, on-end, manual)
+- **SlideEngine** — renders the current slide with transitions (fade, cut, slide) and advance logic (timed, on-end, manual)
 - **MenuEngine** — full-screen overlay for program selection
 - **PlayerController** — manages player state (idle, menu, playing) and keyboard input
 - **flattenProgram** — expands segments into flat slide arrays with context
@@ -83,7 +83,7 @@ Shared package containing the slide rendering engine:
 Node.js background process, deployed as a Docker container (`docker-compose.client.yaml`) or via PM2. Handles:
 - Resolves device identity from the CMS using its API key
 - Fetches active schedules and available programs
-- Downloads media files (preferring fullHD sizes) with conditional `If-Modified` requests
+- Downloads media files (preferring fullHD sizes) with client-side mtime comparison against the remote `updatedAt` timestamp
 - Writes `schedule.json` atomically (write to `.tmp`, then rename)
 - Serves the player app and media on port 5000 via Express
 - Connects to CMS via Socket.IO for real-time updates; falls back to 60-second HTTP polling
@@ -110,11 +110,11 @@ sequenceDiagram
     DB-->>CMS: Schedule entries with programs + media
     CMS-->>SA: Full schedule data
 
-    SA->>CMS: GET /programs?availableDevices=ID (depth=2)
+    SA->>CMS: GET /programs (depth=2)
     CMS-->>SA: Available programs with slide data
 
     loop For each media file
-        SA->>CMS: GET /api/media/file/:filename<br/>(If-Modified-Since header)
+        SA->>CMS: GET /api/media/file/:filename<br/>(conditional: compares mtime vs updatedAt)
         CMS-->>SA: 200 (download) or 304 (not modified)
     end
 
@@ -151,7 +151,7 @@ sequenceDiagram
     CMS-->>ADM: Authenticated, join rooms: department:{deptId}, admin
 
     Note over DEV,ADM: Heartbeat
-    loop Every 30 seconds
+    loop ~60 seconds (end of each sync cycle)
         DEV->>CMS: device:heartbeat {status, currentProgram, currentSlideIndex}
         CMS->>ADM: device:status {deviceId, status, currentProgram, slideIndex}
     end
@@ -178,7 +178,7 @@ sequenceDiagram
     DEV->>CMS: Pull new image from registry, restart container
 ```
 
-> **Browser devices** do not receive `remote:update`. Instead, the standalone player polls `/version.json` every 5 minutes and reloads when the git hash changes, picking up a new build without manual refresh. The `version.json` file is written during `vite build` by a Vite plugin that embeds `git rev-parse HEAD` into both the build output and the `__GIT_HASH__` compile-time constant.
+> **Browser devices** do not receive `remote:update`. Instead, the standalone player polls `/version.json` every 5 minutes and reloads when the version changes (compared against the compile-time `__APP_VERSION__` constant), picking up a new build without manual refresh. The `version.json` file is written during `vite build` from the `package.json` version field.
 
 ## Authentication Flow
 
@@ -189,7 +189,11 @@ graph LR
     end
 
     subgraph "Browser Auth (Token)"
-        BA1["Browser device<br/>sends ?id=X&token=Y"] -->|"Look up device by<br/>browserToken"| BA2["Cookie-based session<br/>with device context"]
+        BA1["Browser device<br/>sends ?id=X&token=Y"] -->|"Look up device by<br/>browserToken + type"| BA2["Token-based session<br/>with socket.data = device"]
+    end
+
+    subgraph "Integration Auth (API Key)"
+        IA1["Integration<br/>sends Authorization header"] -->|"integrations API-Key {key}"| IA2["Payload verifies key<br/>against Integrations collection"]
     end
 
     subgraph "User Auth (JWT)"
@@ -197,10 +201,11 @@ graph LR
     end
 ```
 
-All three auth methods converge on a Socket.IO middleware that validates identity and assigns rooms:
+All four auth methods converge on a Socket.IO middleware that validates identity and assigns rooms:
 
-- **Device API key** → `device:{id}` room + `department:{deptId}` rooms
-- **Browser token** → `device:{id}` room + `department:{deptId}` rooms
+- **Device API key** → `device:{id}` room + `department:{deptId}` rooms + `devices` global room
+- **Browser token** → `device:{id}` room + `department:{deptId}` rooms + `devices` global room
+- **Integration API key** → `department:{deptId}` rooms (or all department rooms if global scope) + `integration:{id}` room
 - **User JWT** → `department:{deptId}` rooms (+ `admin` room if admin role)
 
 ## Department Isolation
@@ -342,7 +347,7 @@ graph TB
         subgraph "Server (Docker Compose)"
             PG["PostgreSQL 16<br/>:5432 (internal)"]
             CMS["Payload CMS<br/>:3000 (internal)"]
-            NX["Nginx<br/>:80 / :443"]
+            NX["Nginx<br/>:80"]
             REG["Docker Registry<br/>:5050"]
             PG --- CMS
             CMS --- NX

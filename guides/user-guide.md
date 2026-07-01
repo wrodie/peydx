@@ -186,7 +186,7 @@ Click **"+ Add Slide"** in the timeline header to choose from these slide types:
 | **Video Slide** | Plays a video file from your media library |
 | **YouTube Slide** | Plays a YouTube video (enter a URL or video ID) *Note*: This is played directly from YouTube (needs Internet connectivity)|
 | **Audio Slide** | Plays audio with a speaker icon on screen |
-| **Black Screen** | Shows a solid black screen (good for transitions or pauses) |
+| **Black Screen Slide** | Shows a solid black screen (good for transitions or pauses) |
 | **Segment** | A container that groups slides with shared settings like background audio |
 
 For all types except Black Screen, the Edit Drawer opens automatically so you can set up the slide. Black Screen slides are added with default settings.
@@ -246,7 +246,7 @@ If you have multiple files to add at once, use bulk upload:
 2. Drop or select multiple files.
 3. Each file is automatically converted to the appropriate slide type and appended to the timeline.
 4. The files are assigned default settings:
-   - Images: Timed, 5 seconds, Fade transition
+   - Images: Manual, Fade transition
    - Videos: On End, Fade transition, no loop
    - Audio: On End, Fade transition, no loop
 
@@ -271,8 +271,8 @@ A Segment is a group of slides that plays together with shared settings.
 |---|---|
 | **Segment Name** | A label for the segment (shown in the timeline) |
 | **Background Audio** | Audio that plays throughout the segment |
-| **Loop** | When on, the segment's slides repeat continuously |
-| **How to Exit** | Follow slides (normal), Timer (auto-exit after N minutes), or Manual (wait for operator) |
+| **Loop segment** | When on, the segment's slides repeat continuously |
+| **How to exit this segment** | Follow slides (normal), Timer (auto-exit after N minutes), or Manual (wait for operator) |
 
 **Adding slides to a segment:**
 - Drag slides from the top level into the segment.
@@ -281,7 +281,7 @@ A Segment is a group of slides that plays together with shared settings.
 
 **Moving slides between segments:**
 1. Open the slide's Edit Drawer.
-2. Use the **"Move to Segment"** dropdown to select a target segment or "Top level."
+2. Use the **"Move to segment"** dropdown to select a target segment or "Top level."
 
 **Collapsing/expanding:**
 - Click ![Expand](icons/expand-circle-down.svg) to collapse or ![Expand](icons/expand-circle-right.svg) to expand the segment in the timeline.
@@ -418,15 +418,19 @@ When a program is actively playing on the selected device, you'll see:
 - **Slide preview**: A thumbnail of the current slide
 - **Slide position**: "Slide N of Total"
 
+**End Program button:**
+
+A separate full-width red button appears above the slide preview. ![Stop](icons/stop.svg) **End Program** stops the program entirely. You'll be asked to confirm.
+
 **Playback controls:**
+
+Below the slide preview, three main controls:
 
 | Button | What It Does |
 |---|---|
 | ![Prev](icons/skip-previous.svg) **Prev** | Go to the previous slide |
 | ![Pause](icons/pause.svg) **Pause** | Pause the current slide |
-| **Next** ![Next](icons/skip-next.svg) | Advance to the next slide (on the last slide, this ends the program) |
-| ![Stop](icons/stop.svg) **End Program** | Stop the program entirely. You'll be asked to confirm. |
-| **End Program** | Stop the program entirely. You'll be asked to confirm. |
+| **Next** ![Next](icons/skip-next.svg) | Advance to the next slide. On the last slide, this changes to ![Stop](icons/stop.svg) **End** and ends the program. |
 
 **Jumping to a slide:**
 - A **slide thumbnail strip** appears at the bottom showing all slides in the program.
@@ -467,6 +471,10 @@ Status updates in real-time.
 ### Available Programs Section
 
 Programs that are currently within their availability window (Available From date has passed and Available Until date hasn't yet). Each card shows a thumbnail, title, and slide count. Click a card to edit the program.
+
+### Upcoming Programs Section
+
+Only shown when there are programs becoming available within the next 2 days. Displays program cards with thumbnail, title, slide count, and a link to the program edit page.
 
 ### Upcoming Schedules Section
 

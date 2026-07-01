@@ -82,7 +82,7 @@ curl -sL "https://raw.githubusercontent.com/wrodie/peydx/main/scripts/bootstrap-
 
 What the bootstrap script does:
 1. Adds `insecure-registries: ["<server-ip>:5050"]` to Docker config and restarts Docker
-2. Creates `/opt/peydx/` and downloads `docker-compose.client.yaml`, `update-listener.py`, `update.sh`, and `update-listener.service` from the latest release tag
+2. Creates `/opt/peydx/` and downloads `docker-compose.client.yaml`, `sync/update-listener.py`, `sync/update.sh`, `sync/update-listener.service`, and `scripts/peydx-logrotate.conf` from the latest release tag
 3. Writes `/opt/peydx/.env` with `API_URL`, `DEVICE_API_KEY`, `TIMEZONE`, `REGISTRY_URL`, and `CLIENT_VERSION`
 4. Installs and starts the `update-listener` systemd service
 5. Pulls the sync-agent image from the registry and runs it
@@ -300,7 +300,7 @@ Client updates are triggered remotely from the CMS admin panel. No manual access
 1. Code is pushed and a git tag is created (`git tag v1.2.0 && git push --tags`).
 2. An admin clicks **Deploy v1.2.0** in CMS → **Settings**, which builds the client image, pushes to the registry, and rebuilds the server — all in one action.
 3. After the server is back, the admin clicks **Push v1.2.0** to all devices (or updates individual devices).
-3. The CMS sends a `remote:update` command to the device(s) via WebSocket.
+4. The CMS sends a `remote:update` command to the device(s) via WebSocket.
 4. The sync agent forwards this to the host's update listener (port 5555).
 5. The update listener runs `update.sh`, which:
    - Rewrites `CLIENT_VERSION` in `/opt/peydx/.env`
@@ -311,7 +311,7 @@ Client updates are triggered remotely from the CMS admin panel. No manual access
 
 - **Failed pull = no change**: If the pull fails (network error, registry unreachable), the existing container keeps running. The script exits before restarting.
 - **Rollback**: Set `clientVersion` to a previous tag in CMS Settings and push again.
-- **Localhost only**: The update listener binds to `127.0.0.1:5555` — not accessible from other machines.
+- **Reachable from server**: The update listener binds to `0.0.0.0:5555` so the server can send update commands. It should not be exposed externally.
 
 ### Manual Update (Fallback)
 

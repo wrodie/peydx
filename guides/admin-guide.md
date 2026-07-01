@@ -46,7 +46,7 @@ Everything in the system is scoped by **departments**. A department represents a
 | Create/edit/delete users | Yes | Create/edit/delete Standard users in their departments | No |
 | Create/edit/delete devices | Yes | No | No |
 | Create/edit/delete departments | Yes | No | No |
-| Create/edit/delete folders | Yes | Create/edit/delete in their departments (folder must be empty) | Create/edit/delete in their departments (folder must be empty) |
+| Create/edit/delete folders | Yes (folder must be empty) | Create/edit/delete in their departments (folder must be empty) | Create/edit/delete in their departments (folder must be empty) |
 | Upload and manage media | Yes | Within their departments | Within their departments |
 | Create and edit programs | Yes | Within their departments | Within their departments |
 | Delete programs | Yes | Within their departments | Within their departments |
@@ -265,7 +265,7 @@ For browser-type devices, the system auto-generates a **browser token**. When vi
 | Current Program | The program currently playing on the device |
 | Current Slide Index | Which slide the device is showing |
 | Status | Online, Offline, or Stale |
-| Slide Status | Visual indicator showing current slide thumbnail |
+| Current Slide | Visual indicator showing current slide thumbnail |
 
 Status values:
 - **Online** — Device is actively checking in
@@ -283,11 +283,11 @@ A device can be set to mirror another device. When configured:
 ### Pushing Updates
 
 Admins can push software updates to devices:
-1. Open a device's edit page.
-2. In the sidebar, click **Push Update**.
-3. The device will download and install the latest player version.
 
-To push updates to all devices at once, use the **Settings** page (see [Settings](#settings)).
+- **Single device**: On the **Settings** page, find the device in the "Update Client Devices" table and click its **Update** button. The device will download and install the latest player version.
+- **All devices**: On the **Settings** page, click **Push Latest to All Devices** to update every connected device at once.
+
+Devices with type "Hardware (sync agent)" receive the update; browser devices update automatically via version polling.
 
 ---
 
@@ -482,8 +482,8 @@ A Segment is a container that groups slides together with shared settings:
 |---|---|
 | **Segment Name** | Display name (editable inline by double-clicking) |
 | **Background Audio** | Optional audio file that plays while the segment is active |
-| **Loop** | When enabled, the segment's slides loop within the segment |
-| **Exit Mode** | How the segment ends: "Follow slides" (normal sequencing), "Timer" (auto-exit after N minutes), or "Manual" (wait for operator) |
+| **Loop segment** | When enabled, the segment's slides loop within the segment |
+| **How to exit this segment** | How the segment ends: "Follow slides" (normal sequencing), "Timer" (auto-exit after N minutes), or "Manual" (wait for operator) |
 | **Duration** | Minutes until auto-exit (only shown when Exit Mode is "Timer") |
 
 Segments cannot be nested — you cannot put a segment inside another segment.
@@ -501,7 +501,7 @@ Segments cannot be nested — you cannot put a segment inside another segment.
 - Drop them at the new position.
 
 **Moving slides between segments:**
-- Use the "Move to Segment" dropdown on each slide to move it to a different segment or to the top level.
+- Use the "Move to segment" dropdown on each slide to move it to a different segment or to the top level.
 - Alternatively, drag a slide from one segment into another.
 
 ### Bulk Media Upload
@@ -637,16 +637,20 @@ If departments are set on the integration, API calls will be scoped to only thos
 
 The Settings page (in the Admin dropdown) is admin-only and manages deployment versioning.
 
-| Field | Description |
-|---|---|
-| **Client Version** | The current version of the player software |
+### Server Version
 
-### Deploying Updates
+The page shows the current server version and the latest available version (fetched from the server manager).
 
-- **Deploy [version]** — Triggers a server self-update. A reconnection overlay appears during the update.
-- **Push [version] to All Devices** — Sends the current client version to all connected devices, triggering them to update.
+### Deploying a Server Update
 
-To push an update to a single device, use the Update button on the device's edit page (see [Managing Devices](#managing-devices)).
+- **Deploy {version}** — Triggers a server self-update. A full-screen overlay shows four progress steps (checking out version, building client image, pushing to registry, rebuilding server) and auto-refreshes when complete.
+
+### Updating Client Devices
+
+The page includes a device table showing each device's Name, Type, Status, and current software Version:
+
+- **Push Latest to All Devices** — Sends the current client version to all connected hardware devices, triggering them to pull the updated image and restart.
+- **Per-device Update** — Each hardware device row has an **Update** button to update it individually. Browser devices on this page update automatically via version polling.
 
 ---
 
@@ -701,14 +705,14 @@ Device status and slide position update in real-time via WebSocket. You don't ne
 
 ## Health Dashboard
 
-A public page showing the status of all devices:
+A public page showing the status of all devices, with summary counters at the top (e.g. "Online: 3 / Stale: 1 / Offline: 0").
 
 | Column | Description |
 |---|---|
-| Status | Online, Stale, or Offline |
+| Status | Colored dot (green = online, amber = stale, red = offline) |
 | Device | Device name |
 | Type | Hardware or Browser |
 | Departments | Which departments the device belongs to |
 | Current Program | What's currently playing |
-| Slide | Current slide thumbnail |
+| Current Slide | Current slide thumbnail |
 | Last Heartbeat | Timestamp of last check-in |

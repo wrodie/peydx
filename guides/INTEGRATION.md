@@ -64,6 +64,12 @@ Attempting to access a device or program outside the key's scope returns `403`:
 { "error": "Device not found or not accessible with this API key" }
 ```
 
+Program-specific 403 responses:
+```json
+{ "error": "Program not accessible with this API key" }
+{ "error": "Program not found or not accessible with this API key" }
+```
+
 ## REST API
 
 Base URL: `http://<host>:3000/api/external/v1`
@@ -103,7 +109,7 @@ Base URL: `http://<host>:3000/api/external/v1`
       "currentSlideIndex": 3,
       "currentSlideThumbnail": "/api/media/file/thumbnail_abc123.jpg",
       "totalSlides": 12,
-      "departments": [{ "id": 1, "name": "Worship" }],
+      "departments": [1],
       "lastHeartbeat": "2026-06-13T10:30:00.000Z"
     }
   ]
@@ -155,7 +161,7 @@ socket.on('connect', () => {
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `device:status` | `{ id, slideIndex, programId, status }` | Device online/offline/slide changes |
+| `device:status` | `{ id, slideIndex, programId, status, clientVersion? }` | Device online/offline/slide changes |
 | `device:stateChange` | `{ id, state, programId }` | Device state changed (idle/menu/playing) |
 | `schedule:update` | `{}` | Schedule was modified |
 
@@ -174,7 +180,7 @@ socket.on('connect', () => {
 
 ### Restrictions
 
-- Integration sockets **cannot** emit `device:heartbeat`, `device:slideChange`, or `device:stateChange` — these are reserved for hardware devices
+- Integration sockets **cannot** emit `device:heartbeat`, `device:slideChange`, `device:stateChange`, or `device:pauseChange` — these are reserved for hardware devices
 - Remote commands are validated against department scope — if the integration's departments don't include the target device, the command is silently ignored
 
 ## Examples
