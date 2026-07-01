@@ -311,7 +311,7 @@ Client updates are triggered remotely from the CMS admin panel. No manual access
 
 - **Failed pull = no change**: If the pull fails (network error, registry unreachable), the existing container keeps running. The script exits before restarting.
 - **Rollback**: Set `clientVersion` to a previous tag in CMS Settings and push again.
-- **Reachable from server**: The update listener binds to `0.0.0.0:5555` so the server can send update commands. It should not be exposed externally.
+- **Accessible to the sync agent container**: The update listener binds to `0.0.0.0:5555` — the sync agent (Docker container) reaches it via `host.docker.internal`, which resolves to the Docker bridge gateway IP, not `127.0.0.1`. Binding to `127.0.0.1` would reject the container's connection. Consider a firewall rule to restrict 5555 to the Docker bridge subnet (e.g. `172.16.0.0/12`) to avoid LAN exposure.
 
 ### Manual Update (Fallback)
 
