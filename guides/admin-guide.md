@@ -705,14 +705,16 @@ Device status and slide position update in real-time via WebSocket. You don't ne
 
 ## Health Dashboard
 
-A public page showing the status of all devices, with summary counters at the top (e.g. "Online: 3 / Stale: 1 / Offline: 0").
+An admin-only page showing live status of all devices, with summary counters at the top (e.g. "Online: 3 / Stale: 1 / Offline: 0"). Navigate via **Admin > Health** in the top navigation bar.
+
+Device status and current programs update in real time via WebSocket — no page refresh needed.
 
 | Column | Description |
 |---|---|
 | Status | Colored dot (green = online, amber = stale, red = offline) |
 | Device | Device name |
 | Type | Hardware or Browser |
-| Departments | Which departments the device belongs to |
+| Departments | Which departments the device belongs to (department names) |
 | Current Program | What's currently playing |
 | Current Slide | Current slide thumbnail |
 | Last Heartbeat | Timestamp of last check-in |
