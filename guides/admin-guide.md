@@ -66,21 +66,14 @@ The top navigation bar provides quick access to all major sections:
 
 | Icon | Label | Description |
 |---|---|---|
-| 🏠 | Home | Dashboard with device status, programs, and schedules |
-| 🖼 | Media | Upload and manage media files |
-| ▶ | Programs | Create and edit slide programs |
-| 📅 | Schedules | Schedule programs on devices |
-| 🖥 | Remote Control | Control what's playing on devices |
-| 👤 | Account | Change your name, email, or password |
-
-**Admin Dropdown** (visible to admins only, labeled "Admin" with a settings icon):
-
-- Departments
-- Folders
-- Users
-- Devices
-- Integrations
-- Settings
+| ![Home](icons/home.svg) | Home | All users | Dashboard with device status, programs, and schedules |
+| ![Media](icons/photo-library.svg) | Media | All users | Upload and manage media files |
+| ![Programs](icons/slideshow.svg) | Programs | All users | Create and edit slide programs |
+| ![Schedules](icons/calendar-month.svg) | Schedules | All users | Schedule programs on devices |
+| ![Remote Control](icons/remote-gen.svg) | Remote Control | All users | Control what's playing on devices |
+| ![Admin](icons/settings.svg) | Admin | Admins only | Dropdown with Departments, Folders, Users, Devices, Integrations, and Settings (text items, no icons) |
+| ![Users](icons/group.svg) | Users | Managers only | Create and manage Standard users in your departments |
+| ![Account](icons/person.svg) | Account | All users | Change your name, email, or password |
 
 ---
 
@@ -202,8 +195,8 @@ Folders provide hierarchical organization for Media and Programs, scoped per dep
 ### Folder Tree
 
 - The folder tree appears as a sidebar on the **Media** and **Programs** list views.
-- **"All Media"** / **"All Programs"** — shows all items across your departments (admin only for non-scoped view)
-- **"Unfiled"** — shows items not assigned to any folder
+- **"All Media"** / **"All Programs"** — shows all items across your departments (admins only — not visible to managers or standard users)
+- **"Unfiled"** — shows items not assigned to any folder (admins only — not visible to managers or standard users)
 - Expand/collapse arrows on folders with children
 - The selected folder filters the list
 
@@ -420,12 +413,12 @@ Click **"+ Add Slide"** in the timeline header to choose a slide type:
 
 | Slide Type | Icon | Description |
 |---|---|---|
-| Image Slide | 🖼 | Displays an image |
-| Video Slide | 🎬 | Plays a video file |
-| YouTube Slide | ▶️ | Embeds a YouTube video |
-| Audio Slide | 🎵 | Plays audio with a speaker icon on screen |
-| Black Screen | ◼ | Displays a solid black screen |
-| Segment | 📁 | A container that groups slides with its own settings |
+| Image Slide | ![Image](icons/image.svg) | Displays an image |
+| Video Slide | ![Video](icons/movie.svg) | Plays a video file |
+| YouTube Slide | ![YouTube](icons/youtube.svg) | Embeds a YouTube video |
+| Audio Slide | ![Audio](icons/music-note.svg) | Plays audio with a speaker icon on screen |
+| Black Screen Slide | ![Black Screen](icons/capture.svg) | Displays a solid black screen |
+| Segment | ![Segment](icons/folder.svg) | A container that groups slides with its own settings |
 
 For all slide types except Black Screen, the Slide Edit Drawer opens automatically so you can configure the slide. Black Screen slides are added with default settings (Fade transition, Manual advance) and don't require further configuration.
 
@@ -552,7 +545,7 @@ When editing a program, the sidebar contains important settings:
 
 ### Deleting Programs
 
-Only admins can delete programs. When a program is deleted, all devices that were using it (via schedules or manual selection) are notified via WebSocket.
+Admins and users in the program's department can delete programs. When a program is deleted, all devices that were using it (via schedules or manual selection) are notified via WebSocket.
 
 ---
 
@@ -604,7 +597,7 @@ To resolve this:
 
 ### Deleting Schedules
 
-Admins and managers can delete schedules. Standard users can create and edit as well.
+Admins, managers, and standard users can delete schedules within their departments.
 
 When a schedule is created, updated, or deleted, all affected devices are notified via WebSocket in real-time.
 
@@ -683,10 +676,10 @@ The display shows:
 
 | Button | Action |
 |---|---|
-| ◀ Prev | Go to previous slide |
-| ⏸ Pause | Pause/resume the current slide |
-| Next ▶ | Advance to next slide (or end program if on last slide) |
-| End Program | Stop the program entirely (confirmation required) |
+| ![Prev](icons/skip-previous.svg) Prev | Go to previous slide |
+| ![Pause](icons/pause.svg) Pause | Pause/resume the current slide |
+| Next ![Next](icons/skip-next.svg) | Advance to next slide (or end program if on last slide) |
+| ![Stop](icons/stop.svg) End Program | Stop the program entirely (confirmation required) |
 
 **Slide thumbnail strip:**
 - A horizontal scrollable strip of all slides in the current program.

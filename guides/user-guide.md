@@ -33,12 +33,12 @@ The top navigation bar is always available:
 
 | Icon | Label | What It Does |
 |---|---|---|
-| 🏠 | Home | View your dashboard — device status, available programs, and upcoming schedules |
-| 🖼 | Media | Upload and manage images, videos, and audio files |
-| ▶ | Programs | Create and edit slide programs |
-| 📅 | Schedules | Set up programs to play on devices at specific times |
-| 🖥 | Remote Control | Take manual control of a device |
-| 👤 | Account | Change your name, email, or password |
+| ![Home](icons/home.svg) | Home | View your dashboard — device status, available programs, and upcoming schedules |
+| ![Media](icons/photo-library.svg) | Media | Upload and manage images, videos, and audio files |
+| ![Programs](icons/slideshow.svg) | Programs | Create and edit slide programs |
+| ![Schedules](icons/calendar-month.svg) | Schedules | Set up programs to play on devices at specific times |
+| ![Remote Control](icons/remote-gen.svg) | Remote Control | Take manual control of a device |
+| ![Account](icons/person.svg) | Account | Change your name, email, or password |
 
 ### Your Department
 
@@ -89,8 +89,7 @@ Use the folder sidebar to keep your media organized:
 
 - Your department has a **root media folder** created automatically.
 - Click on any folder in the tree to filter the media list to that folder.
-- Click **"All Media"** to see all media in your departments.
-- Click **"Unfiled"** to see media not yet assigned to a folder.
+- The folder tree shows all your department's folders. Click any folder to view its contents.
 
 > **Best practice: organize with folders.** We strongly recommend creating folders for your content rather than uploading everything into the root folder. A well-organized media library makes it much easier to find content when building programs. Good folder structures might include:
 > - **Weekly lessons**: "Summer 2026" with sub-folders for each week — "Week 1 — Creation", "Week 2 — Noah's Ark", "Week 3 — Moses", etc.
@@ -265,7 +264,7 @@ A Segment is a group of slides that plays together with shared settings.
 **Creating a Segment:**
 1. Click **"+ Add Slide"** and choose **Segment** (below the divider).
 2. A segment is added to the timeline named "New Segment."
-3. Click the ✏️ edit button or double-click the segment name to configure it.
+3. Click the ![Edit](icons/edit.svg) edit button or double-click the segment name to configure it.
 
 **Segment Settings:**
 | Setting | What It Does |
@@ -285,10 +284,10 @@ A Segment is a group of slides that plays together with shared settings.
 2. Use the **"Move to Segment"** dropdown to select a target segment or "Top level."
 
 **Collapsing/expanding:**
-- Click ▸/▾ to collapse or expand the segment in the timeline.
+- Click ![Expand](icons/expand-circle-down.svg) to collapse or ![Expand](icons/expand-circle-right.svg) to expand the segment in the timeline.
 
 **Removing a segment:**
-- Click the 🗑 button on the segment header. This removes the entire segment and all its slides. A confirmation dialog will appear.
+- Click the ![Delete](icons/delete.svg) button on the segment header. This removes the entire segment and all its slides. A confirmation dialog will appear.
 
 ### Importing Slides from Another Program
 
@@ -320,7 +319,7 @@ When editing a program, you'll find these settings in the sidebar:
 
 ### Deleting Slides
 
-- Click the 🗑 button on any slide card to remove it.
+- Click the ![Delete](icons/delete.svg) button on any slide card to remove it.
 - A confirmation dialog will ask "Remove this slide?"
 
 ---
@@ -392,7 +391,7 @@ To fix this:
 
 - The **Department** field is hidden and automatically set based on the program you selected.
 - You can only schedule programs from your own department(s).
-- Only administrators can delete schedules. If you need a schedule removed, contact an admin.
+- You can delete any schedule in your department(s).
 
 ---
 
@@ -423,9 +422,10 @@ When a program is actively playing on the selected device, you'll see:
 
 | Button | What It Does |
 |---|---|
-| ◀ **Prev** | Go to the previous slide |
-| ⏸ **Pause** | Pause the current slide |
-| **Next ▶** | Advance to the next slide (on the last slide, this ends the program) |
+| ![Prev](icons/skip-previous.svg) **Prev** | Go to the previous slide |
+| ![Pause](icons/pause.svg) **Pause** | Pause the current slide |
+| **Next** ![Next](icons/skip-next.svg) | Advance to the next slide (on the last slide, this ends the program) |
+| ![Stop](icons/stop.svg) **End Program** | Stop the program entirely. You'll be asked to confirm. |
 | **End Program** | Stop the program entirely. You'll be asked to confirm. |
 
 **Jumping to a slide:**
