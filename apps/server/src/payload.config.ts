@@ -22,6 +22,7 @@ import { serverStatus } from './endpoints/serverStatus'
 import { youtubeInfo } from './endpoints/youtubeInfo'
 import { timezone } from './endpoints/timezone'
 import { mediaImportYoutube } from './endpoints/mediaImportYoutube'
+import { mediaImportPptx } from './endpoints/mediaImportPptx'
 import { exportProgram } from './endpoints/exportProgram'
 import { externalApiEndpoints } from './endpoints/integrations'
 
@@ -86,7 +87,7 @@ export default buildConfig({
       hideAPIURL: true,
     },
   })),
-  endpoints: [deploy, deployStatus, heartbeat, pushUpdate, serverStatus, youtubeInfo, timezone, mediaImportYoutube, ...externalApiEndpoints, exportProgram],
+  endpoints: [deploy, deployStatus, heartbeat, pushUpdate, serverStatus, youtubeInfo, timezone, mediaImportYoutube, mediaImportPptx, ...externalApiEndpoints, exportProgram],
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {

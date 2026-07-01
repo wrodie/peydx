@@ -14,6 +14,7 @@ export const Programs: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'updatedAt', 'createdBy'],
     components: {
+      beforeListTable: ['/components/ImportPptxButton#ImportPptxButton'],
       views: {
         list: {
           Component: '/components/ListWithSidebar#ListWithSidebar',
