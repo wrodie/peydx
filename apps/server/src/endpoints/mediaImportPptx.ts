@@ -188,10 +188,23 @@ export const mediaImportPptx = {
 
     const skipped: string[] = [...parsed.skipped]
 
-    const [mediaFolderId, programsFolderId] = await Promise.all([
-      ensureImportFolder(req.payload, req.payload.logger, fileName, 'media', req.user, departmentId),
-      ensureImportFolder(req.payload, req.payload.logger, fileName, 'programs', req.user, departmentId),
-    ])
+    const mediaFolderId = await ensureImportFolder(
+      req.payload, req.payload.logger, fileName, 'media', req.user, departmentId,
+    )
+
+    const programsRoot = await req.payload.find({
+      collection: 'folders',
+      depth: 0,
+      limit: 1,
+      pagination: false,
+      overrideAccess: true,
+      where: {
+        type: { equals: 'programs' },
+        parent: { exists: false },
+        ...(departmentId ? { department: { equals: departmentId } } : {}),
+      },
+    })
+    const programsFolderId = programsRoot.docs?.[0]?.id
 
     req.payload.logger.info(
       { mediaFolderId, programsFolderId, userRole: (req.user as any)?.role },
@@ -243,6 +256,7 @@ export const mediaImportPptx = {
               },
               overrideAccess: true,
               user: req.user,
+              context: { skipFolderAutoAssign: true },
             })
             mediaIdMap.set(relPath, record.id)
             createdMedia.push({ id: record.id, name: mediaName })
@@ -258,9 +272,6 @@ export const mediaImportPptx = {
         if (createdMedia.length === 0) {
           if (mediaFolderId) {
             await req.payload.delete({ collection: 'folders', id: mediaFolderId }).catch(() => {})
-          }
-          if (programsFolderId) {
-            await req.payload.delete({ collection: 'folders', id: programsFolderId }).catch(() => {})
           }
           controller.enqueue(ndjson({ type: 'error', message: 'No media could be imported from this file', skipped }))
           controller.close()
@@ -366,9 +377,6 @@ export const mediaImportPptx = {
           if (mediaFolderId) {
             await req.payload.delete({ collection: 'folders', id: mediaFolderId }).catch(() => {})
           }
-          if (programsFolderId) {
-            await req.payload.delete({ collection: 'folders', id: programsFolderId }).catch(() => {})
-          }
           controller.enqueue(ndjson({
             type: 'error',
             message: 'No slides were produced from this file. All media may have been skipped.',
@@ -384,7 +392,7 @@ export const mediaImportPptx = {
             collection: 'programs',
             data: {
               title: parsed.fileName,
-              folder: programsFolderId || undefined,
+              folder: programsFolderId,
               slides,
               loop: false,
               autoBlackEndSlide: true,
@@ -433,9 +441,6 @@ export const mediaImportPptx = {
           }
           if (mediaFolderId) {
             await req.payload.delete({ collection: 'folders', id: mediaFolderId }).catch(() => {})
-          }
-          if (programsFolderId) {
-            await req.payload.delete({ collection: 'folders', id: programsFolderId }).catch(() => {})
           }
           controller.enqueue(ndjson({
             type: 'error',
