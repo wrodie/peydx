@@ -33,7 +33,7 @@ export function ListWithSidebar(props: ListViewClientProps) {
 
   return (
     <>
-      {portalTarget && createPortal(<ImportPptxButton />, portalTarget)}
+      {portalTarget && props.collectionSlug === 'programs' && createPortal(<ImportPptxButton />, portalTarget)}
       <style>{`
         .list-with-sidebar { display: flex; align-items: flex-start; }
         .list-with-sidebar__sidebar {

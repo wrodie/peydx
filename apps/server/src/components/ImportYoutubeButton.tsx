@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { CloseIcon } from './icons'
+import { useListDrawerContext } from '@payloadcms/ui'
 
 type ModalState =
   | { status: 'idle' }
@@ -13,6 +15,15 @@ export function ImportYoutubeButton() {
   const [modal, setModal] = useState<ModalState>({ status: 'idle' })
   const [url, setUrl] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const { isInDrawer } = useListDrawerContext()
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!isInDrawer) {
+      const el = document.querySelector('.list-header__title-actions')
+      if (el instanceof HTMLElement) setPortalTarget(el)
+    }
+  }, [isInDrawer])
 
   useEffect(() => {
     if (modal.status === 'input') {
@@ -53,6 +64,17 @@ export function ImportYoutubeButton() {
       setModal({ status: 'idle' })
     }
   }
+
+  const triggerButton = (
+    <button
+      type="button"
+      className="btn btn--style-pill btn--size-small"
+      onClick={() => setModal({ status: 'input' })}
+      style={{ whiteSpace: 'nowrap' }}
+    >
+      Import from YouTube
+    </button>
+  )
 
   return (
     <>
@@ -181,50 +203,16 @@ export function ImportYoutubeButton() {
                 <p style={{ fontSize: 14, color: 'var(--theme-text)', margin: '0 0 16px' }}>
                   {modal.message}
                 </p>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => setModal({ status: 'input' })}
-                    style={{
-                      padding: '8px 16px', fontSize: 13, borderRadius: 4,
-                      border: '1px solid var(--theme-elevation-250)',
-                      background: 'var(--theme-elevation-50)',
-                      color: 'var(--theme-text)', cursor: 'pointer',
-                    }}
-                  >
-                    Try Again
-                  </button>
-                  <button
-                    onClick={() => setModal({ status: 'idle' })}
-                    style={{
-                      padding: '8px 16px', fontSize: 13, borderRadius: 4,
-                      border: 'none',
-                      background: 'var(--theme-elevation-800)',
-                      color: 'var(--theme-elevation-0)', cursor: 'pointer',
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
               </>
             )}
           </div>
         </div>
       )}
 
-      <button
-        onClick={() => setModal({ status: 'input' })}
-        style={{
-          padding: '6px 14px',
-          background: 'var(--theme-elevation-100)',
-          border: '1px solid var(--theme-elevation-250)',
-          borderRadius: 4,
-          cursor: 'pointer',
-          fontSize: 13,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        Import from YouTube
-      </button>
+      {portalTarget
+        ? createPortal(triggerButton, portalTarget)
+        : triggerButton}
     </>
   )
 }
+
