@@ -27,7 +27,7 @@ PeydX lets you create slide programs for classroom lessons, children's ministry 
 
 ### Navigation
 
-[Screenshot: Top navigation bar showing Home, Media, Programs, Schedules, Remote Control, and Account icons]
+![Navigation](images/menu_bar.png)
 
 The top navigation bar is always available:
 
@@ -48,8 +48,6 @@ Everything you see and work with is scoped to your **department(s)**. If you're 
 
 ## Changing Your Password
 
-[Screenshot: Account page showing name, email, and password fields]
-
 1. Click the **Account** icon (person silhouette) in the top-right of the navigation bar.
 2. The Account page shows your name and email address.
 3. To change your password:
@@ -60,13 +58,15 @@ Everything you see and work with is scoped to your **department(s)**. If you're 
 
 You can also update your name or email on this page.
 
+![Account Page](images/account-page.png)
+
 ---
 
 ## Upload & Organize Media
 
 Before you can add images or videos to a program, you need to upload them to the Media library.
 
-[Screenshot: Media list view with folder sidebar on the left and media table on the right]
+![Media List](images/media-list.png)
 
 ### Uploading a Media File
 
@@ -154,7 +154,7 @@ The import process:
 
 A program is a sequence of slides that plays on a screen. Think of it as a presentation or playlist.
 
-[Screenshot: Program list view with folder sidebar on the left]
+![Program List](images/program-list.png)
 
 ### Creating a New Program
 
@@ -166,7 +166,7 @@ A program is a sequence of slides that plays on a screen. Think of it as a prese
 
 ### Understanding the Program Editor
 
-[Screenshot: Program editor showing the Media Browser on the left, Timeline in the center, and Edit Drawer on the right]
+![Program Editor](images/program-edit.png)
 
 The program editor has three panels:
 
@@ -174,7 +174,7 @@ The program editor has three panels:
 |---|---|---|
 | **Media Browser** | Left side (collapsible) | Browse and search your media library. Drag items onto the timeline to create slides. |
 | **Program Timeline** | Center | Your slides in order. Add, remove, reorder, and organize slides here. |
-| **Edit Drawer** | Right side (slides in when editing) | Edit individual slide properties like transitions, timing, and media. |
+| **Sidebar** | Right side | Edit settings about the whole program. |
 
 ### Adding Slides
 
@@ -195,7 +195,7 @@ For all types except Black Screen, the Edit Drawer opens automatically so you ca
 
 When you click on a slide in the timeline, the Edit Drawer opens on the right. Here's what you can configure:
 
-[Screenshot: Slide Edit Drawer showing media selection, transition, advance mode, and duration fields]
+![Configure a Slide](images/program-edit-panel.png)
 
 **Media Selection** (for Image, Video, Audio slides):
 - Click the media field to open the media browser.
@@ -227,7 +227,7 @@ When you click on a slide in the timeline, the Edit Drawer opens on the right. H
 
 You can quickly add slides by dragging media from the browser directly onto the timeline:
 
-[Screenshot: Media Browser panel showing folders, search, and draggable media items]
+![Media Browser](images/media-browser.png)
 
 1. Open the **Media Browser** panel on the left (click the expand button if it's collapsed).
 2. Browse folders and search for media.
@@ -259,7 +259,7 @@ If you have multiple files to add at once, use bulk upload:
 
 A Segment is a group of slides that plays together with shared settings.
 
-[Screenshot: Segment container showing name, collapse toggle, slide count, and inner slides]
+![Segment Edit](images/segment-edit.png)
 
 **Creating a Segment:**
 1. Click **"+ Add Slide"** and choose **Segment** (below the divider).
@@ -304,7 +304,7 @@ Click **"Export PPTX"** in the timeline header to download the program as a `.pp
 
 When editing a program, you'll find these settings in the sidebar:
 
-[Screenshot: Program sidebar with title, preview link, folder, loop, auto-black, availability, and device fields]
+![Program Sidebar](images/program-sidebar.png)
 
 | Setting | What It Does |
 |---|---|
@@ -333,7 +333,7 @@ There are two ways a program gets on a device:
 
 When you create a schedule, the program will **automatically begin playing** on the selected devices at the scheduled time — no action needed at the device.
 
-[Screenshot: Schedule creation form showing program selector, device selector, days of week, start time, end time, and until date]
+![Schedule](images/schedule_create.png)
 
 ### Creating a Schedule
 
@@ -347,8 +347,6 @@ When you create a schedule, the program will **automatically begin playing** on 
 4. Click **Save**.
 
 ### One-Off vs Weekly Recurring
-
-[Screenshot: Days of Week selector with checkmarks]
 
 **For a one-time event:**
 - Leave the **"Days of Week"** field empty.
@@ -399,7 +397,7 @@ To fix this:
 
 Remote Control lets you take manual control of what's playing on a device in your department.
 
-[Screenshot: Remote Control page showing device selector, status badge, playback controls, and slide strip]
+![Remote Control](images/remote_control.png)
 
 ### Opening Remote Control
 
@@ -456,7 +454,7 @@ The Remote Control page updates in real-time — you don't need to refresh to se
 
 The Dashboard is your home page. It gives you a quick overview of everything happening in your department(s).
 
-[Screenshot: Dashboard showing device cards, available programs, and upcoming schedules]
+![Dashboard](images/dashboard.png)
 
 ### Devices Section
 
