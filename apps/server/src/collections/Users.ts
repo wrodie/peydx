@@ -83,7 +83,6 @@ export const Users: CollectionConfig = {
       type: 'relationship',
       relationTo: 'departments',
       hasMany: true,
-      required: true,
       admin: {
         position: 'sidebar',
         condition: (_, __, { user }) => {

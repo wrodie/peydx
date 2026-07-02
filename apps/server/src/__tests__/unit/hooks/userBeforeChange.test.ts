@@ -6,12 +6,27 @@ describe('userBeforeChange', () => {
     vi.clearAllMocks()
   })
 
-  it('returns data when no user on req', async () => {
+  it('assigns admin role when no user on req and no users exist (first-registration)', async () => {
     const data = { name: 'New User' }
-    const req = { user: null } as any
+    const req = {
+      user: null,
+      payload: { count: vi.fn().mockResolvedValue({ totalDocs: 0 }) },
+    } as any
 
     const result = await userBeforeChange({ data, req, operation: 'create' } as any)
-    expect(result).toEqual(data)
+    expect(result.role).toBe('admin')
+    expect(req.payload.count).toHaveBeenCalledWith({ collection: 'users', req })
+  })
+
+  it('does not assign admin role when no user on req but users already exist', async () => {
+    const data = { name: 'Another User' }
+    const req = {
+      user: null,
+      payload: { count: vi.fn().mockResolvedValue({ totalDocs: 5 }) },
+    } as any
+
+    const result = await userBeforeChange({ data, req, operation: 'create' } as any)
+    expect(result.role).toBeUndefined()
   })
 
   it('allows admin to set any role', async () => {

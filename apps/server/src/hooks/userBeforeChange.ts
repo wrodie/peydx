@@ -2,7 +2,15 @@ import type { CollectionBeforeChangeHook } from 'payload'
 
 export const userBeforeChange: CollectionBeforeChangeHook = async ({ data, req, operation }) => {
   const user = req.user as any
-  if (!user) return data
+
+  // First-registration flow: no authenticated user, check if this is the first user
+  if (!user && operation === 'create') {
+    const { totalDocs } = await req.payload.count({ collection: 'users', req })
+    if (totalDocs === 0) {
+      data.role = 'admin'
+    }
+    return data
+  }
 
   if (user.role === 'admin') return data
 
