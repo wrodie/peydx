@@ -5,6 +5,7 @@ import { mediaFolderAutoAssign } from '../hooks/mediaFolderAutoAssign'
 import { mediaAfterCreate } from '../hooks/mediaAfterCreate'
 import { mediaAfterUpdate } from '../hooks/mediaAfterUpdate'
 import { mediaAfterRead } from '../hooks/mediaAfterRead'
+import { mediaThumbnail } from '../endpoints/mediaThumbnail'
 import { verifyMediaToken } from '../utilities/mediaToken'
 import { getIO } from '../websocket/io'
 
@@ -49,6 +50,13 @@ export const Media: CollectionConfig = {
     ],
     adminThumbnail: 'thumbnail',
   },
+  endpoints: [
+    {
+      path: '/:id/thumbnail',
+      method: 'get',
+      handler: mediaThumbnail,
+    },
+  ],
   hooks: {
     beforeDelete: [
       cleanupMediaReferences,

@@ -7,7 +7,7 @@ export const mediaAfterRead: CollectionAfterReadHook = ({ doc }) => {
     const thumbFilename = doc.filename.replace(/\.[^.]+$/, '_thumb.webp')
     const thumbPath = path.resolve(process.cwd(), 'media', thumbFilename)
     if (fs.existsSync(thumbPath)) {
-      const thumbUrl = `/api/media/file/${encodeURIComponent(thumbFilename)}`
+      const thumbUrl = `/api/media/${doc.id}/thumbnail`
       doc.thumbnailURL = thumbUrl
       doc.sizes = {
         ...doc.sizes,

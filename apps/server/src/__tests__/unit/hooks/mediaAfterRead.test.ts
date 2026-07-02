@@ -19,18 +19,20 @@ describe('mediaAfterRead', () => {
     const doc = {
       mimeType: 'video/mp4',
       filename: 'sample-video.mp4',
+      id: 42,
       sizes: {},
     }
     const result = mediaAfterRead({ doc } as any)
-    expect(result.thumbnailURL).toBe('/api/media/file/sample-video_thumb.webp')
+    expect(result.thumbnailURL).toBe('/api/media/42/thumbnail')
     expect(result.sizes).toHaveProperty('thumbnail')
     expect(result.sizes!.thumbnail).toEqual({
-      url: '/api/media/file/sample-video_thumb.webp',
+      url: '/api/media/42/thumbnail',
     })
   })
 
   it('merges thumbnail into existing sizes object', () => {
     const doc = {
+      id: 99,
       mimeType: 'video/mp4',
       filename: 'sample-video.mp4',
       sizes: { fullHD: { url: '/api/media/file/sample-video.webp' } },
