@@ -80,8 +80,12 @@ async function downloadFile(url, dest, updatedAt) {
     return new Promise((resolve, reject) => {
       writer.on('finish', () => {
         if (updatedAt) {
-          const time = new Date(updatedAt).getTime() / 1000;
-          fs.utimesSync(dest, time, time);
+          try {
+            const time = new Date(updatedAt).getTime() / 1000;
+            fs.utimesSync(dest, time, time);
+          } catch (err) {
+            console.error(ts(`[sync] Failed to set mtime on ${dest}: ${err.message}`));
+          }
         }
         resolve();
       });

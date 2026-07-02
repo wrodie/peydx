@@ -38,7 +38,6 @@ function buildAudioSlideBlock(mediaId: number) {
 
 async function ensureImportFolder(
   payload: any,
-  logger: any,
   name: string,
   type: 'media' | 'programs',
   user: any,
@@ -62,33 +61,15 @@ async function ensureImportFolder(
   if (deptIds.length > 0) {
     rootFolderQuery.where.type = { equals: type }
     rootFolderQuery.where.department = { equals: deptIds[0] }
-    logger.info(
-      { deptId: deptIds[0], type },
-      '[ensureImportFolder] Finding root folder by department',
-    )
   } else {
     rootFolderQuery.where.type = { equals: type }
-    logger.info(
-      { type, role: (user as any).role },
-      '[ensureImportFolder] No departments — finding root folder by type only',
-    )
   }
 
   const rootFolders = await payload.find(rootFolderQuery)
 
-  if (!rootFolders.docs?.[0]) {
-    logger.info(
-      { query: rootFolderQuery.where },
-      '[ensureImportFolder] No root folder found',
-    )
-    return undefined
-  }
+  if (!rootFolders.docs?.[0]) return undefined
 
   const rootId = rootFolders.docs[0].id
-  logger.info(
-    { rootId, rootName: rootFolders.docs[0].name, type },
-    '[ensureImportFolder] Found root folder',
-  )
 
   const existing = await payload.find({
     collection: 'folders',
@@ -103,13 +84,7 @@ async function ensureImportFolder(
     },
   })
 
-  if (existing.docs?.[0]) {
-    logger.info(
-      { folderId: existing.docs[0].id, name, type },
-      '[ensureImportFolder] Reusing existing subfolder',
-    )
-    return existing.docs[0].id
-  }
+  if (existing.docs?.[0]) return existing.docs[0].id
 
   const folder = await payload.create({
     collection: 'folders',
@@ -121,11 +96,6 @@ async function ensureImportFolder(
     overrideAccess: true,
     user,
   })
-
-  logger.info(
-    { folderId: folder.id, name, type },
-    '[ensureImportFolder] Created subfolder',
-  )
 
   return folder.id
 }
@@ -189,7 +159,7 @@ export const mediaImportPptx = {
     const skipped: string[] = [...parsed.skipped]
 
     const mediaFolderId = await ensureImportFolder(
-      req.payload, req.payload.logger, fileName, 'media', req.user, departmentId,
+      req.payload, fileName, 'media', req.user, departmentId,
     )
 
     const programsRoot = await req.payload.find({
@@ -205,11 +175,6 @@ export const mediaImportPptx = {
       },
     })
     const programsFolderId = programsRoot.docs?.[0]?.id
-
-    req.payload.logger.info(
-      { mediaFolderId, programsFolderId, userRole: (req.user as any)?.role },
-      '[mediaImportPptx] Folder setup complete',
-    )
 
     const stream = new ReadableStream({
       start: async (controller) => {
@@ -246,6 +211,10 @@ export const mediaImportPptx = {
           }))
 
           try {
+            req.payload.logger.error(
+              { relPath, mimeType: media.mimeType, kind: media.kind, shapeName: media.shapeName },
+              '[mediaImportPptx] Attempting to create media',
+            )
             const record = await req.payload.create({
               collection: 'media',
               data: { name: mediaName },
@@ -348,16 +317,53 @@ export const mediaImportPptx = {
             }
           }
 
-          for (const img of ps.images) {
-            const id = mediaIdMap.get(img.sourceRelPath)
-            if (id) slides.push(buildImageSlideBlock(id))
-          }
-          for (const vid of ps.videos) {
-            const id = mediaIdMap.get(vid.sourceRelPath)
-            if (id) slides.push(buildVideoSlideBlock(id))
-          }
-          for (const aud of ps.audios) {
-            if (aud.acrossSlides <= 1) {
+          const standaloneAudios = ps.audios.filter(a => a.acrossSlides <= 1)
+          const hasSegmentMedia = ps.images.length > 0 || ps.videos.length > 0
+
+          if (hasSegmentMedia && standaloneAudios.length > 0) {
+            const bgAudio = standaloneAudios[0]
+            const audioId = mediaIdMap.get(bgAudio.sourceRelPath)
+            if (audioId) {
+              const segmentSlides: any[] = []
+              for (const img of ps.images) {
+                const id = mediaIdMap.get(img.sourceRelPath)
+                if (id) segmentSlides.push(buildImageSlideBlock(id))
+              }
+              for (const vid of ps.videos) {
+                const id = mediaIdMap.get(vid.sourceRelPath)
+                if (id) segmentSlides.push(buildVideoSlideBlock(id))
+              }
+
+              const fname = bgAudio.sourceRelPath.slice(
+                bgAudio.sourceRelPath.lastIndexOf('/') + 1,
+              )
+
+              slides.push({
+                blockType: 'segmentBlock',
+                blockName: null,
+                name: `Segment - ${fname}`,
+                backgroundAudio: audioId,
+                loop: false,
+                advanceMode: 'slides',
+                duration: null,
+                slides: segmentSlides,
+                bulkMedia: [],
+              })
+            }
+            for (let ai = 1; ai < standaloneAudios.length; ai++) {
+              const id = mediaIdMap.get(standaloneAudios[ai].sourceRelPath)
+              if (id) slides.push(buildAudioSlideBlock(id))
+            }
+          } else {
+            for (const img of ps.images) {
+              const id = mediaIdMap.get(img.sourceRelPath)
+              if (id) slides.push(buildImageSlideBlock(id))
+            }
+            for (const vid of ps.videos) {
+              const id = mediaIdMap.get(vid.sourceRelPath)
+              if (id) slides.push(buildVideoSlideBlock(id))
+            }
+            for (const aud of standaloneAudios) {
               const id = mediaIdMap.get(aud.sourceRelPath)
               if (id) slides.push(buildAudioSlideBlock(id))
             }
@@ -411,10 +417,6 @@ export const mediaImportPptx = {
                   overrideAccess: true,
                   user: req.user,
                 })
-                req.payload.logger.info(
-                  { mediaId: m.id, folderId: mediaFolderId },
-                  '[mediaImportPptx] Assigned media folder',
-                )
               } catch (err: any) {
                 req.payload.logger.error(
                   { mediaId: m.id, folderId: mediaFolderId, err: String(err) },

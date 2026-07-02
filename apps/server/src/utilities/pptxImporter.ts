@@ -42,15 +42,19 @@ export interface ParsedPptx {
 const COMPATIBLE_IMAGE_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/gif', 'image/bmp',
   'image/webp', 'image/heic', 'image/heif',
+  'image/x-ms-bmp',
 ])
 
 const COMPATIBLE_AUDIO_TYPES = new Set([
   'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/m4a',
-  'audio/wav', 'audio/wave', 'audio/ogg', 'audio/aac',
+  'audio/wav', 'audio/wave', 'audio/x-wav',
+  'audio/ogg', 'audio/aac',
+  'audio/x-mpeg', 'audio/x-m4a', 'audio/x-aac',
 ])
 
 const COMPATIBLE_VIDEO_TYPES = new Set([
   'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
+  'video/x-mp4', 'video/x-msvideo',
 ])
 
 export function isCompatibleCodec(mimeType: string): boolean {
@@ -366,11 +370,6 @@ function parseSlideXml(
           }
         }
 
-        if (!isFullScreen(cx, cy, slideSize)) {
-          shapeIndex++
-          continue
-        }
-
         const blipFill = pic?.['p:blipFill']
         const blip = blipFill?.['a:blip']
         const embed = blip ? getAttr(blip, 'r:embed') : undefined
@@ -438,6 +437,11 @@ function parseSlideXml(
               }
             }
           }
+          shapeIndex++
+          continue
+        }
+
+        if (!isFullScreen(cx, cy, slideSize)) {
           shapeIndex++
           continue
         }
