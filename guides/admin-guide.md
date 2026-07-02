@@ -60,7 +60,7 @@ Everything in the system is scoped by **departments**. A department represents a
 
 ## Navigation
 
-[Screenshot: Top navigation bar showing all icons and the Admin dropdown]
+![Navigation](images/menu_bar.png)
 
 The top navigation bar provides quick access to all major sections:
 
@@ -79,7 +79,7 @@ The top navigation bar provides quick access to all major sections:
 
 ## Dashboard
 
-[Screenshot: Dashboard view showing device cards, programs, and schedules]
+![Dashboard](images/dashboard.png)
 
 The Dashboard is your home page. It shows three or four sections, all filtered by your departments.
 
@@ -120,7 +120,7 @@ Shows upcoming schedules with:
 
 ## Managing Departments
 
-[Screenshot: Departments list and create/edit form]
+![Departments](images/departments.png)
 
 Departments are the top-level organizational unit. They scope all content in the system.
 
@@ -151,7 +151,7 @@ Only admins can delete departments. Deleting a department that has associated us
 
 ## Managing Users
 
-[Screenshot: Users list and create/edit form]
+![Users](images/user-list.png)
 
 Only admins can create, edit, or delete user accounts.
 
@@ -188,7 +188,7 @@ A user can be assigned to multiple departments. They will see and manage content
 
 ## Managing Folders
 
-[Screenshot: Folder tree sidebar on the Media list view]
+![Media Browser](images/folder-tree.png)
 
 Folders provide hierarchical organization for Media and Programs, scoped per department. Each folder is either a **media** folder or a **programs** folder.
 
@@ -225,7 +225,7 @@ Note: The Folder field is hidden during creation (auto-assigned from your curren
 
 ## Managing Devices
 
-[Screenshot: Device list and edit form]
+![Device](images/device-edit.png)
 
 Devices represent the physical screens or browsers that display your content. Only admins can create or delete devices.
 
@@ -280,6 +280,9 @@ A device can be set to mirror another device. When configured:
 - Only one level of mirroring is supported — you cannot chain mirrors (Device A controls Device B which controls Device C).
 - When the controlling device's program or slide changes, the mirror updates in real-time via WebSocket.
 
+> [!NOTE]   
+> This works by essentially sending the same command to both devices, so timing on each device may not be exact. - Don't expect the video to be synced to the frame.
+
 ### Pushing Updates
 
 Admins can push software updates to devices:
@@ -293,7 +296,7 @@ Devices with type "Hardware (sync agent)" receive the update; browser devices up
 
 ## Media Management
 
-[Screenshot: Media list view with folder sidebar and thumbnail cells]
+![Media](images/media-list.png)
 
 The Media collection stores all uploaded images, videos, and audio files used in slide programs.
 
@@ -359,7 +362,6 @@ The **Import PPTX** button appears on the Programs list view (not the Media list
 See the [User Guide — Importing a PowerPoint File](../guides/user-guide.md#importing-a-powerpoint-file) for step-by-step instructions.
 
 **Technical details:**
-- The endpoint `POST /api/import-pptx` accepts a `.pptx` file via multipart form.
 - Incompatible codecs (EMF, WMF, WMV) are automatically skipped with logged warnings.
 - Audio tracks set to "play across slides" (`numSld > 1` in the PPTX timing tree) are wrapped in a Segment block with background audio.
 - The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content.
@@ -376,6 +378,8 @@ Use the folder sidebar to browse and create media folders. See [Managing Folders
 Programs are the core content entity — a sequence of slides that plays on devices. Think of a program as a presentation or playlist.
 
 ### Program List View
+
+![Program List](images/program-list.png)
 
 The programs list has a folder sidebar (programs-type folders) on the left and a table on the right. The table shows:
 
@@ -397,7 +401,7 @@ Alternatively, you can create a program by importing a PowerPoint file — see [
 
 ### Program Editor Layout
 
-[Screenshot: Program editor showing Media Browser, Timeline, and Edit Drawer]
+![Program Edit](images/program-edit.png)
 
 The program editor has three panels:
 
@@ -405,7 +409,7 @@ The program editor has three panels:
 |---|---|---|
 | **Media Browser** | Left (360px, collapsible) | Browse and drag media onto the timeline |
 | **Program Timeline** | Center | View and reorder slides |
-| **Slide Edit Drawer** | Right (360px, slides in from edge) | Edit individual slide properties |
+| **Sidebar** | Right  | Edit Program properties |
 
 ### Adding Slides
 
@@ -474,7 +478,7 @@ Each slide has the following properties, configurable in the Edit Drawer:
 
 ### Segments
 
-[Screenshot: Segment container expanded with slides inside]
+![Segment](images/segment-edit.png)
 
 A Segment is a container that groups slides together with shared settings:
 
@@ -509,7 +513,8 @@ Segments cannot be nested — you cannot put a segment inside another segment.
 In the program sidebar, you'll find a **Bulk Media** upload zone:
 1. Drop or select multiple files.
 2. Each file is automatically converted to the appropriate slide type (image, video, or audio) and appended to the timeline.
-3. The bulk media field is cleared after processing.
+3. The Save button must be pressed to import the media.
+4. The bulk media field is cleared after processing.
 
 Bulk media can also be added inside segments, creating slides within that segment.
 
@@ -526,6 +531,8 @@ Bulk media can also be added inside segments, creating slides within that segmen
 Click **"Export PPTX"** in the timeline header to download the program as a PowerPoint file. Only visible on saved programs.
 
 ### Program Sidebar Settings
+
+![Program Sidebar](images/program-sidebar.png)
 
 When editing a program, the sidebar contains important settings:
 
@@ -631,11 +638,11 @@ If departments are set on the integration, API calls will be scoped to only thos
 
 ---
 
-## Settings
+## Updates
 
-[Screenshot: Settings page with version info and update buttons]
+![Updates](images/updates.png)
 
-The Settings page (in the Admin dropdown) is admin-only and manages deployment versioning.
+The Updates page (in the Admin dropdown) is admin-only and manages deployment versioning.
 
 ### Server Version
 
@@ -656,7 +663,7 @@ The page includes a device table showing each device's Name, Type, Status, and c
 
 ## Remote Control
 
-[Screenshot: Remote Control view with device selector, status badge, playback controls, and slide strip]
+![Remote Control](images/remote_control.png)
 
 Remote Control lets you take manual control of what's playing on any device in your departments.
 
@@ -706,6 +713,8 @@ Device status and slide position update in real-time via WebSocket. You don't ne
 ## Health Dashboard
 
 An admin-only page showing live status of all devices, with summary counters at the top (e.g. "Online: 3 / Stale: 1 / Offline: 0"). Navigate via **Admin > Health** in the top navigation bar.
+
+![Health Dashboard](images/health.png)
 
 Device status and current programs update in real time via WebSocket — no page refresh needed.
 
