@@ -454,7 +454,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
 
     return (
       <div className="slide-stage">
-        <audio ref={bgAudioRef} style={{ display: 'none' }} loop />
+        <audio ref={bgAudioRef} style={{ display: 'none' }} />
         {outgoingRef.current && transition === 'fade' && renderSlideWrapper(outgoingRef.current.slide, outgoingRef.current.index, true)}
         {renderSlideWrapper(currentSlide, currentIndex, false)}
         {isEnded && (
