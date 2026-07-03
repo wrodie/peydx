@@ -15,6 +15,7 @@ export interface Slide {
   duration?: number | null
   transition?: 'fade' | 'cut' | 'slide' | null
   loop?: boolean | null
+  scaleToFill?: boolean | null
   id?: string | null
   segmentContext?: SegmentContext | null
 }

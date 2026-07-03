@@ -268,6 +268,10 @@ export interface Program {
             advanceMode: 'timed' | 'manual';
             duration?: number | null;
             /**
+             * Scales the media to fill as much of the screen as possible while preserving aspect ratio.
+             */
+            scaleToFill?: boolean | null;
+            /**
              * Move this slide to another segment or the top level on save.
              */
             _moveToSegment?: string | null;
@@ -287,6 +291,10 @@ export interface Program {
              * Repeats the video until the slide transitions.
              */
             loop?: boolean | null;
+            /**
+             * Scales the media to fill as much of the screen as possible while preserving aspect ratio.
+             */
+            scaleToFill?: boolean | null;
             /**
              * Move this slide to another segment or the top level on save.
              */
@@ -389,6 +397,10 @@ export interface Program {
                       advanceMode: 'timed' | 'manual';
                       duration?: number | null;
                       /**
+                       * Scales the media to fill as much of the screen as possible while preserving aspect ratio.
+                       */
+                      scaleToFill?: boolean | null;
+                      /**
                        * Move this slide to another segment or the top level on save.
                        */
                       _moveToSegment?: string | null;
@@ -408,6 +420,10 @@ export interface Program {
                        * Repeats the video until the slide transitions.
                        */
                       loop?: boolean | null;
+                      /**
+                       * Scales the media to fill as much of the screen as possible while preserving aspect ratio.
+                       */
+                      scaleToFill?: boolean | null;
                       /**
                        * Move this slide to another segment or the top level on save.
                        */
@@ -815,6 +831,7 @@ export interface ProgramsSelect<T extends boolean = true> {
               transition?: T;
               advanceMode?: T;
               duration?: T;
+              scaleToFill?: T;
               _moveToSegment?: T;
               id?: T;
               blockName?: T;
@@ -827,6 +844,7 @@ export interface ProgramsSelect<T extends boolean = true> {
               advanceMode?: T;
               duration?: T;
               loop?: T;
+              scaleToFill?: T;
               _moveToSegment?: T;
               id?: T;
               blockName?: T;
@@ -884,6 +902,7 @@ export interface ProgramsSelect<T extends boolean = true> {
                           transition?: T;
                           advanceMode?: T;
                           duration?: T;
+                          scaleToFill?: T;
                           _moveToSegment?: T;
                           id?: T;
                           blockName?: T;
@@ -896,6 +915,7 @@ export interface ProgramsSelect<T extends boolean = true> {
                           advanceMode?: T;
                           duration?: T;
                           loop?: T;
+                          scaleToFill?: T;
                           _moveToSegment?: T;
                           id?: T;
                           blockName?: T;

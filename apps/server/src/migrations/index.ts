@@ -4,6 +4,7 @@ import * as migration_20260622_000001_migrate_basic_to_standard from './20260622
 import * as migration_20260622_000002_add_updating_status from './20260622_000002_add_updating_status';
 import * as migration_20260622_000003_add_client_version_column from './20260622_000003_add_client_version_column';
 import * as migration_20260625_media_fk_cascade from './20260625_media_fk_cascade';
+import * as migration_20260703_000000_add_scale_to_fill from './20260703_000000_add_scale_to_fill';
 
 export const migrations = [
   {
@@ -35,5 +36,10 @@ export const migrations = [
     up: migration_20260625_media_fk_cascade.up,
     down: migration_20260625_media_fk_cascade.down,
     name: '20260625_media_fk_cascade'
+  },
+  {
+    up: migration_20260703_000000_add_scale_to_fill.up,
+    down: migration_20260703_000000_add_scale_to_fill.down,
+    name: '20260703_000000_add_scale_to_fill'
   },
 ];

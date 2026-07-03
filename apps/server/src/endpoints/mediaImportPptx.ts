@@ -9,6 +9,7 @@ function buildImageSlideBlock(mediaId: number) {
     advanceMode: 'manual',
     transition: 'fade',
     duration: null,
+    scaleToFill: true,
   }
 }
 
@@ -21,6 +22,7 @@ function buildVideoSlideBlock(mediaId: number) {
     transition: 'fade',
     duration: null,
     loop: false,
+    scaleToFill: true,
   }
 }
 

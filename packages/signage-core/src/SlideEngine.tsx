@@ -334,7 +334,12 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
         return (
           <>
             <img src={mu} className="slide-backdrop" alt="" aria-hidden="true" />
-            <img src={mu} className="slide-foreground" alt={sm?.alt || 'Slide'} />
+            <img
+              src={mu}
+              className="slide-foreground"
+              alt={sm?.alt || 'Slide'}
+              style={slide.scaleToFill !== false ? { width: '100%', height: '100%' } : undefined}
+            />
           </>
         )
       }
@@ -363,7 +368,10 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
                 e.currentTarget.muted = false
               }}
               className="slide-foreground"
-              style={{ display: videoError ? 'none' : undefined }}
+              style={{
+                ...(slide.scaleToFill !== false ? { width: '100%', height: '100%' } : {}),
+                display: videoError ? 'none' : undefined,
+              }}
             />
             {videoError && (
               <div className="slide-video-error">

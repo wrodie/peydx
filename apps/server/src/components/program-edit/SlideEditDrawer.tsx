@@ -307,6 +307,16 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
         return (
           <>
             {renderMediaField('image', 'image')}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.825rem' }}>
+                <input
+                  type="checkbox"
+                  checked={localSlide.scaleToFill !== false}
+                  onChange={(e) => updateField('scaleToFill', e.target.checked)}
+                />
+                Scale to fill screen
+              </label>
+            </div>
             {renderAdvanceSettings()}
           </>
         )
@@ -323,6 +333,16 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
                   onChange={(e) => updateField('loop', e.target.checked)}
                 />
                 Loop Media
+              </label>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.825rem' }}>
+                <input
+                  type="checkbox"
+                  checked={localSlide.scaleToFill !== false}
+                  onChange={(e) => updateField('scaleToFill', e.target.checked)}
+                />
+                Scale to fill screen
               </label>
             </div>
             {renderAdvanceSettings()}

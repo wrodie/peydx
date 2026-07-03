@@ -85,6 +85,15 @@ export const ImageBlock: Block = {
       },
     },
     ...getAdvanceSettings(false),
+    {
+      name: 'scaleToFill',
+      type: 'checkbox',
+      label: 'Scale to fill screen',
+      defaultValue: true,
+      admin: {
+        description: 'Scales the media to fill as much of the screen as possible while preserving aspect ratio.',
+      },
+    },
     getSlideMoveControl(),
   ],
 }
@@ -117,6 +126,15 @@ export const VideoBlock: Block = {
       defaultValue: false,
       admin: {
         description: 'Repeats the video until the slide transitions.',
+      },
+    },
+    {
+      name: 'scaleToFill',
+      type: 'checkbox',
+      label: 'Scale to fill screen',
+      defaultValue: true,
+      admin: {
+        description: 'Scales the media to fill as much of the screen as possible while preserving aspect ratio.',
       },
     },
     getSlideMoveControl(),
