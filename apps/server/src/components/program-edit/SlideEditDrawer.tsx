@@ -193,7 +193,17 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
               }}
             >
               <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>{name}</span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--theme-elevation-400, #9ca3af)' }}>Change</span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--theme-elevation-400, #9ca3af)' }}>Change</span>
+                {fieldName === 'backgroundAudio' && (
+                  <span
+                    onClick={(e) => { e.stopPropagation(); updateField(fieldName, null) }}
+                    style={{ fontSize: '0.7rem', color: '#ef4444', cursor: 'pointer' }}
+                  >
+                    Remove
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         ) : (
