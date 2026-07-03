@@ -211,10 +211,6 @@ export const mediaImportPptx = {
           }))
 
           try {
-            req.payload.logger.error(
-              { relPath, mimeType: media.mimeType, kind: media.kind, shapeName: media.shapeName },
-              '[mediaImportPptx] Attempting to create media',
-            )
             const record = await req.payload.create({
               collection: 'media',
               data: { name: mediaName },
@@ -257,26 +253,31 @@ export const mediaImportPptx = {
           const ps = parsed.slides[si]
 
           if (openSegment) {
-            const childSlides: any[] = []
-            for (const img of ps.images) {
-              const id = mediaIdMap.get(img.sourceRelPath)
-              if (id) childSlides.push(buildImageSlideBlock(id))
-            }
-            for (const vid of ps.videos) {
-              const id = mediaIdMap.get(vid.sourceRelPath)
-              if (id) childSlides.push(buildVideoSlideBlock(id))
-            }
-            if (childSlides.length > 0) {
-              openSegment.segmentObj.slides.push(...childSlides)
-            }
-            openSegment.remainingSlides--
-            if (openSegment.remainingSlides <= 0) {
+            // Close segment if this slide has its own audio or video
+            // (would conflict with the segment's backgroundAudio)
+            if (ps.audios.length > 0 || ps.videos.length > 0) {
               if (openSegment.segmentObj.slides.length > 0) {
                 slides.push(openSegment.segmentObj)
               }
               openSegment = null
+            } else {
+              const childSlides: any[] = []
+              for (const img of ps.images) {
+                const id = mediaIdMap.get(img.sourceRelPath)
+                if (id) childSlides.push(buildImageSlideBlock(id))
+              }
+              if (childSlides.length > 0) {
+                openSegment.segmentObj.slides.push(...childSlides)
+              }
+              openSegment.remainingSlides--
+              if (openSegment.remainingSlides <= 0) {
+                if (openSegment.segmentObj.slides.length > 0) {
+                  slides.push(openSegment.segmentObj)
+                }
+                openSegment = null
+              }
+              continue
             }
-            continue
           }
 
           const spanningAudio = ps.audios.find(a => a.acrossSlides > 1)

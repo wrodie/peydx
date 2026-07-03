@@ -405,8 +405,6 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       const filtered = importedSlides.filter(
         (s: any) => s && s.blockType && !String(s.id).startsWith('auto')
       )
-      console.log(`[ImportProgram] importing ${filtered.length} slides (current=${currentLen})`)
-
       for (let i = 0; i < filtered.length; i++) {
         const slide = filtered[i]
         if (!slide || !slide.blockType) continue
