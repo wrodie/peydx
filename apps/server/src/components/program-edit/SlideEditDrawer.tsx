@@ -163,7 +163,7 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
               <img
                 src={thumbnailUrl}
                 alt=""
-                style={{ width: '100%', maxHeight: 180, objectFit: 'contain', background: 'var(--theme-elevation-100, #f3f4f6)' }}
+                style={{ width: '100%', background: 'var(--theme-elevation-100, #f3f4f6)' }}
               />
             ) : (
               <div
