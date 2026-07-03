@@ -274,7 +274,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     if (mediaIds.length === 0) { setMediaMap({}); return }
     let cancelled = false
     const ids = mediaIds.join(',')
-    fetch(`/api/media?depth=0&limit=50&where[id][in]=${ids}`)
+    fetch(`/api/media?depth=0&limit=${mediaIds.length}&where[id][in]=${ids}`)
       .then(r => r.json())
       .then(data => {
         if (cancelled) return
