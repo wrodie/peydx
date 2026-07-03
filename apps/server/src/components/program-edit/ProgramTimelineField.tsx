@@ -499,28 +499,31 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           })
         }
       } else {
-        const updated = { ...currentSlide }
-        updated.advanceMode = newMode
-
+        dispatchFields({
+          type: 'UPDATE',
+          path: `${rowPath}.${index}.advanceMode`,
+          value: newMode,
+        })
         if (newMode === 'timed') {
-          if (updated.duration == null || updated.duration <= 0) {
-            updated.duration = 5
+          if (currentSlide.duration == null || currentSlide.duration <= 0) {
+            dispatchFields({
+              type: 'UPDATE',
+              path: `${rowPath}.${index}.duration`,
+              value: 5,
+            })
           }
         } else if (currentSlide.advanceMode === 'timed') {
-          updated.duration = null
+          dispatchFields({
+            type: 'UPDATE',
+            path: `${rowPath}.${index}.duration`,
+            value: null,
+          })
         }
-
-        replaceFieldRow({
-          path: rowPath,
-          rowIndex: index,
-          schemaPath: `${path}.${updated.blockType}`,
-          subFieldState: buildRowState(updated.blockType, updated),
-        })
       }
 
-      submit()
+      requestAnimationFrame(() => submit())
     },
-    [path, getDataByPath, replaceFieldRow, dispatchFields, submit]
+    [path, getDataByPath, dispatchFields, submit]
   )
 
   const handleDurationChange = useCallback(
@@ -548,12 +551,10 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           value: newDuration,
         })
       } else {
-        const updated = { ...currentSlide, duration: newDuration }
-        replaceFieldRow({
-          path: rowPath,
-          rowIndex: index,
-          schemaPath: `${path}.${updated.blockType}`,
-          subFieldState: buildRowState(updated.blockType, updated),
+        dispatchFields({
+          type: 'UPDATE',
+          path: `${rowPath}.${index}.duration`,
+          value: newDuration,
         })
       }
 
@@ -563,7 +564,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         submit()
       }, 600)
     },
-    [path, getDataByPath, replaceFieldRow, dispatchFields, submit]
+    [path, getDataByPath, dispatchFields, submit]
   )
 
   const handleLoopChange = useCallback(

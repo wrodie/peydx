@@ -81,10 +81,6 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
   }, [loop])
 
   useEffect(() => {
-    setLocalMode(advanceMode)
-  }, [advanceMode])
-
-  useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
