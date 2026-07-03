@@ -25,17 +25,30 @@ interface PlayerControllerProps {
   onPauseChange?: (paused: boolean) => void
 }
 
+function isValidTimezone(tz: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
+}
+
+function safeTimezone(tz: string): string {
+  return isValidTimezone(tz) ? tz : 'UTC'
+}
+
 function tzDateStr(date: Date, tz: string): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date)
+  return new Intl.DateTimeFormat('en-CA', { timeZone: safeTimezone(tz) }).format(date)
 }
 
 function tzDayName(date: Date, tz: string): string {
-  return new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(date).toLowerCase().slice(0, 3)
+  return new Intl.DateTimeFormat('en-US', { timeZone: safeTimezone(tz), weekday: 'long' }).format(date).toLowerCase().slice(0, 3)
 }
 
 function tzMinutes(date: Date, tz: string): number {
   const parts = new Intl.DateTimeFormat('en-US', { 
-    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false 
+    timeZone: safeTimezone(tz), hour: '2-digit', minute: '2-digit', hour12: false 
   }).formatToParts(date)
   const h = Number(parts.find(p => p.type === 'hour')!.value) % 24
   const m = Number(parts.find(p => p.type === 'minute')!.value)
@@ -217,7 +230,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const getResolvedState = useCallback(() => {
       const sched = scheduleDataRef.current?.schedule ?? []
       const avail = scheduleDataRef.current?.availability ?? []
-      return resolveScheduleState(sched, avail)
+      return resolveScheduleState(sched, avail, scheduleDataRef.current?.timezone)
     }, [])
     const handleProgramEnd = useCallback(() => {
       const { availablePrograms } = getResolvedState()
