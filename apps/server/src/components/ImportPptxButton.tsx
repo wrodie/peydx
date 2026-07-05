@@ -15,11 +15,69 @@ interface Department {
   name: string
 }
 
+const UPLOAD_THRESHOLD = 90 * 1024 * 1024
+const CHUNK_SIZE = 80 * 1024 * 1024
+
+async function readNdjsonStream(
+  res: Response,
+  setModal: (m: ModalState) => void,
+): Promise<void> {
+  const reader = res.body!.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let done = false
+
+  while (!done) {
+    const { value, done: streamDone } = await reader.read()
+    done = streamDone
+
+    if (value) {
+      buffer += decoder.decode(value, { stream: !done })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        if (!line.trim()) continue
+        try {
+          const msg = JSON.parse(line)
+
+          if (msg.type === 'phase') {
+            setModal({
+              status: 'progress',
+              phase: msg.phase,
+              current: msg.current,
+              total: msg.total,
+              name: msg.name,
+            })
+          } else if (msg.type === 'result') {
+            setModal({
+              status: 'success',
+              programTitle: msg.program?.title || 'Program',
+              mediaCreated: msg.mediaCreated?.length || 0,
+              skipped: msg.skipped || [],
+            })
+          } else if (msg.type === 'error') {
+            setModal({
+              status: 'error',
+              message: msg.message || 'Import failed',
+              skipped: msg.skipped,
+            })
+          }
+        } catch {
+          // skip malformed lines
+        }
+      }
+    }
+  }
+}
+
 export function ImportPptxButton() {
   const [modal, setModal] = useState<ModalState>({ status: 'idle' })
   const [departments, setDepartments] = useState<Department[]>([])
   const [selectedDeptId, setSelectedDeptId] = useState<number | undefined>()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const currentUploadIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     fetch('/api/departments?limit=100')
@@ -42,6 +100,24 @@ export function ImportPptxButton() {
     setModal({ status: 'fileSelected', fileName: file.name, file })
   }
 
+  const handleCancel = async () => {
+    const controller = abortControllerRef.current
+    if (controller) {
+      controller.abort()
+    }
+    const uploadId = currentUploadIdRef.current
+    if (uploadId) {
+      fetch(`/api/import-pptx-chunk?uploadId=${uploadId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      }).catch(() => {})
+    }
+    abortControllerRef.current = null
+    currentUploadIdRef.current = null
+    setModal({ status: 'idle' })
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   const handleUpload = async () => {
     if (modal.status !== 'fileSelected') return
     const file = modal.file
@@ -49,88 +125,120 @@ export function ImportPptxButton() {
 
     setModal({ status: 'progress', phase: 'starting' })
 
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      if (selectedDeptId) {
-        formData.append('department', String(selectedDeptId))
+    if (file.size <= UPLOAD_THRESHOLD) {
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        if (selectedDeptId) {
+          formData.append('department', String(selectedDeptId))
+        }
+
+        const res = await fetch('/api/import-pptx', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+
+        const contentType = res.headers.get('Content-Type') || ''
+
+        if (contentType.includes('ndjson')) {
+          await readNdjsonStream(res, setModal)
+        } else {
+          const data = await res.json()
+          if (!res.ok) {
+            setModal({
+              status: 'error',
+              message: data.error || 'Import failed',
+              skipped: data.skipped,
+            })
+            return
+          }
+          setModal({
+            status: 'success',
+            programTitle: data.program?.title || 'Program',
+            mediaCreated: data.mediaCreated?.length || 0,
+            skipped: data.skipped || [],
+          })
+        }
+      } catch (err: any) {
+        setModal({ status: 'error', message: err.message || 'Import failed' })
       }
+      return
+    }
 
-      const res = await fetch('/api/import-pptx', {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
+    const uploadId = crypto.randomUUID()
+    currentUploadIdRef.current = uploadId
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
-      const contentType = res.headers.get('Content-Type') || ''
+    setModal({ status: 'progress', phase: 'uploading', current: 0, total: totalChunks })
 
-      if (contentType.includes('ndjson')) {
-        const reader = res.body!.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ''
-        let done = false
+    try {
+      for (let i = 0; i < totalChunks; i++) {
+        if (controller.signal.aborted) return
 
-        while (!done) {
-          const { value, done: streamDone } = await reader.read()
-          done = streamDone
+        const start = i * CHUNK_SIZE
+        const end = Math.min(start + CHUNK_SIZE, file.size)
+        const chunk = file.slice(start, end)
 
-          if (value) {
-            buffer += decoder.decode(value, { stream: !done })
-            const lines = buffer.split('\n')
-            buffer = lines.pop() || ''
+        const formData = new FormData()
+        formData.append('chunk', chunk, `${file.name}.part${i}`)
+        formData.append('uploadId', uploadId)
+        formData.append('chunkIndex', String(i))
+        formData.append('totalChunks', String(totalChunks))
+        formData.append('fileName', file.name)
+        if (i === 0 && selectedDeptId) {
+          formData.append('department', String(selectedDeptId))
+        }
 
-            for (const line of lines) {
-              if (!line.trim()) continue
-              try {
-                const msg = JSON.parse(line)
+        const res = await fetch('/api/import-pptx-chunk', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+          signal: controller.signal,
+        })
 
-                if (msg.type === 'phase') {
-                  setModal({
-                    status: 'progress',
-                    phase: msg.phase,
-                    current: msg.current,
-                    total: msg.total,
-                    name: msg.name,
-                  })
-                } else if (msg.type === 'result') {
-                  setModal({
-                    status: 'success',
-                    programTitle: msg.program?.title || 'Program',
-                    mediaCreated: msg.mediaCreated?.length || 0,
-                    skipped: msg.skipped || [],
-                  })
-                } else if (msg.type === 'error') {
-                  setModal({
-                    status: 'error',
-                    message: msg.message || 'Import failed',
-                    skipped: msg.skipped,
-                  })
-                }
-              } catch {
-                // skip malformed lines
-              }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || `Chunk ${i + 1}/${totalChunks} failed`)
+        }
+
+        if (i < totalChunks - 1) {
+          setModal({ status: 'progress', phase: 'uploading', current: i + 1, total: totalChunks })
+        } else {
+          const contentType = res.headers.get('Content-Type') || ''
+          if (contentType.includes('ndjson')) {
+            await readNdjsonStream(res, setModal)
+          } else {
+            const data = await res.json()
+            if (!res.ok) {
+              setModal({
+                status: 'error',
+                message: data.error || 'Import failed',
+                skipped: data.skipped,
+              })
+              return
             }
+            setModal({
+              status: 'success',
+              programTitle: data.program?.title || 'Program',
+              mediaCreated: data.mediaCreated?.length || 0,
+              skipped: data.skipped || [],
+            })
           }
         }
-      } else {
-        const data = await res.json()
-        if (!res.ok) {
-          setModal({
-            status: 'error',
-            message: data.error || 'Import failed',
-            skipped: data.skipped,
-          })
-          return
-        }
-        setModal({
-          status: 'success',
-          programTitle: data.program?.title || 'Program',
-          mediaCreated: data.mediaCreated?.length || 0,
-          skipped: data.skipped || [],
-        })
       }
     } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setModal({ status: 'idle' })
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
       setModal({ status: 'error', message: err.message || 'Import failed' })
+    } finally {
+      abortControllerRef.current = null
+      currentUploadIdRef.current = null
     }
   }
 
@@ -139,6 +247,8 @@ export function ImportPptxButton() {
   }
 
   const reset = () => {
+    abortControllerRef.current = null
+    currentUploadIdRef.current = null
     setModal({ status: 'idle' })
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -150,6 +260,8 @@ export function ImportPptxButton() {
   const progressPct = modal.status === 'progress' && modal.total && modal.current
     ? Math.round((modal.current / modal.total) * 100)
     : null
+
+  const isUploading = modal.status === 'progress' && modal.phase === 'uploading'
 
   return (
     <>
@@ -179,7 +291,7 @@ export function ImportPptxButton() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: 'rgba(0,0,0,0.4)',
           }}
-          onClick={modal.status === 'progress' ? undefined : modal.status === 'success' ? handleViewProgram : reset}
+          onClick={modal.status === 'progress' && !isUploading ? undefined : modal.status === 'success' ? handleViewProgram : reset}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -324,6 +436,7 @@ export function ImportPptxButton() {
                   {modal.phase === 'media' && `Importing media ${modal.current}/${modal.total}…`}
                   {modal.phase === 'program' && 'Creating program…'}
                   {modal.phase === 'starting' && 'Starting import…'}
+                  {modal.phase === 'uploading' && `Uploading ${modal.current}/${modal.total}…`}
                 </p>
                 {modal.phase === 'media' && modal.name && (
                   <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--theme-elevation-500)' }}>
@@ -351,6 +464,20 @@ export function ImportPptxButton() {
                       }}
                     />
                   </div>
+                )}
+                {isUploading && (
+                  <button
+                    onClick={handleCancel}
+                    style={{
+                      marginTop: 16,
+                      padding: '8px 16px', fontSize: 13, borderRadius: 4,
+                      border: '1px solid var(--theme-elevation-250)',
+                      background: 'var(--theme-elevation-50)',
+                      color: 'var(--theme-text)', cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
                 )}
               </div>
             )}

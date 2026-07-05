@@ -165,6 +165,8 @@ Benefits of Cloudflare Tunnel:
 - Built-in DDoS protection and WAF filtering
 - No certificate renewal to manage
 
+> **Known limitation:** Cloudflare's Free plan caps uploads at 100 MB. The PPTX import feature automatically handles this by splitting files >90 MB into 80 MB chunks — no plan upgrade needed. However, individual media file uploads (e.g., a single 150 MB video) will be rejected by Cloudflare's edge. For large single-file media uploads, consider upgrading to Cloudflare Pro (200 MB limit) or compressing the file before upload.
+
 #### Alternative: Direct Access with Let's Encrypt
 
 If you prefer direct access without Cloudflare, you can add SSL termination to nginx:
