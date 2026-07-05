@@ -147,6 +147,7 @@ The import process:
 > - The new program will have `advanceMode: "manual"` for images and `"onEnd"` for video/audio — you can adjust these in the program editor.
 > - The program is placed in your department's programs root folder. You can move it later.
 > - Depending on the file size, importing may take some time — the progress bar shows you what's happening.
+> - Files over 90 MB are automatically split into chunks for upload. You'll see an "Uploading" progress step before the import begins. A **Cancel** button lets you abort the upload at any time.
 
 ---
 

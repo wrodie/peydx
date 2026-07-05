@@ -362,6 +362,7 @@ The **Import PPTX** button appears on the Programs list view (not the Media list
 See the [User Guide — Importing a PowerPoint File](../guides/user-guide.md#importing-a-powerpoint-file) for step-by-step instructions.
 
 **Technical details:**
+- Files over 90 MB are automatically split into 80 MB chunks for upload (necessary when the server sits behind Cloudflare's free-tier 100 MB upload limit). Chunks are stored temporarily in the server's `/tmp` directory and reassembled on the final chunk.
 - Incompatible codecs (EMF, WMF, WMV) are automatically skipped with logged warnings.
 - Audio tracks set to "play across slides" (`numSld > 1` in the PPTX timing tree) are wrapped in a Segment block with background audio.
 - The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content.
