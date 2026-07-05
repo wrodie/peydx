@@ -188,7 +188,7 @@ export function ImportPptxButton() {
         formData.append('chunkIndex', String(i))
         formData.append('totalChunks', String(totalChunks))
         formData.append('fileName', file.name)
-        if (i === 0 && selectedDeptId) {
+        if (selectedDeptId) {
           formData.append('department', String(selectedDeptId))
         }
 
