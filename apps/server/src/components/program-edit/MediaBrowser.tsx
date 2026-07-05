@@ -211,7 +211,7 @@ export const MediaBrowser: FC<{
   const fetchFolders = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/folders?depth=0&where[type][equals]=media&limit=100&sort=order')
+      const res = await fetch('/api/folders?depth=0&where[type][equals]=media&limit=100&sort=order,name')
       const data = await res.json()
       if (data.docs) setFolders(buildTree(data.docs))
     } catch (err) {

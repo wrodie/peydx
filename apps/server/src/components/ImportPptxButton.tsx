@@ -80,7 +80,7 @@ export function ImportPptxButton() {
   const currentUploadIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/departments?limit=100')
+    fetch('/api/departments?limit=100&sort=name')
       .then((r) => r.json())
       .then((data) => {
         const list: Department[] = data.docs || []
@@ -188,7 +188,7 @@ export function ImportPptxButton() {
         formData.append('chunkIndex', String(i))
         formData.append('totalChunks', String(totalChunks))
         formData.append('fileName', file.name)
-        if (i === 0 && selectedDeptId) {
+        if (selectedDeptId) {
           formData.append('department', String(selectedDeptId))
         }
 
