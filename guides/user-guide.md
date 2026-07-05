@@ -19,6 +19,9 @@ A step-by-step guide for users.
 
 PeydX lets you create slide programs for classroom lessons, children's ministry content, and digital signage — then schedule them on screens and control playback from a web browser.
 
+> [!WARNING]
+> This is not Powerpoint.  A slide can be an image, video, audio clip or an image with background audio. There are no shapes, text, secondary images or animations.
+
 ### Logging In
 
 1. Open your PeydX admin URL (e.g., `https://peydx.yourchurch.org/admin`).

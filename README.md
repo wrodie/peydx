@@ -23,6 +23,8 @@ On the flip side, if you are willing to put in some work, one off purchases of c
 - **Web Base Remote Control** — Remote control each device via a web based panel.
 - **External API** - REST/Websocket API for external monitoring/control of display devices
 
+> [!WARNING]
+> This is not Powerpoint.  A slide can be an image, video, audio clip or an image with background audio. There are no shapes, text, secondary images or animations.
 
 ## Monorepo Structure
 
