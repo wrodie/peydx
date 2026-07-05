@@ -80,7 +80,7 @@ export function ImportPptxButton() {
   const currentUploadIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/departments?limit=100')
+    fetch('/api/departments?limit=100&sort=name')
       .then((r) => r.json())
       .then((data) => {
         const list: Department[] = data.docs || []

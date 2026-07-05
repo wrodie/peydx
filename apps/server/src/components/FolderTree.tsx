@@ -152,7 +152,7 @@ export function FolderTree() {
     setLoading(true)
     try {
       const res = await fetch(
-        `/api/folders?depth=0&where[type][equals]=${folderType}&limit=100&sort=order`
+        `/api/folders?depth=0&where[type][equals]=${folderType}&limit=100&sort=order,name`
       )
       const data = await res.json()
       if (data.docs) {
