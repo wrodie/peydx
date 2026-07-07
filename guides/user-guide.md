@@ -136,14 +136,27 @@ Use the folder sidebar to keep your media organized:
 > - **Events**: "VBS 2026", "Christmas Program 2026"
 
 **To create a new folder:**
-1. Click the **+** button next to an existing folder (such as your department root folder) to create a sub-folder.
+1. Hover over an existing folder (such as your department root folder) to reveal the **+** button, then click it.
 2. Enter the folder name.
 3. The folder's department is automatically inherited from its parent.
 4. Click **Save**.
 
-For example, click the **+** button next to your department's root media folder to create a folder called "Summer 2026", then add sub-folders inside it for each week's lesson. This keeps all your weekly visuals, videos, and activity sheets neatly organized.
+For example, hover over your department's root media folder, click the **+** button to create a folder called "Summer 2026", then add sub-folders inside it for each week's lesson. This keeps all your weekly visuals, videos, and activity sheets neatly organized.
 
-Folders can be nested up to 3 levels deep. You cannot delete a folder that still contains media files or sub-folders.
+Folders can be nested up to 3 levels deep.
+
+**To rename a folder:**
+1. Hover over the folder name in the sidebar.
+2. Click the **pencil (edit)** icon.
+3. Type the new name and press **Enter** (or **Escape** to cancel).
+
+**To delete a folder:**
+1. Make sure the folder is **empty** (no media, programs, or sub-folders inside it).
+2. Hover over the folder name in the sidebar.
+3. Click the **trash (delete)** icon.
+4. Click **OK** to confirm deletion.
+
+> **Note:** The delete button is hidden for folders that still contain media files, programs, or sub-folders. Move or delete those contents first, then the folder can be deleted.
 
 **To move media to a different folder:**
 1. Click on a media item to edit it.

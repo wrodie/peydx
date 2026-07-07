@@ -7,6 +7,8 @@ import {
   ExpandCircleRightIcon,
   CloseIcon,
   AddIcon,
+  EditIcon,
+  DeleteIcon,
 } from './icons'
 
 interface Folder {
@@ -92,7 +94,7 @@ const s = {
     cursor: 'pointer',
     border: 'none',
     borderRadius: 3,
-    background: 'var(--theme-elevation-200, #e5e7eb)',
+    background: 'var(--theme-elevation-300, #d1d5db)',
     color: 'var(--theme-elevation-800, #1f2937)',
     flexShrink: 0,
   } as React.CSSProperties,
@@ -133,6 +135,10 @@ export function FolderTree() {
   const [parentMap, setParentMap] = useState<Record<number, number | null>>({})
   const [showNewFolder, setShowNewFolder] = useState<number | null>(null)
   const [newName, setNewName] = useState('')
+  const [editingFolder, setEditingFolder] = useState<number | null>(null)
+  const [editName, setEditName] = useState('')
+  const [hoveredFolder, setHoveredFolder] = useState<number | null>(null)
+  const [folderContentCounts, setFolderContentCounts] = useState<Record<number, number>>({})
   const [loading, setLoading] = useState(true)
 
   const folderType = collectionSlug === 'media' ? 'media' : 'programs'
@@ -157,6 +163,26 @@ export function FolderTree() {
         }
         setParentMap(map)
         setFolders(buildTree(data.docs))
+
+        const folderIds = data.docs.map((d: any) => d.id)
+        if (folderIds.length > 0) {
+          const idList = folderIds.join(',')
+          const [mediaRes, programsRes] = await Promise.all([
+            fetch(`/api/media?depth=0&fields=folder&limit=1000&where[folder][in]=${idList}`),
+            fetch(`/api/programs?depth=0&fields=folder&limit=1000&where[folder][in]=${idList}`),
+          ])
+          const mediaData = await mediaRes.json()
+          const programsData = await programsRes.json()
+
+          const counts: Record<number, number> = {}
+          for (const doc of [...(mediaData.docs || []), ...(programsData.docs || [])]) {
+            const fid = typeof doc.folder === 'object' ? doc.folder.id : doc.folder
+            counts[fid] = (counts[fid] || 0) + 1
+          }
+          setFolderContentCounts(counts)
+        } else {
+          setFolderContentCounts({})
+        }
       }
     } catch (err) {
       console.error('Failed to fetch folders', err)
@@ -319,6 +345,78 @@ export function FolderTree() {
     setNewName('')
   }
 
+  const startRename = (folder: Folder) => {
+    setEditingFolder(folder.id)
+    setEditName(folder.name)
+  }
+
+  const cancelRename = () => {
+    setEditingFolder(null)
+    setEditName('')
+  }
+
+  const handleRenameFolder = async (folderId: number) => {
+    if (!editName.trim()) return
+    try {
+      const res = await fetch(`/api/folders/${folderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editName.trim() }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err?.errors?.[0]?.message || err?.message || 'Failed to rename folder')
+      }
+      setEditingFolder(null)
+      setEditName('')
+      fetchFolders()
+    } catch (e: any) {
+      alert(e?.message || 'Failed to rename folder')
+    }
+  }
+
+  const handleDeleteFolder = async (folder: Folder) => {
+    if (!confirm(`Delete folder "${folder.name}"? This action cannot be undone.`)) return
+    try {
+      const res = await fetch(`/api/folders/${folder.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err?.errors?.[0]?.message || err?.message || 'Failed to delete folder')
+      }
+      fetchFolders()
+    } catch (e: any) {
+      alert(e?.message || 'Failed to delete folder')
+    }
+  }
+
+  const hasContents = (folder: Folder): boolean => {
+    if (folder.children.length > 0) return true
+    return (folderContentCounts[folder.id] || 0) > 0
+  }
+
+  const renderInlineRenameForm = (folder: Folder) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
+      <input
+        autoFocus
+        value={editName}
+        onChange={(e) => setEditName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleRenameFolder(folder.id)
+          if (e.key === 'Escape') cancelRename()
+        }}
+        onBlur={() => {
+          if (editName.trim() && editName.trim() !== folder.name) {
+            handleRenameFolder(folder.id)
+          } else {
+            cancelRename()
+          }
+        }}
+        placeholder="Folder name"
+        style={s.inlineInput}
+      />
+    </div>
+  )
+
   const renderInlineForm = (parentId: number | null, depth: number) => (
     <div style={{ ...s.inlineForm, paddingLeft: (depth + 1) * 12 + 12 }}>
       <input
@@ -345,7 +443,11 @@ export function FolderTree() {
 
     return (
       <div key={folder.id}>
-        <div style={s.row(isActive)}>
+        <div
+          style={s.row(isActive)}
+          onMouseEnter={() => setHoveredFolder(folder.id)}
+          onMouseLeave={() => setHoveredFolder(null)}
+        >
           {ancestors.map((a, i) => (
             <span key={i} style={s.guideCol}>
               <span style={{ ...s.guideLine, top: 0, bottom: 0 }} />
@@ -375,20 +477,50 @@ export function FolderTree() {
           >
             {hasChildren ? (isExpanded ? <ExpandCircleDownIcon size={24} /> : <ExpandCircleRightIcon size={24} />) : ' '}
           </span>
-          <span onClick={() => navigateToFolder(folder.id)} style={s.label(isActive)}>
-            {folder.name}
-          </span>
-          {canNest(depth) && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                startNewFolder(folder.id)
-              }}
-              style={s.addBtn}
-              title="Add subfolder"
-            >
-              <AddIcon size={14} />
-            </button>
+          {editingFolder === folder.id ? (
+            renderInlineRenameForm(folder)
+          ) : (
+            <span onClick={() => navigateToFolder(folder.id)} style={s.label(isActive)}>
+              {folder.name}
+            </span>
+          )}
+          {editingFolder !== folder.id && hoveredFolder === folder.id && (
+            <span style={{ display: 'inline-flex', gap: '1px', alignItems: 'center' }}>
+              {canNest(depth) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    startNewFolder(folder.id)
+                  }}
+                  style={s.addBtn}
+                  title="Add subfolder"
+                >
+                  <AddIcon size={14} />
+                </button>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  startRename(folder)
+                }}
+                style={s.addBtn}
+                title="Rename folder"
+              >
+                <EditIcon size={14} />
+              </button>
+              {!hasContents(folder) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDeleteFolder(folder)
+                  }}
+                  style={s.addBtn}
+                  title="Delete folder"
+                >
+                  <DeleteIcon size={14} />
+                </button>
+              )}
+            </span>
           )}
         </div>
         {isExpanded && folder.children.map((child, idx, arr) => renderNode(child, idx === arr.length - 1, [...ancestors, isLast]))}

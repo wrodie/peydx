@@ -199,10 +199,13 @@ Folders provide hierarchical organization for Media and Programs, scoped per dep
 - **"Unfiled"** — shows items not assigned to any folder (admins only — not visible to managers or standard users)
 - Expand/collapse arrows on folders with children
 - The selected folder filters the list
+- **Add, rename, and delete** buttons (+, pencil, and trash icons) appear on hover next to each folder name
 
-### Creating Folders
+### Managing Folders
 
-1. In the folder sidebar, click the **+** button next to an existing parent folder to create a sub-folder.
+#### Creating Folders
+
+1. In the folder sidebar, hover over a folder to reveal the **+** button, then click it to create a sub-folder.
 2. Enter the folder name.
 3. Select the folder type (media or programs).
 4. Choose a parent folder (required).
@@ -212,6 +215,22 @@ Folders provide hierarchical organization for Media and Programs, scoped per dep
 - Folders can be nested up to **3 levels deep** (root > level 1 > level 2).
 - A folder's department is automatically inherited from its parent. Root folders are auto-created per department — non-admin users cannot create root-level folders.
 - You cannot delete a folder that contains items or sub-folders.
+
+#### Renaming Folders
+
+1. Hover over the folder name in the sidebar.
+2. Click the **pencil (edit)** icon that appears.
+3. Type the new name.
+4. Press **Enter** to save, or **Escape** to cancel.
+
+#### Deleting Folders
+
+1. Hover over the folder name in the sidebar.
+2. If the folder is **empty** (no sub-folders, media, or programs inside it), a **trash (delete)** icon appears.
+3. Click the trash icon and confirm deletion.
+4. The folder and its contents cannot be recovered.
+
+> **Note:** Folders with contents do not show the delete button. You must move or delete the contents first before the folder can be deleted.
 
 ### Moving Items Between Folders
 
