@@ -1,4 +1,5 @@
 import type { CollectionBeforeDeleteHook } from 'payload'
+import { APIError } from 'payload'
 
 export const userBeforeDelete: CollectionBeforeDeleteHook = async ({ req, id }) => {
   const user = req.user as any
@@ -7,7 +8,7 @@ export const userBeforeDelete: CollectionBeforeDeleteHook = async ({ req, id }) 
 
   if (user.role === 'manager') {
     if (id === user.id) {
-      throw new Error('Managers cannot delete themselves')
+      throw new APIError('Managers cannot delete themselves', 400)
     }
 
     const target = await req.payload.findByID({
@@ -17,7 +18,7 @@ export const userBeforeDelete: CollectionBeforeDeleteHook = async ({ req, id }) 
     })
 
     if (target.role !== 'standard') {
-      throw new Error('Managers can only delete Standard users')
+      throw new APIError('Managers can only delete Standard users', 403)
     }
 
     return

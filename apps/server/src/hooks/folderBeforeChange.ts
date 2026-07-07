@@ -1,4 +1,5 @@
 import type { CollectionBeforeChangeHook } from 'payload'
+import { APIError } from 'payload'
 import { getAncestorCount } from '../collections/folder-utils'
 
 export const folderBeforeChange: CollectionBeforeChangeHook = async ({ data, req, operation }) => {
@@ -23,7 +24,7 @@ export const folderBeforeChange: CollectionBeforeChangeHook = async ({ data, req
           : parent.department
         : null
       if (parentDeptId && deptIds.length > 0 && !deptIds.includes(parentDeptId)) {
-        throw new Error('Parent folder is not in one of your departments.')
+        throw new APIError('Parent folder is not in one of your departments.', 403)
       }
     }
 
@@ -40,7 +41,7 @@ export const folderBeforeChange: CollectionBeforeChangeHook = async ({ data, req
       typeof d === 'object' ? d.id : d
     )
     if (!data.parent && operation === 'create') {
-      throw new Error('Creating a top-level folder is not allowed. Please select a parent folder.')
+      throw new APIError('Creating a top-level folder is not allowed. Please select a parent folder.', 400)
     }
     if (deptIds.length > 0 && !data.department) {
       data.department = deptIds[0]
@@ -52,12 +53,12 @@ export const folderBeforeChange: CollectionBeforeChangeHook = async ({ data, req
       typeof data.parent === 'object' ? data.parent.id : data.parent
 
     if (operation === 'update' && parentId === (data as any).id) {
-      throw new Error('A folder cannot be its own parent')
+      throw new APIError('A folder cannot be its own parent', 400)
     }
 
     const ancestorCount = await getAncestorCount(req.payload, parentId)
     if (ancestorCount >= 2) {
-      throw new Error(
+      throw new APIError(
         'Maximum folder nesting depth is 3 levels. The selected parent is already at depth 3.'
       )
     }

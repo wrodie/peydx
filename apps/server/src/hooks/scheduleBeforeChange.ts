@@ -1,4 +1,5 @@
 import type { CollectionBeforeChangeHook } from 'payload'
+import { APIError } from 'payload'
 import { timeOfDayMinutes, dateOnly, DAY_NAMES } from '../collections/schedule-utils'
 
 const ONE_HOUR = 60 * 60 * 1000
@@ -51,7 +52,7 @@ export const scheduleBeforeChange: CollectionBeforeChangeHook = async ({ data, r
         typeof d === 'object' ? d.id : d
       )
       if (!userDeptIds.includes(programDept)) {
-        throw new Error('You can only schedule programs from your own department.')
+        throw new APIError('You can only schedule programs from your own department.', 403)
       }
     } catch (err: any) {
       if (err.message?.includes('only schedule programs')) throw err
@@ -131,7 +132,7 @@ export const scheduleBeforeChange: CollectionBeforeChangeHook = async ({ data, r
         }
       }
 
-      throw new Error('This entry overlaps with an existing schedule on one of the selected devices.')
+      throw new APIError('This entry overlaps with an existing schedule on one of the selected devices.', 409)
     }
   }
   return data

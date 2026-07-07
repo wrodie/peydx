@@ -1,4 +1,5 @@
 import type { CollectionBeforeDeleteHook } from 'payload'
+import { APIError } from 'payload'
 
 export const folderBeforeDelete: CollectionBeforeDeleteHook = async ({ req, id }) => {
   const [childFolders, childMedia, childPrograms] = await Promise.all([
@@ -31,7 +32,7 @@ export const folderBeforeDelete: CollectionBeforeDeleteHook = async ({ req, id }
     blockers.push(`${childPrograms.totalDocs} program(s)`)
 
   if (blockers.length > 0) {
-    throw new Error(
+    throw new APIError(
       `Cannot delete folder: it contains ${blockers.join(', ')}. ` +
         'Move or delete the contents first.'
     )

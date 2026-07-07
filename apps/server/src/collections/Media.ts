@@ -4,6 +4,7 @@ import { mediaNameAutoFill } from '../hooks/mediaNameAutoFill'
 import { mediaFolderAutoAssign } from '../hooks/mediaFolderAutoAssign'
 import { mediaAfterCreate } from '../hooks/mediaAfterCreate'
 import { mediaAfterUpdate } from '../hooks/mediaAfterUpdate'
+import { mediaValidateVideo } from '../hooks/mediaValidateVideo'
 import { mediaAfterRead } from '../hooks/mediaAfterRead'
 import { mediaThumbnail } from '../endpoints/mediaThumbnail'
 import { verifyMediaToken } from '../utilities/mediaToken'
@@ -61,7 +62,7 @@ export const Media: CollectionConfig = {
     beforeDelete: [
       cleanupMediaReferences,
     ],
-    beforeChange: [mediaNameAutoFill, mediaFolderAutoAssign],
+    beforeChange: [mediaValidateVideo, mediaNameAutoFill, mediaFolderAutoAssign],
     afterChange: [
       mediaAfterCreate,
       mediaAfterUpdate,

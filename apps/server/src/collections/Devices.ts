@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { APIError } from 'payload'
 import { getIO } from '../websocket/io'
 
 export const Devices: CollectionConfig = {
@@ -44,7 +45,7 @@ export const Devices: CollectionConfig = {
             depth: 0,
           })
           if (controller.controllingDevice) {
-            throw new Error('Cannot set a controlling device that is itself controlled by another device. Only one level of mirroring is allowed.')
+            throw new APIError('Cannot set a controlling device that is itself controlled by another device. Only one level of mirroring is allowed.', 400)
           }
         }
         return data

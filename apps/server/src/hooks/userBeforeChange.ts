@@ -1,4 +1,5 @@
 import type { CollectionBeforeChangeHook } from 'payload'
+import { APIError } from 'payload'
 
 export const userBeforeChange: CollectionBeforeChangeHook = async ({ data, req, operation }) => {
   const user = req.user as any
@@ -17,7 +18,7 @@ export const userBeforeChange: CollectionBeforeChangeHook = async ({ data, req, 
   if (user.role === 'manager') {
     const targetRole = data.role
     if (targetRole && targetRole !== 'standard') {
-      throw new Error('Managers can only create users with the Standard role')
+      throw new APIError('Managers can only create users with the Standard role', 403)
     }
 
     const managerDeptIds = (user.departments || []).map((d: any) =>
@@ -27,7 +28,7 @@ export const userBeforeChange: CollectionBeforeChangeHook = async ({ data, req, 
       typeof d === 'object' ? d.id : d,
     )
     if (newDeptIds.some((id: number) => !managerDeptIds.includes(id))) {
-      throw new Error('Managers can only assign users to their own departments')
+      throw new APIError('Managers can only assign users to their own departments', 403)
     }
   }
 
