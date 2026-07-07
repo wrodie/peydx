@@ -41,6 +41,7 @@ export const Users: CollectionConfig = {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
         return { departments: { in: deptIds } } as any
       }
+      if (user.role === 'standard') return { id: { equals: user.id } } as any
       return false
     },
     delete: ({ req: { user: u } }) => {
