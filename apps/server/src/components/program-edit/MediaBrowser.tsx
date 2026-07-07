@@ -2,6 +2,7 @@
 
 import { useDraggable } from '@dnd-kit/core'
 import { useCallback, useEffect, useRef, useState, type FC } from 'react'
+import { usePreferences } from '@payloadcms/ui'
 import {
   ImageIcon,
   MovieIcon,
@@ -183,6 +184,7 @@ export const MediaBrowser: FC<{
   const [folders, setFolders] = useState<Folder[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null)
+  const [parentMap, setParentMap] = useState<Record<number, number | null>>({})
   const [media, setMedia] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [mediaLoading, setMediaLoading] = useState(false)
@@ -191,6 +193,7 @@ export const MediaBrowser: FC<{
   const [totalPages, setTotalPages] = useState(1)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { getPreference, setPreference } = usePreferences()
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), [])
   const toggleSelect = useCallback((id: number) => {
@@ -213,7 +216,19 @@ export const MediaBrowser: FC<{
     try {
       const res = await fetch('/api/folders?depth=0&where[type][equals]=media&limit=100&sort=order,name')
       const data = await res.json()
-      if (data.docs) setFolders(buildTree(data.docs))
+      if (data.docs) {
+        const map: Record<number, number | null> = {}
+        for (const doc of data.docs) {
+          const parentId = doc.parent
+            ? typeof doc.parent === 'object'
+              ? doc.parent.id
+              : doc.parent
+            : null
+          map[doc.id] = parentId
+        }
+        setParentMap(map)
+        setFolders(buildTree(data.docs))
+      }
     } catch (err) {
       console.error('Failed to fetch folders', err)
     }
@@ -223,6 +238,39 @@ export const MediaBrowser: FC<{
   useEffect(() => {
     fetchFolders()
   }, [fetchFolders])
+
+  const expandAncestors = useCallback((folderId: number) => {
+    const ancestors: number[] = []
+    let currentId = folderId
+    while (currentId && parentMap[currentId] != null) {
+      ancestors.push(parentMap[currentId]!)
+      currentId = parentMap[currentId]!
+    }
+    if (ancestors.length > 0) {
+      setExpanded(prev => {
+        const next = new Set(prev)
+        ancestors.forEach(id => next.add(id))
+        return next
+      })
+    }
+  }, [parentMap])
+
+  const restoredRef = useRef(false)
+
+  useEffect(() => {
+    if (restoredRef.current) return
+    if (loading) return
+    const restore = async () => {
+      const pref = await getPreference('media-browser-folder')
+      const folderId = pref?.value as number | null | undefined
+      if (folderId != null) {
+        expandAncestors(folderId)
+        setSelectedFolder(folderId)
+      }
+      restoredRef.current = true
+    }
+    restore()
+  }, [getPreference, expandAncestors, loading])
 
   const buildUrl = useCallback((folderId: number | null, searchTerm: string, pageNum: number) => {
     let url = `/api/media?depth=0&limit=50&sort=name&page=${pageNum}`
@@ -290,7 +338,7 @@ export const MediaBrowser: FC<{
     return (
       <div key={folder.id}>
         <div
-          onClick={() => { clearSelection(); setSelectedFolder(folder.id) }}
+          onClick={() => { clearSelection(); setSelectedFolder(folder.id); setPreference('media-browser-folder', { value: folder.id }) }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -404,7 +452,7 @@ export const MediaBrowser: FC<{
 
       <div style={{ overflow: 'auto', maxHeight: '40%', padding: '8px 12px' }}>
         <div
-          onClick={() => { clearSelection(); setSelectedFolder(null) }}
+          onClick={() => { clearSelection(); setSelectedFolder(null); setPreference('media-browser-folder', { value: null }) }}
           style={{
             display: 'flex',
             alignItems: 'center',

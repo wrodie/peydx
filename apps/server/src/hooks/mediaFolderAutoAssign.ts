@@ -10,7 +10,7 @@ export const mediaFolderAutoAssign: CollectionBeforeChangeHook = async ({ data, 
       pagination: false,
       where: {
         and: [
-          { key: { equals: 'current-folder' } },
+          { key: { equals: 'current-folder-media' } },
           { 'user.value': { equals: req.user.id } },
         ],
       },

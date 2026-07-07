@@ -73,7 +73,7 @@ export const Programs: CollectionConfig = {
             pagination: false,
             where: {
               and: [
-                { key: { equals: 'current-folder' } },
+                { key: { equals: 'current-folder-programs' } },
                 { 'user.value': { equals: req.user.id } },
               ],
             },

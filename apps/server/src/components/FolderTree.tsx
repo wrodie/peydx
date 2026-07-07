@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth, useListQuery, usePreferences } from '@payloadcms/ui'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ExpandCircleDownIcon,
   ExpandCircleRightIcon,
@@ -130,11 +130,13 @@ export function FolderTree() {
   const [folders, setFolders] = useState<Folder[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [activeFolder, setActiveFolder] = useState<number | 'unfiled' | null>(null)
+  const [parentMap, setParentMap] = useState<Record<number, number | null>>({})
   const [showNewFolder, setShowNewFolder] = useState<number | null>(null)
   const [newName, setNewName] = useState('')
   const [loading, setLoading] = useState(true)
 
   const folderType = collectionSlug === 'media' ? 'media' : 'programs'
+  const prefKey = `current-folder-${folderType}`
 
   const fetchFolders = useCallback(async () => {
     setLoading(true)
@@ -144,6 +146,16 @@ export function FolderTree() {
       )
       const data = await res.json()
       if (data.docs) {
+        const map: Record<number, number | null> = {}
+        for (const doc of data.docs) {
+          const parentId = doc.parent
+            ? typeof doc.parent === 'object'
+              ? doc.parent.id
+              : doc.parent
+            : null
+          map[doc.id] = parentId
+        }
+        setParentMap(map)
         setFolders(buildTree(data.docs))
       }
     } catch (err) {
@@ -156,8 +168,53 @@ export function FolderTree() {
     fetchFolders()
   }, [fetchFolders])
 
+  const expandAncestors = useCallback((folderId: number) => {
+    const ancestors: number[] = []
+    let currentId = folderId
+    while (currentId && parentMap[currentId] != null) {
+      ancestors.push(parentMap[currentId]!)
+      currentId = parentMap[currentId]!
+    }
+    if (ancestors.length > 0) {
+      setExpanded(prev => {
+        const next = new Set(prev)
+        ancestors.forEach(id => next.add(id))
+        return next
+      })
+    }
+  }, [parentMap])
+
+  const restoredRef = useRef(false)
+
+  useEffect(() => {
+    if (restoredRef.current) return
+    if (loading) return
+    const w = query?.where as any
+    if (w && Object.keys(w).length > 0) {
+      restoredRef.current = true
+      return
+    }
+
+    const restore = async () => {
+      const pref = await getPreference(prefKey)
+      const folderId = pref?.value as number | null | undefined
+      if (folderId != null) {
+        expandAncestors(folderId)
+        if (handleWhereChange) {
+          await handleWhereChange({ folder: { equals: folderId } })
+        }
+      }
+      restoredRef.current = true
+    }
+    restore()
+  }, [query?.where, getPreference, handleWhereChange, prefKey, expandAncestors, loading])
+
   useEffect(() => {
     const w = query?.where as any
+    if (restoredRef.current && (!w || Object.keys(w).length === 0)) {
+      setActiveFolder(null)
+      return
+    }
     if (!w || Object.keys(w).length === 0) {
       setActiveFolder(null)
       return
@@ -185,7 +242,7 @@ export function FolderTree() {
   const canNest = (depth: number) => depth < 2
 
   const saveFolderPreference = async (value: number | null) => {
-    await setPreference('current-folder', { value })
+    await setPreference(prefKey, { value })
   }
 
   const navigateToFolder = async (folderId: number) => {

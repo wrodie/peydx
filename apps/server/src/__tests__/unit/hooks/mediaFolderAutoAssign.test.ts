@@ -16,7 +16,7 @@ describe('mediaFolderAutoAssign', () => {
     vi.clearAllMocks()
   })
 
-  it('assigns folder from current-folder preference', async () => {
+  it('assigns folder from current-folder-media preference', async () => {
     const req = makeReq()
     req.payload.find.mockResolvedValueOnce({
       docs: [{ value: { value: 42 } }],
@@ -32,7 +32,7 @@ describe('mediaFolderAutoAssign', () => {
       pagination: false,
       where: {
         and: [
-          { key: { equals: 'current-folder' } },
+          { key: { equals: 'current-folder-media' } },
           { 'user.value': { equals: 1 } },
         ],
       },
