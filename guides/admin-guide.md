@@ -202,15 +202,15 @@ Folders provide hierarchical organization for Media and Programs, scoped per dep
 
 ### Creating Folders
 
-1. In the folder sidebar, click the **+ New Folder** button, or click the inline **+** button next to a parent folder.
+1. In the folder sidebar, click the **+** button next to an existing parent folder to create a sub-folder.
 2. Enter the folder name.
 3. Select the folder type (media or programs).
-4. Choose a parent folder (optional — root folders have no parent).
+4. Choose a parent folder (required).
 5. Click **Save**.
 
 **Rules:**
 - Folders can be nested up to **3 levels deep** (root > level 1 > level 2).
-- A folder's department is automatically inherited from its parent. Root folders are assigned to your first department.
+- A folder's department is automatically inherited from its parent. Root folders are auto-created per department — non-admin users cannot create root-level folders.
 - You cannot delete a folder that contains items or sub-folders.
 
 ### Moving Items Between Folders

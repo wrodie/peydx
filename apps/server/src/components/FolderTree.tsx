@@ -96,18 +96,6 @@ const s = {
     color: 'var(--theme-elevation-800, #1f2937)',
     flexShrink: 0,
   } as React.CSSProperties,
-  newFolderBtn: {
-    background: 'var(--theme-primary-500, #3b82f6)',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 4,
-    cursor: 'pointer',
-    padding: '4px 12px',
-    fontSize: '0.8rem',
-    width: '100%',
-    marginTop: 8,
-    fontWeight: 500,
-  } as React.CSSProperties,
   inlineForm: {
     display: 'flex',
     gap: 4,
@@ -142,7 +130,7 @@ export function FolderTree() {
   const [folders, setFolders] = useState<Folder[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [activeFolder, setActiveFolder] = useState<number | 'unfiled' | null>(null)
-  const [showNewFolder, setShowNewFolder] = useState<number | 'root' | null>(null)
+  const [showNewFolder, setShowNewFolder] = useState<number | null>(null)
   const [newName, setNewName] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -264,7 +252,7 @@ export function FolderTree() {
     }
   }
 
-  const startNewFolder = (parentId: number | 'root') => {
+  const startNewFolder = (parentId: number) => {
     setShowNewFolder(parentId)
     setNewName('')
   }
@@ -385,14 +373,6 @@ export function FolderTree() {
         ) : (
           folders.map((f, idx, arr) => renderNode(f, idx === arr.length - 1))
         )}
-
-      {showNewFolder === 'root' && renderInlineForm(null, 0)}
-
-      {showNewFolder !== 'root' && (
-        <button onClick={() => startNewFolder('root')} style={s.newFolderBtn}>
-          <AddIcon size={14} /> New Folder
-        </button>
-      )}
     </div>
   )
 }

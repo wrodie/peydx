@@ -81,8 +81,16 @@ describe('folderBeforeChange', () => {
       ).rejects.toThrow('Maximum folder nesting depth is 3 levels')
     })
 
-    it('allows no parent (root folder)', async () => {
+    it('rejects root folder creation for non-admin users', async () => {
       const req = makeReq()
+      const data = { name: 'Root' }
+      await expect(
+        folderBeforeChange({ data, req, operation: 'create' } as any)
+      ).rejects.toThrow('Creating a top-level folder is not allowed')
+    })
+
+    it('allows root folder creation for admin users', async () => {
+      const req = makeReq({}, { role: 'admin', departments: [{ id: 10 }] })
       const data = { name: 'Root' }
       const result = await folderBeforeChange({ data, req, operation: 'create' } as any)
       expect(result).toEqual(data)
@@ -116,14 +124,16 @@ describe('folderBeforeChange', () => {
   describe('non-admin default department', () => {
     it('assigns first department to non-admin user without data.department', async () => {
       const req = makeReq()
-      const data = {}
+      req.payload.findByID.mockResolvedValue({ department: 10 })
+      const data = { parent: 5 }
       const result = await folderBeforeChange({ data, req, operation: 'create' } as any)
       expect(result.department).toBe(10)
     })
 
-    it('does not override data.department for non-admin user', async () => {
+    it('does not override data.department for non-admin user when parent has no department', async () => {
       const req = makeReq()
-      const data = { department: 20 }
+      req.payload.findByID.mockResolvedValue({ department: null })
+      const data = { parent: 5, department: 20 }
       const result = await folderBeforeChange({ data, req, operation: 'create' } as any)
       expect(result.department).toBe(20)
     })
@@ -133,6 +143,35 @@ describe('folderBeforeChange', () => {
       const data = {}
       const result = await folderBeforeChange({ data, req, operation: 'create' } as any)
       expect(result.department).toBeUndefined()
+    })
+  })
+
+  describe('parent department validation', () => {
+    it('allows non-admin to create sub-folder with parent in their department', async () => {
+      const req = makeReq()
+      req.payload.findByID.mockResolvedValue({ department: 10 })
+      const data = { parent: 5 }
+      await expect(
+        folderBeforeChange({ data, req, operation: 'create' } as any)
+      ).resolves.not.toThrow()
+    })
+
+    it('rejects non-admin creating sub-folder with parent outside their departments', async () => {
+      const req = makeReq()
+      req.payload.findByID.mockResolvedValue({ department: 99 })
+      const data = { parent: 5 }
+      await expect(
+        folderBeforeChange({ data, req, operation: 'create' } as any)
+      ).rejects.toThrow('Parent folder is not in one of your departments.')
+    })
+
+    it('allows non-admin with no departments to create sub-folder when parent has no department', async () => {
+      const req = makeReq({}, { departments: [] })
+      req.payload.findByID.mockResolvedValue({ department: null })
+      const data = { parent: 5 }
+      await expect(
+        folderBeforeChange({ data, req, operation: 'create' } as any)
+      ).resolves.not.toThrow()
     })
   })
 })

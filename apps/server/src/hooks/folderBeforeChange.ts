@@ -12,6 +12,21 @@ export const folderBeforeChange: CollectionBeforeChangeHook = async ({ data, req
       id: parentId,
       depth: 0,
     })
+
+    if (user && user.role !== 'admin') {
+      const deptIds = (user.departments || []).map((d: any) =>
+        typeof d === 'object' ? d.id : d
+      )
+      const parentDeptId = parent?.department
+        ? typeof parent.department === 'object'
+          ? parent.department.id
+          : parent.department
+        : null
+      if (parentDeptId && deptIds.length > 0 && !deptIds.includes(parentDeptId)) {
+        throw new Error('Parent folder is not in one of your departments.')
+      }
+    }
+
     if (parent?.department) {
       data.department =
         typeof parent.department === 'object'
@@ -24,6 +39,9 @@ export const folderBeforeChange: CollectionBeforeChangeHook = async ({ data, req
     const deptIds = (user.departments || []).map((d: any) =>
       typeof d === 'object' ? d.id : d
     )
+    if (!data.parent && operation === 'create') {
+      throw new Error('Creating a top-level folder is not allowed. Please select a parent folder.')
+    }
     if (deptIds.length > 0 && !data.department) {
       data.department = deptIds[0]
     }
