@@ -5,12 +5,12 @@ A step-by-step guide for users.
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
-2. [Changing Your Password](#changing-your-password)
-3. [Upload & Organize Media](#upload--organize-media)
-4. [Create & Edit Programs](#create--edit-programs)
-5. [Schedule Programs to Devices](#schedule-programs-to-devices)
-6. [Remote Control](#remote-control)
-7. [Dashboard](#dashboard)
+2. [Dashboard](#dashboard)
+3. [Changing Your Password](#changing-your-password)
+4. [Upload & Organize Media](#upload--organize-media)
+5. [Create & Edit Programs](#create--edit-programs)
+6. [Schedule Programs to Devices](#schedule-programs-to-devices)
+7. [Remote Control](#remote-control)
 8. [Tips & Common Questions](#tips--common-questions)
 
 ---
@@ -46,6 +46,42 @@ The top navigation bar is always available:
 ### Your Department
 
 Everything you see and work with is scoped to your **department(s)**. If you're assigned to "Youth Ministry," you'll only see media, programs, schedules, and devices belonging to that department. If you're in multiple departments, you'll see content from all of them.
+
+---
+
+## Dashboard
+
+The Dashboard is your home page. It gives you a quick overview of everything happening in your department(s).
+
+![Dashboard](images/dashboard.png)
+
+### Devices Section
+
+Cards showing each device in your department(s):
+
+- **Status**: Online (green), Stale (amber), or Offline (gray)
+- **Current Program**: What's playing right now (or "--" if idle)
+- **Remote Control** button: Jump to Remote Control for that device
+
+Status updates in real-time.
+
+### Available Programs Section
+
+Programs that are currently within their availability window (Available From date has passed and Available Until date hasn't yet). Each card shows a thumbnail, title, and slide count. Click a card to edit the program.
+
+### Upcoming Programs Section
+
+Only shown when there are programs becoming available within the next 2 days. Displays program cards with thumbnail, title, slide count, and a link to the program edit page.
+
+### Upcoming Schedules Section
+
+A list of upcoming automated schedules showing:
+- Program title
+- Device names
+- Day-of-week pills (Mon, Tue, etc.)
+- Time range
+
+Click a schedule to view or edit it.
 
 ---
 
@@ -124,33 +160,7 @@ If your system has YouTube import enabled, you'll see an **"Import from YouTube"
 2. Paste a YouTube video URL or video ID.
 3. The video will be downloaded and added to your media library. (This may take some time - so please be patient.)
 
-### Importing a PowerPoint File
-
-You can import a `.pptx` file directly from the Programs page. This creates a new program with slides created from your PowerPoint content.
-
-1. Click **Programs** in the top navigation.
-2. Click the **Import PPTX** button above the program list.
-3. Select a `.pptx` file from your computer.
-4. If you belong to multiple departments, choose which department to import into.
-5. Click **Import**.
-
-The import process:
-- Parses the file and shows progress as each media file is processed
-- Creates a new **program** with your slides in order
-- Creates a **media subfolder** named after your file
-- Imports full-screen images, videos, and audio into that subfolder
-
-**What gets imported:**
-- ✅ Full-screen images (photos that fill the entire slide)
-- ✅ Video files
-- ✅ Audio files (including "play across slides" audio, which becomes a segment with background audio)
-- ❌ **Not imported:** Text, shapes, logos, small graphics, charts, or complex layouts — PowerPoint slides are complex documents and this importer focuses on media content only.
-
-> **Tips:**
-> - The new program will have `advanceMode: "manual"` for images and `"onEnd"` for video/audio — you can adjust these in the program editor.
-> - The program is placed in your department's programs root folder. You can move it later.
-> - Depending on the file size, importing may take some time — the progress bar shows you what's happening.
-> - Files over 90 MB are automatically split into chunks for upload. You'll see an "Uploading" progress step before the import begins. A **Cancel** button lets you abort the upload at any time.
+> **Note:** PowerPoint import is available from the **Programs** page. See [Importing a PowerPoint File](#importing-a-powerpoint-file) in the Create & Edit Programs section.
 
 ---
 
@@ -241,6 +251,34 @@ You can quickly add slides by dragging media from the browser directly onto the 
    - Video files become **Video Slides**
    - Audio files become **Audio Slides**
 5. Drop the item at a specific position, or onto a segment to add it inside.
+
+### Importing a PowerPoint File
+
+You can import a `.pptx` file directly from the Programs page. This creates a new program with slides created from your PowerPoint content.
+
+1. Click **Programs** in the top navigation.
+2. Click the **Import PPTX** button above the program list.
+3. Select a `.pptx` file from your computer.
+4. If you belong to multiple departments, choose which department to import into.
+5. Click **Import**.
+
+The import process:
+- Parses the file and shows progress as each media file is processed
+- Creates a new **program** with your slides in order
+- Creates a **media subfolder** named after your file
+- Imports full-screen images, videos, and audio into that subfolder
+
+**What gets imported:**
+- ✅ Full-screen images (photos that fill the entire slide)
+- ✅ Video files
+- ✅ Audio files (including "play across slides" audio, which becomes a segment with background audio)
+- ❌ **Not imported:** Text, shapes, logos, small graphics, charts, or complex layouts — PowerPoint slides are complex documents and this importer focuses on media content only.
+
+> **Tips:**
+> - The new program will have `advanceMode: "manual"` for images and `"onEnd"` for video/audio — you can adjust these in the program editor.
+> - The program is placed in your department's programs root folder. You can move it later.
+> - Depending on the file size, importing may take some time — the progress bar shows you what's happening.
+> - Files over 90 MB are automatically split into chunks for upload. You'll see an "Uploading" progress step before the import begins. A **Cancel** button lets you abort the upload at any time.
 
 ### Bulk Media Upload
 
@@ -451,42 +489,6 @@ When no program is playing on the selected device:
 ### Real-Time Updates
 
 The Remote Control page updates in real-time — you don't need to refresh to see changes. When someone else starts or stops a program, or when a schedule triggers, you'll see the status update automatically.
-
----
-
-## Dashboard
-
-The Dashboard is your home page. It gives you a quick overview of everything happening in your department(s).
-
-![Dashboard](images/dashboard.png)
-
-### Devices Section
-
-Cards showing each device in your department(s):
-
-- **Status**: Online (green), Stale (amber), or Offline (gray)
-- **Current Program**: What's playing right now (or "--" if idle)
-- **Remote Control** button: Jump to Remote Control for that device
-
-Status updates in real-time.
-
-### Available Programs Section
-
-Programs that are currently within their availability window (Available From date has passed and Available Until date hasn't yet). Each card shows a thumbnail, title, and slide count. Click a card to edit the program.
-
-### Upcoming Programs Section
-
-Only shown when there are programs becoming available within the next 2 days. Displays program cards with thumbnail, title, slide count, and a link to the program edit page.
-
-### Upcoming Schedules Section
-
-A list of upcoming automated schedules showing:
-- Program title
-- Device names
-- Day-of-week pills (Mon, Tue, etc.)
-- Time range
-
-Click a schedule to view or edit it.
 
 ---
 
