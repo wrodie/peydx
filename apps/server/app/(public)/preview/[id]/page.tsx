@@ -9,6 +9,7 @@ export default function ProgramPreview() {
   const { id } = useParams<{ id: string }>()
   const [program, setProgram] = useState<Program | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [ended, setEnded] = useState(false)
 
   useEffect(() => {
     fetch(`/api/programs/${id}?depth=2`)
@@ -32,5 +33,13 @@ export default function ProgramPreview() {
     )
   }
 
-  return <SlideEngine program={program} onProgramEnd={() => {}} />
+  if (ended) {
+    return (
+      <div className="slide-stage">
+        <div className="slide-status-text">Program ended — close this tab.</div>
+      </div>
+    )
+  }
+
+  return <SlideEngine program={program} onProgramEnd={() => setEnded(true)} />
 }

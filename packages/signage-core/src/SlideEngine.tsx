@@ -548,8 +548,8 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
             }}
           >
             <span style={{ color: 'white', fontSize: '1.875rem', fontFamily: 'system-ui, sans-serif', opacity: 0.6, paddingBottom: '20px' }}>
-              End of program — press Menu to exit
-            </span>
+                End of program
+              </span>
           </div>
         )}
         {slides && slides.length > 1 && (
