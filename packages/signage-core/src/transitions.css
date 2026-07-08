@@ -97,6 +97,28 @@
   opacity: 0.5;
 }
 
+.slide-audio-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  z-index: 5;
+  animation: signageFadeIn 1s ease both;
+}
+
+.slide-audio-play-label {
+  color: white;
+  font-size: 1.2rem;
+  font-family: system-ui, sans-serif;
+  opacity: 0.8;
+  padding: 12px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+}
+
 .slide-slide-indicator {
   display: none;
   position: fixed;

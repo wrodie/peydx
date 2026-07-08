@@ -61,6 +61,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const [videoError, setVideoError] = useState<string | null>(null)
     const [isEnded, setIsEnded] = useState(false)
     const [segmentLoopKey, setSegmentLoopKey] = useState(0)
+    const [audioBlocked, setAudioBlocked] = useState(false)
     const [, forceRender] = useState(0)
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -316,6 +317,58 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       }
     }, [currentIndex, currentSlide, doNextSlide])
 
+    // Audio block playback control
+    useEffect(() => {
+      const el = audioRef.current
+      if (!el || currentSlide?.blockType !== 'audioBlock') {
+        setAudioBlocked(false)
+        return
+      }
+
+      setAudioBlocked(false)
+      let cancelled = false
+
+      const tryPlay = async () => {
+        el.muted = false
+        try {
+          await el.play()
+        } catch {
+          if (cancelled) return
+          el.muted = true
+          try {
+            await el.play()
+          } catch {
+            if (cancelled) return
+            setAudioBlocked(true)
+          }
+        }
+      }
+
+      tryPlay()
+
+      return () => { cancelled = true }
+    }, [currentIndex])
+
+    // Global interaction listener for blocked audio
+    useEffect(() => {
+      if (!audioBlocked) return
+      const handler = () => {
+        const el = audioRef.current
+        if (!el) return
+        el.muted = false
+        el.currentTime = 0
+        el.play().then(() => setAudioBlocked(false)).catch(() => {})
+      }
+      window.addEventListener('click', handler, { once: true })
+      window.addEventListener('keydown', handler, { once: true })
+      window.addEventListener('touchstart', handler, { once: true })
+      return () => {
+        window.removeEventListener('click', handler)
+        window.removeEventListener('keydown', handler)
+        window.removeEventListener('touchstart', handler)
+      }
+    }, [audioBlocked])
+
     if (!currentSlide) return null
 
     const transition = currentSlide.transition || 'fade'
@@ -401,15 +454,13 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
               <audio
                 ref={audioRef}
                 src={mu}
-                autoPlay
-                muted
                 playsInline
                 loop={slide.loop || false}
                 onEnded={() => {
                   if (!slide.loop && slide.advanceMode === 'onEnd') doNextSlide()
                 }}
-                onPlaying={(e) => {
-                  e.currentTarget.muted = false
+                onError={() => {
+                  setTimeout(doNextSlide, 3000)
                 }}
               />
             )}
@@ -430,6 +481,20 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
               >
                 <path d="M3 9v6h4l5 5V4L7 9H3zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
               </svg>
+              {audioBlocked && !isOutgoing && (
+                <div
+                  className="slide-audio-play-overlay"
+                  onClick={() => {
+                    const el = audioRef.current
+                    if (!el) return
+                    el.muted = false
+                    el.currentTime = 0
+                    el.play().then(() => setAudioBlocked(false)).catch(() => {})
+                  }}
+                >
+                  <span className="slide-audio-play-label">Click anywhere for audio</span>
+                </div>
+              )}
             </div>
           </>
         )

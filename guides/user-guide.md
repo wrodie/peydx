@@ -525,6 +525,9 @@ In the program's sidebar, add the device to the **"Available Devices"** field. T
 **What is a Segment?**
 A Segment groups slides together with shared settings like background audio and looping. It's useful for things like a worship set — put all the songs in one segment with background audio, and the segment can loop independently or exit after a timer.
 
+**Why don't I hear audio from my programs?**
+PeydX plays audio and video using your browser's built-in media player. Modern browsers block audio from playing automatically until you interact with the page (click, tap, or key press) — this is a standard security feature. Hardware players are configured to bypass this and will play audio automatically. If you are testing in a regular browser, click anywhere on the page to enable audio for the session.
+
 **What advance mode should I use?**
 - **Timed** — Good for images that should display for a fixed time (e.g., announcement slides at 5 seconds each).
 - **Manual** — Good for slides that should wait for an operator to advance (e.g., during a live presentation).

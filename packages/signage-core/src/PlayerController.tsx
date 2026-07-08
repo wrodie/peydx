@@ -55,6 +55,27 @@ function tzMinutes(date: Date, tz: string): number {
   return h * 60 + m
 }
 
+function primeAutoplay() {
+  try {
+    const audio = document.createElement('audio')
+    const silentWav = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+    audio.src = silentWav
+    audio.volume = 0
+    audio.play().then(() => audio.remove()).catch(() => audio.remove())
+  } catch {}
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    gain.gain.value = 0
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.001)
+    setTimeout(() => ctx.close(), 200)
+  } catch {}
+}
+
 export function resolveScheduleState(
   scheduleEntries: ScheduleEntry[],
   availabilityEntries: AvailabilityEntry[],
@@ -301,6 +322,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       const idx = menuIndexRef.current
       if (playerState === 'menu' && entries.length > 0 && idx >= 0 && idx < entries.length) {
         const entry = entries[idx]
+        primeAutoplay()
         transitionTo('playing', entry.program, entry, idx)
       }
     }, [playerState, transitionTo])
@@ -494,6 +516,23 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       return () => clearMenuTimeout()
     }, [clearMenuTimeout])
 
+    useEffect(() => {
+      const handler = () => {
+        primeAutoplay()
+        window.removeEventListener('click', handler)
+        window.removeEventListener('keydown', handler)
+        window.removeEventListener('touchstart', handler)
+      }
+      window.addEventListener('click', handler, { once: true })
+      window.addEventListener('keydown', handler, { once: true })
+      window.addEventListener('touchstart', handler, { once: true })
+      return () => {
+        window.removeEventListener('click', handler)
+        window.removeEventListener('keydown', handler)
+        window.removeEventListener('touchstart', handler)
+      }
+    }, [])
+
     if (playerState === 'playing' && activeProgram) {
       return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -553,6 +592,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           onSelect={(idx) => {
             if (idx >= 0 && idx < availableEntries.length) {
               const entry = availableEntries[idx]
+              primeAutoplay()
               transitionTo('playing', entry.program, entry, idx)
             }
           }}
