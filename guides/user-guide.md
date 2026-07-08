@@ -528,6 +528,12 @@ A Segment groups slides together with shared settings like background audio and 
 **Why don't I hear audio from my programs?**
 PeydX plays audio and video using your browser's built-in media player. Modern browsers block audio from playing automatically until you interact with the page (click, tap, or key press) — this is a standard security feature. Hardware players are configured to bypass this and will play audio automatically. If you are testing in a regular browser, click anywhere on the page to enable audio for the session.
 
+**How do I control program playback in the preview?**
+When previewing a program in your browser, use these keyboard shortcuts:
+- **Space** or **Arrow Right** — Advance to the next slide
+- **Arrow Left** — Go back to the previous slide
+- **Space** — Dismiss the end screen when the program finishes
+
 **What advance mode should I use?**
 - **Timed** — Good for images that should display for a fixed time (e.g., announcement slides at 5 seconds each).
 - **Manual** — Good for slides that should wait for an operator to advance (e.g., during a live presentation).
