@@ -628,6 +628,10 @@ export interface Schedule {
    */
   untilDate?: string | null;
   untilDate_tz?: SupportedTimezones;
+  /**
+   * Higher priority schedules take precedence. Only admins can set Override.
+   */
+  priority?: ('normal' | 'high' | 'override') | null;
   department?: (number | null) | Department;
   createdBy?: (number | null) | User;
   updatedAt: string;
@@ -990,6 +994,7 @@ export interface ScheduleSelect<T extends boolean = true> {
   endTime_tz?: T;
   untilDate?: T;
   untilDate_tz?: T;
+  priority?: T;
   department?: T;
   createdBy?: T;
   updatedAt?: T;

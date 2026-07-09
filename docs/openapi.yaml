@@ -556,6 +556,10 @@ components:
         endTime:
           type: string
           format: date-time
+        priority:
+          type: string
+          enum: [normal, high, override]
+          description: Higher values take precedence when schedules overlap. Override is admin-only.
         untilDate:
           type: string
           format: date

@@ -57,15 +57,19 @@ export function normalizeApiSchedule(
   return {
     lastUpdated: new Date().toISOString(),
     timezone: timezone || 'UTC',
-    schedule: scheduleDocs.map((entry: any) => ({
-      programId: entry.program?.id,
-      scheduleType: 'autoplay' as const,
-      startTime: entry.startTime,
-      endTime: entry.endTime,
-      daysOfWeek: entry.daysOfWeek || [],
-      untilDate: entry.untilDate,
-      program: mapProgram(entry, resolveUrl),
-    })),
+    schedule: scheduleDocs.map((entry: any) => {
+      const priorityMap: Record<string, number> = { normal: 0, high: 10, override: 20 }
+      return {
+        programId: entry.program?.id,
+        scheduleType: 'autoplay' as const,
+        startTime: entry.startTime,
+        endTime: entry.endTime,
+        daysOfWeek: entry.daysOfWeek || [],
+        untilDate: entry.untilDate,
+        priority: priorityMap[String(entry.priority || 'normal')] ?? 0,
+        program: mapProgram(entry, resolveUrl),
+      }
+    }),
     availability,
     defaultBackground: defaultBackgroundUrl || null,
     deviceName: deviceName || null,

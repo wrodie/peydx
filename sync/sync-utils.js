@@ -61,6 +61,11 @@ function resolveSlideMedia(slide) {
   return resolved
 }
 
+function priorityNum(val) {
+  const map = { normal: 0, high: 10, override: 20 }
+  return map[String(val || 'normal')] ?? 0
+}
+
 function buildScheduleJson(scheduleItems, availabilityItems, backgroundUrl, deviceName, hideProgramList) {
   const schedule = scheduleItems.map(item => ({
     programId: item.program?.id,
@@ -69,6 +74,7 @@ function buildScheduleJson(scheduleItems, availabilityItems, backgroundUrl, devi
     endTime: item.endTime,
     daysOfWeek: item.daysOfWeek || [],
     untilDate: item.untilDate || null,
+    priority: priorityNum(item.priority),
     program: {
       id: item.program?.id,
       title: item.program?.title,

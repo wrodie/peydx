@@ -21,3 +21,13 @@ export function dateRangesOverlap(
 }
 
 export const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+
+const PRIORITY_MAP: Record<string, number> = {
+  normal: 0,
+  high: 10,
+  override: 20,
+}
+
+export function priorityToNumber(priority: string | null | undefined): number {
+  return priority ? PRIORITY_MAP[priority] ?? 0 : 0
+}

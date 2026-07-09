@@ -13,7 +13,7 @@ On the flip side, if you are willing to put in some work, one off purchases of c
 - **Folder organization** — Hierarchical folders (max 3 levels) for media and programs, scoped per department. Child folders inherit department from parent.
 - **Block-based program builder** — Build programs from image, video, YouTube, audio, black screen, and segment blocks. Each slide has configurable advance mode (timed, on-end, manual) and transition (fade, cut, slide, zoom).
 - **Bulk media upload** — Drag multiple images into a program; slides are auto-created with sensible defaults (5s timed, fade transition). Video and audio files auto-detect duration and set on-end advance.
-- **Schedule management** — Assign programs to devices with day-of-week and time-window scheduling, overlap detection, and date range support.
+- **Schedule management** — Assign programs to devices with day-of-week and time-window scheduling, priority-based overlap resolution (Normal/High/Override), and date range support.
 - **Device management** — Two types of device types: hardware (API key auth, local sync agent) and browser (token auth, direct CMS connection).
 - **Offline-first playback** — Hardware players sync media locally and run entirely offline. No internet required during playback.
 - **Real-time updates** — WebSocket connections push schedule changes, remote control commands, and device status updates instantly.

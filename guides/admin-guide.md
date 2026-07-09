@@ -592,6 +592,7 @@ When you create a schedule, the program will **automatically begin playing** on 
 3. Fill in the fields:
    - **Program** — Select from programs in your departments.
    - **Devices** — Select one or more devices in your departments.
+   - **Priority** — Choose **Normal**, **High**, or **Override** (admin only). Higher priority schedules take precedence when multiple schedules overlap on the same device. See [Schedule Priority](#schedule-priority) below.
    - **Start Time** — Date and time the program starts (15-minute intervals).
    - **End Time** — Date and time the program stops (defaults to 1 hour after start).
    - **Days of Week** — Select days for weekly recurrence, or leave empty for a one-off event.
@@ -611,13 +612,36 @@ When you create a schedule, the program will **automatically begin playing** on 
 - The date portion of "Start Time" is ignored — only the time-of-day matters.
 - Optionally set an "Until Date" to end the recurrence on a specific date (e.g., for seasonal content).
 
+### Schedule Priority
+
+Every schedule has a **priority level** that determines which program plays when multiple schedules overlap on the same device:
+
+| Priority | Value | Who can set | When to use |
+|---|---|---|---|
+| **Normal** | Default | All users | Everyday recurring schedules (e.g., Mon–Fri 9–5 signage) |
+| **High** | Overrides Normal | All users | Temporary exceptions — one-off events that should play instead of the Normal schedule within their time window |
+| **Override** | Overrides Normal & High | Admins only | Full takeovers — holidays, emergencies, system-wide announcements |
+
+**How the device resolves schedules:**
+1. All active schedules for the device are gathered (matching day-of-week, date, time window).
+2. Schedules are grouped by priority level. The highest priority group is tried first.
+3. If any schedule in that group is currently active, it plays. If not, the next priority level is checked.
+4. Within the same priority level, the schedule with the latest start time wins.
+
+**Slot replacement in practice:**
+- A High or Override schedule runs only during its own time window. Once it ends, lower-priority schedules resume automatically.
+- Example: A Normal schedule runs Mon–Fri 9:00–17:00. An admin creates an Override schedule for Thursday 12:00–13:00. The Override plays at noon Thursday; the Normal schedule resumes at 1 PM.
+
 ### Overlap Detection
 
-The system automatically prevents scheduling conflicts. When you save a schedule, it checks every selected device for overlapping time windows with existing schedules. If a conflict is found, you'll see an error:
+Overlap detection only applies **within the same priority level**. Schedules of different priorities can freely overlap — this is by design so that High and Override schedules can coexist with Normal ones.
+
+If you save a schedule that overlaps with an existing one **at the same priority** on the same device, you'll see:
 
 > "This entry overlaps with an existing schedule on one of the selected devices."
 
 To resolve this:
+- Raise the new schedule's priority to allow coexistence.
 - Adjust the start/end times.
 - Change the days of the week.
 - Select different devices.

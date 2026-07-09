@@ -101,7 +101,7 @@ export function resolveScheduleState(
     return true
   })
 
-  let activeAutoPlay: ScheduleEntry | null = null
+  const matchingEntries: ScheduleEntry[] = []
   for (const entry of scheduleEntries) {
     if (!entry.startTime) continue
 
@@ -122,10 +122,15 @@ export function resolveScheduleState(
 
     if (nowMin < startMin || nowMin >= endMin) continue
 
-    if (!activeAutoPlay || new Date(entry.startTime) > new Date(activeAutoPlay.startTime)) {
-      activeAutoPlay = entry
-    }
+    matchingEntries.push(entry)
   }
+
+  matchingEntries.sort((a, b) => {
+    if (b.priority !== a.priority) return b.priority - a.priority
+    return new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+  })
+
+  const activeAutoPlay = matchingEntries.length > 0 ? matchingEntries[0] : null
 
   return { activeAutoPlay, availablePrograms }
 }
@@ -135,7 +140,7 @@ function getNextAutoPlay(scheduleEntries: ScheduleEntry[], timezone?: string | n
   const now = new Date()
   const today = tzDateStr(now, tz)
   const todayDayName = tzDayName(now, tz)
-  let next: ScheduleEntry | null = null
+  const upcoming: ScheduleEntry[] = []
 
   for (const entry of scheduleEntries) {
     if (!entry.startTime) continue
@@ -153,12 +158,16 @@ function getNextAutoPlay(scheduleEntries: ScheduleEntry[], timezone?: string | n
 
     const start = new Date(entry.startTime)
     if (start > now) {
-      if (!next || start < new Date(next.startTime)) {
-        next = entry
-      }
+      upcoming.push(entry)
     }
   }
-  return next
+
+  upcoming.sort((a, b) => {
+    if (b.priority !== a.priority) return b.priority - a.priority
+    return new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  })
+
+  return upcoming.length > 0 ? upcoming[0] : null
 }
 
 export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControllerProps>(

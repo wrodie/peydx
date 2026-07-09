@@ -166,6 +166,19 @@ export const Schedule: CollectionConfig = {
       },
     },
     {
+      name: 'priority',
+      type: 'select',
+      defaultValue: 'normal',
+      options: [
+        { label: 'Normal', value: 'normal' },
+        { label: 'High', value: 'high' },
+        { label: 'Override', value: 'override' },
+      ],
+      admin: {
+        description: 'Higher priority schedules take precedence. Only admins can set Override.',
+      },
+    },
+    {
       name: 'department',
       type: 'relationship',
       relationTo: 'departments',

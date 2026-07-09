@@ -1,6 +1,6 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 import { APIError } from 'payload'
-import { timeOfDayMinutes, dateOnly, DAY_NAMES } from '../collections/schedule-utils'
+import { timeOfDayMinutes, dateOnly, DAY_NAMES, priorityToNumber } from '../collections/schedule-utils'
 
 const ONE_HOUR = 60 * 60 * 1000
 
@@ -59,6 +59,13 @@ export const scheduleBeforeChange: CollectionBeforeChangeHook = async ({ data, r
     }
   }
 
+  const priority = String(data.priority || 'normal')
+  const priorityNum = priorityToNumber(priority)
+
+  if (user && user.role !== 'admin' && priority === 'override') {
+    throw new APIError('Only administrators can assign Override priority.', 403)
+  }
+
   const daysOfWeek: string[] = Array.isArray(data.daysOfWeek) ? data.daysOfWeek : []
   const isOneOff = daysOfWeek.length === 0
 
@@ -86,6 +93,9 @@ export const scheduleBeforeChange: CollectionBeforeChangeHook = async ({ data, r
     })
 
     for (const entry of existing.docs) {
+      const entryPriority = priorityToNumber(entry.priority)
+      if (entryPriority !== priorityNum) continue
+
       const entryDaysOfWeek: string[] = Array.isArray(entry.daysOfWeek) ? entry.daysOfWeek : []
       const entryIsOneOff = entryDaysOfWeek.length === 0
 

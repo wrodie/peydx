@@ -5,6 +5,7 @@ import * as migration_20260622_000002_add_updating_status from './20260622_00000
 import * as migration_20260622_000003_add_client_version_column from './20260622_000003_add_client_version_column';
 import * as migration_20260625_media_fk_cascade from './20260625_media_fk_cascade';
 import * as migration_20260703_000000_add_scale_to_fill from './20260703_000000_add_scale_to_fill';
+import * as migration_20260709_000000_add_schedule_priority from './20260709_000000_add_schedule_priority';
 
 export const migrations = [
   {
@@ -41,5 +42,10 @@ export const migrations = [
     up: migration_20260703_000000_add_scale_to_fill.up,
     down: migration_20260703_000000_add_scale_to_fill.down,
     name: '20260703_000000_add_scale_to_fill'
+  },
+  {
+    up: migration_20260709_000000_add_schedule_priority.up,
+    down: migration_20260709_000000_add_schedule_priority.down,
+    name: '20260709_000000_add_schedule_priority'
   },
 ];

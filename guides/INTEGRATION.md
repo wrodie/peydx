@@ -88,7 +88,7 @@ Base URL: `http://<host>:3000/api/external/v1`
 | POST | `/devices/:id/back` | Exit program / return to idle |
 | GET | `/programs` | List accessible programs |
 | GET | `/programs/:id` | Get program detail with slides |
-| GET | `/schedules` | List active schedules (supports `?from=&to=` query params) |
+| GET | `/schedules` | List active schedules (supports `?from=&to=` query params). Returns a `priority` field (`normal`/`high`/`override`) per schedule — see OpenAPI spec for full response shape. |
 | GET | `/docs` | OpenAPI specification (no auth) |
 | GET | `/ws-docs` | AsyncAPI specification (no auth) |
 

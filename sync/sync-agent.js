@@ -381,16 +381,24 @@ async function sync() {
       console.log(ts('[sync] Schedule rewritten with local URLs'));
     }
 
-    // Determine the currently-active program
+    // Determine the currently-active program (highest priority wins)
     const checkNow = new Date();
-    const nowPlaying = activeSchedule.reduce((best, item) => {
-      const start = new Date(item.startTime);
-      if (start > checkNow) return best;
-      const end = item.endTime ? new Date(item.endTime) : null;
-      if (end && checkNow >= end) return best;
-      if (!best || new Date(item.startTime) > new Date(best.startTime)) return item;
-      return best;
-    }, null);
+    const pMap = { normal: 0, high: 10, override: 20 };
+    const pNum = (v) => pMap[String(v || 'normal')] ?? 0;
+    const nowPlaying = activeSchedule
+      .filter(item => {
+        const start = new Date(item.startTime);
+        if (start > checkNow) return false;
+        const end = item.endTime ? new Date(item.endTime) : null;
+        if (end && checkNow >= end) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const pa = pNum(a.priority);
+        const pb = pNum(b.priority);
+        if (pb !== pa) return pb - pa;
+        return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+      })[0] || null;
     activeProgramId = userSelectedProgramId || nowPlaying?.program?.id || null;
 
     // HTTP heartbeat fallback when WebSocket is disconnected

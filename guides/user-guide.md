@@ -397,6 +397,7 @@ When you create a schedule, the program will **automatically begin playing** on 
 3. Fill in the fields:
    - **Program** — Select a program from your department's programs.
    - **Devices** — Select one or more devices from your department's devices.
+   - **Priority** — Choose **Normal**, **High**, or **Override** (admin only). Higher priority schedules take precedence when multiple schedules overlap on the same device. See [Schedule Priority](#schedule-priority) below.
    - **Start Time** — The date and time the program should start playing (in 15-minute intervals).
    - **End Time** — When the program should stop. If left blank, it defaults to 1 hour after the start time.
 4. Click **Save**.
@@ -429,13 +430,35 @@ Use the **"Until Date"** field to set a date when the recurring schedule should 
 
 Leave "Until Date" blank for schedules that should continue indefinitely.
 
+### Schedule Priority
+
+Every schedule has a **priority level** that determines which program plays when multiple schedules overlap on the same device:
+
+| Priority | Value | Who can use | When to use |
+|---|---|---|---|
+| **Normal** | Default | Everyone | Your everyday recurring schedules (e.g., Mon–Fri 9–5 signage) |
+| **High** | Overrides Normal | Everyone | Temporary exceptions that override Normal schedules (e.g., a special announcement on a specific day) |
+| **Override** | Overrides Normal & High | Admins only | Full takeovers — holidays, emergencies, or system-wide announcements |
+
+When the device evaluates which program to play at any given moment:
+1. It looks at all active schedules for the device.
+2. It picks schedules from the **highest priority level** first.
+3. If multiple schedules exist at the same priority, the one with the latest start time wins.
+
+**How slot replacement works:**
+- A High priority schedule runs only during its own time window. Before and after, Normal schedules resume automatically.
+- Example: You have a Normal schedule running Mon–Fri 9:00–17:00. You create a High priority schedule for Wednesday 14:00–15:00. On Wednesday, the High schedule plays at 2–3 PM; the Normal schedule plays before and after.
+
 ### Schedule Overlaps
 
-The system automatically prevents you from creating schedules that conflict. If you try to save a schedule that overlaps with an existing one on the same device, you'll see this error:
+Schedules of **different priority levels** can freely overlap on the same device — this is by design, so High and Override schedules can coexist with Normal ones without conflict.
+
+Schedules of the **same priority level** cannot overlap. If you try to save a schedule that overlaps with an existing one at the same priority on the same device, you'll see:
 
 > "This entry overlaps with an existing schedule on one of the selected devices."
 
 To fix this:
+- Raise the new schedule's priority level to allow coexistence.
 - Change the start or end time.
 - Select different days of the week.
 - Choose different devices.
@@ -546,7 +569,10 @@ When enabled (the default), the system adds a black screen at the end of your pr
 Click the Account icon in the top-right and enter your current and new password. See [Changing Your Password](#changing-your-password).
 
 **Why am I getting an overlap error when creating a schedule?**
-The device you selected already has a schedule that conflicts with the times you entered. Try adjusting the start/end time, choosing different days, or selecting different devices.
+The device you selected already has a schedule at the **same priority level** that conflicts with the times you entered. To fix this, either adjust the start/end time or days, or set the new schedule to a **higher priority** (High or Override) so it can coexist with the existing one without conflict.
+
+**How do I schedule a one-off exception without modifying my recurring schedule?**
+Add a new schedule with **High** priority for the specific date and time. High priority schedules override Normal ones within their time window, and Normal schedules resume automatically before and after. No changes needed to your existing recurring schedule.
 
 **What does "Stale" device status mean?**
 A stale device has connected to the server recently but may not be fully up-to-date. It usually resolves on its own. "Offline" means the device hasn't checked in for a while.
