@@ -74,6 +74,8 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const prevProgramIdRef = useRef(program.id)
     const outgoingRef = useRef<{ slide: Slide; index: number } | null>(null)
     const outgoingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const loadedUrlsRef = useRef(new Set<string>())
+    const [slideReady, setSlideReady] = useState(true)
 
     const slides = flattened.slides
 
@@ -190,6 +192,46 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
         if (timerRef.current) clearTimeout(timerRef.current)
       }
     }, [currentSlide, runSlideLogic])
+
+    // Preload images: wait for current image to load, preload next
+    useEffect(() => {
+      const slide = slides[currentIndex]
+      if (!slide) return
+
+      const isImage = slide.blockType === 'imageBlock'
+      const imageUrl = isImage ? resolveMedia(slide.image)?.url ?? null : null
+
+      if (!isImage || !imageUrl || loadedUrlsRef.current.has(imageUrl)) {
+        setSlideReady(true)
+      } else {
+        setSlideReady(false)
+        const img = new Image()
+        let cancelled = false
+        const done = () => {
+          if (cancelled) return
+          loadedUrlsRef.current.add(imageUrl)
+          setSlideReady(true)
+        }
+        img.onload = done
+        img.onerror = done
+        img.src = imageUrl
+        const timeout = setTimeout(done, 1000)
+        return () => { cancelled = true; clearTimeout(timeout) }
+      }
+
+      if (slides.length > 1) {
+        const nextIdx = (currentIndex + 1) % slides.length
+        const next = slides[nextIdx]
+        if (next?.blockType === 'imageBlock') {
+          const nextUrl = resolveMedia(next.image)?.url
+          if (nextUrl && !loadedUrlsRef.current.has(nextUrl)) {
+            loadedUrlsRef.current.add(nextUrl)
+            const img = new Image()
+            img.src = nextUrl
+          }
+        }
+      }
+    }, [currentIndex, slides])
 
     // Background audio management
     useEffect(() => {
@@ -504,6 +546,8 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
 
     function renderSlideWrapper(slide: Slide, index: number, isOutgoing: boolean) {
       const animName = slide.transition || 'fade'
+      const isImage = slide.blockType === 'imageBlock'
+      const shouldAnimate = isOutgoing || !isImage || slideReady
       return (
         <div
           key={isOutgoing ? `out-${index}` : index}
@@ -511,12 +555,16 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
           style={{
             animation: isOutgoing
               ? `signageFadeOut ${TRANSITION_DURATION}ms ease both`
-              : animName === 'fade'
+              : shouldAnimate && animName === 'fade'
                 ? `signageFadeIn ${TRANSITION_DURATION}ms ease both`
-                : animName === 'slide'
+                : shouldAnimate && animName === 'slide'
                   ? `signageSlideIn ${TRANSITION_DURATION}ms ease both`
                   : undefined,
-            opacity: !isOutgoing && animName !== 'fade' && animName !== 'slide' ? 1 : undefined,
+            opacity: !isOutgoing && !shouldAnimate
+              ? 0
+              : !isOutgoing && shouldAnimate && animName !== 'fade' && animName !== 'slide'
+                ? 1
+                : undefined,
             zIndex: isOutgoing ? 1 : 2,
           }}
         >
