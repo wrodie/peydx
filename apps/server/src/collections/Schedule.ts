@@ -132,6 +132,7 @@ export const Schedule: CollectionConfig = {
     {
       name: 'startTime',
       type: 'date',
+      timezone: true,
       required: true,
       admin: {
         date: {
@@ -144,6 +145,7 @@ export const Schedule: CollectionConfig = {
     {
       name: 'endTime',
       type: 'date',
+      timezone: true,
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',
@@ -155,6 +157,7 @@ export const Schedule: CollectionConfig = {
     {
       name: 'untilDate',
       type: 'date',
+      timezone: true,
       admin: {
         date: {
           pickerAppearance: 'dayOnly',

@@ -13,6 +13,7 @@
  * via the `definition` "supportedTimezones".
  */
 export type SupportedTimezones =
+  | 'UTC'
   | 'Pacific/Midway'
   | 'Pacific/Niue'
   | 'Pacific/Honolulu'
@@ -616,14 +617,17 @@ export interface Schedule {
    * The date and time the program starts. For recurring schedules (daysOfWeek set), only the time-of-day is used — the date is ignored.
    */
   startTime: string;
+  startTime_tz: SupportedTimezones;
   /**
    * When the program stops. Defaults to 1 hour after startTime.
    */
   endTime?: string | null;
+  endTime_tz?: SupportedTimezones;
   /**
    * Optional end date for the schedule. Leave blank for indefinite recurrence. Useful for seasonal schedules (e.g., Christmas program ending Dec 25).
    */
   untilDate?: string | null;
+  untilDate_tz?: SupportedTimezones;
   department?: (number | null) | Department;
   createdBy?: (number | null) | User;
   updatedAt: string;
@@ -981,8 +985,11 @@ export interface ScheduleSelect<T extends boolean = true> {
   devices?: T;
   daysOfWeek?: T;
   startTime?: T;
+  startTime_tz?: T;
   endTime?: T;
+  endTime_tz?: T;
   untilDate?: T;
+  untilDate_tz?: T;
   department?: T;
   createdBy?: T;
   updatedAt?: T;

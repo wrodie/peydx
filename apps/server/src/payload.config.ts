@@ -41,6 +41,10 @@ export default buildConfig({
     },
     timezones: {
       defaultTimezone: process.env.TIMEZONE || 'UTC',
+      supportedTimezones: ({ defaultTimezones }) => [
+        { label: '(UTC+00:00) UTC', value: 'UTC' },
+        ...defaultTimezones,
+      ],
     },
     components: {
       Nav: '/components/HiddenSidebar#HiddenSidebar',

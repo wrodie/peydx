@@ -60,7 +60,7 @@ PAYLOAD_SECRET=your-secret-key
 POSTGRES_USER=peydx
 POSTGRES_PASSWORD=your-password
 POSTGRES_DB=peydx
-TIMEZONE=Australia/Melbourne
+TIMEZONE=Australia/Sydney
 ```
 
 - `DATABASE_URI` — Postgres connection string
