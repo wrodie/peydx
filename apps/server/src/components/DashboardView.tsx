@@ -42,6 +42,14 @@ function getBlockIcon(slide: any): React.ReactNode {
   return null
 }
 
+function computeStatus(lastHeartbeat: string | null | undefined): 'online' | 'stale' | 'offline' {
+  if (!lastHeartbeat) return 'offline'
+  const diff = Date.now() - new Date(lastHeartbeat).getTime()
+  if (diff < 3 * 60 * 1000) return 'online'
+  if (diff < 10 * 60 * 1000) return 'stale'
+  return 'offline'
+}
+
 function getDayLabel(dayBits: number): string[] {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const result: string[] = []
@@ -220,7 +228,7 @@ export function DashboardView() {
       setDevices((prev) =>
         prev.map((d) =>
           d.id === data.id
-            ? { ...d, status: data.status, currentProgram: data.programId ?? d.currentProgram, currentSlideIndex: data.slideIndex }
+            ? { ...d, status: data.status, lastHeartbeat: new Date().toISOString(), currentProgram: data.programId ?? d.currentProgram, currentSlideIndex: data.slideIndex }
             : d
         )
       )
@@ -230,7 +238,7 @@ export function DashboardView() {
       setDevices((prev) =>
         prev.map((d) =>
           d.id === data.id
-            ? { ...d, status: data.state === 'playing' ? 'online' : d.status, currentProgram: data.programId, currentSlideIndex: data.slideIndex ?? 0 }
+            ? { ...d, lastHeartbeat: new Date().toISOString(), currentProgram: data.programId, currentSlideIndex: data.slideIndex ?? 0 }
             : d
         )
       )
@@ -259,8 +267,9 @@ export function DashboardView() {
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
             {devices.map((d) => {
-              const statusColor = d.status === 'online' ? '#22c55e' : d.status === 'stale' ? '#f59e0b' : '#6b7280'
-              const statusLabel = d.status === 'online' ? 'Online' : d.status === 'stale' ? 'Stale' : 'Offline'
+              const computedStatus = computeStatus(d.lastHeartbeat)
+              const statusColor = computedStatus === 'online' ? '#22c55e' : computedStatus === 'stale' ? '#f59e0b' : '#6b7280'
+              const statusLabel = computedStatus === 'online' ? 'Online' : computedStatus === 'stale' ? 'Stale' : 'Offline'
               const programName = d.currentProgramTitle || null
               return (
                 <div

@@ -19,7 +19,16 @@ interface DeviceRow {
   name: string
   deviceType: string
   status: string
+  lastHeartbeat: string | null
   clientVersion: string | null
+}
+
+function computeStatus(lastHeartbeat: string | null | undefined): 'online' | 'stale' | 'offline' {
+  if (!lastHeartbeat) return 'offline'
+  const diff = Date.now() - new Date(lastHeartbeat).getTime()
+  if (diff < 3 * 60 * 1000) return 'online'
+  if (diff < 10 * 60 * 1000) return 'stale'
+  return 'offline'
 }
 
 const sectionStyle: React.CSSProperties = {
@@ -100,18 +109,22 @@ function getStepInfo(step: string | null) {
   return { idx, current: step }
 }
 
-function statusDot(status: string): React.ReactNode {
-  switch (status) {
+function statusDot(status: string, lastHeartbeat: string | null | undefined): React.ReactNode {
+  if (status === 'updating') return <PendingIcon size={12} style={{ color: '#f59e0b' }} />
+  const s = computeStatus(lastHeartbeat)
+  switch (s) {
     case 'online': return <FiberManualRecordIcon size={12} style={{ color: '#22c55e' }} />
-    case 'updating': return <PendingIcon size={12} style={{ color: '#f59e0b' }} />
+    case 'stale': return <PendingIcon size={12} style={{ color: '#f59e0b' }} />
     default: return <RadioButtonUncheckedIcon size={12} style={{ color: '#6b7280' }} />
   }
 }
 
-function statusColor(status: string): string {
-  switch (status) {
+function statusColor(status: string, lastHeartbeat: string | null | undefined): string {
+  if (status === 'updating') return '#f59e0b'
+  const s = computeStatus(lastHeartbeat)
+  switch (s) {
     case 'online': return '#22c55e'
-    case 'updating': return '#f59e0b'
+    case 'stale': return '#f59e0b'
     default: return '#999'
   }
 }
@@ -182,6 +195,7 @@ export function UpdateButton() {
         name: d.name || '(unnamed)',
         deviceType: d.deviceType || 'hardware',
         status: d.status || 'offline',
+        lastHeartbeat: d.lastHeartbeat || null,
         clientVersion: d.clientVersion || null,
       })))
     } catch {
@@ -202,7 +216,7 @@ export function UpdateButton() {
     socket.on('device:status', (data) => {
       setDevices(prev => prev.map(d =>
         d.id === data.id
-          ? { ...d, status: data.status, clientVersion: data.clientVersion ?? d.clientVersion }
+          ? { ...d, status: data.status, lastHeartbeat: new Date().toISOString(), clientVersion: data.clientVersion ?? d.clientVersion }
           : d
       ))
     })
@@ -455,8 +469,8 @@ export function UpdateButton() {
                 <tr key={d.id}>
                   <td style={tdStyle}>{d.name}</td>
                   <td style={tdStyle}>{d.deviceType}</td>
-                  <td style={{ ...tdStyle, color: statusColor(d.status) }}>
-                    {statusDot(d.status)} {d.status}
+                  <td style={{ ...tdStyle, color: statusColor(d.status, d.lastHeartbeat) }}>
+                    {statusDot(d.status, d.lastHeartbeat)} {d.status === 'updating' ? 'updating' : computeStatus(d.lastHeartbeat)}
                   </td>
                   <td style={tdStyle}>{d.clientVersion || '\u2014'}</td>
                   <td style={tdStyle}>

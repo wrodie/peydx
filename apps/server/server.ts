@@ -394,6 +394,61 @@ app.prepare().then(async () => {
   }
   setPayload(payload)
 
+  // Stale device detector: periodically marks devices as stale/offline based on lastHeartbeat
+  const STALE_THRESHOLD_MS = 3 * 60 * 1000   // 3 minutes
+  const OFFLINE_THRESHOLD_MS = 10 * 60 * 1000 // 10 minutes
+  setInterval(async () => {
+    const p = getPayload()
+    if (!p) return
+    try {
+      const cutoff = Date.now()
+      const staleCutoff = new Date(cutoff - STALE_THRESHOLD_MS).toISOString()
+      const offlineCutoff = new Date(cutoff - OFFLINE_THRESHOLD_MS).toISOString()
+
+      // online → stale: lastHeartbeat older than 3 min
+      const staleDevices = await p.find({
+        collection: 'devices',
+        depth: 0,
+        limit: 100,
+        where: {
+          status: { equals: 'online' },
+          lastHeartbeat: { less_than: staleCutoff },
+        },
+        overrideAccess: true,
+      })
+      for (const d of staleDevices.docs || []) {
+        await p.update({
+          collection: 'devices',
+          id: d.id,
+          data: { status: 'stale' },
+          overrideAccess: true,
+        })
+      }
+
+      // online/stale → offline: lastHeartbeat older than 10 min
+      const offlineDevices = await p.find({
+        collection: 'devices',
+        depth: 0,
+        limit: 100,
+        where: {
+          status: { in: ['online', 'stale'] },
+          lastHeartbeat: { less_than: offlineCutoff },
+        },
+        overrideAccess: true,
+      })
+      for (const d of offlineDevices.docs || []) {
+        await p.update({
+          collection: 'devices',
+          id: d.id,
+          data: { status: 'offline' },
+          overrideAccess: true,
+        })
+      }
+    } catch (err) {
+      console.error('Stale device detector error:', err)
+    }
+  }, 60_000)
+
   const httpServer = createServer(async (req, res) => {
     // Device state store endpoint (in-memory, instant)
     if (req.url?.startsWith('/api/device-state/')) {
