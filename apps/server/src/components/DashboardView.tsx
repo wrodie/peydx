@@ -100,19 +100,7 @@ export function DashboardView() {
       ? '/api/devices?depth=2&limit=100'
       : `/api/devices?depth=2&limit=100&where[departments][in]=${deptIds.join(',')}`
 
-    const cacheKey = 'peydx_tz'
-    let tzPromise: Promise<{ timezone: string }>
-    const cached = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(cacheKey) : null
-    if (cached) {
-      tzPromise = Promise.resolve({ timezone: cached })
-    } else {
-      tzPromise = fetch('/api/timezone')
-        .then((r) => r.json())
-        .then((data) => {
-          if (typeof sessionStorage !== 'undefined' && data.timezone) sessionStorage.setItem(cacheKey, data.timezone)
-          return data
-        })
-    }
+    const tzPromise = fetch('/api/timezone').then((r) => r.json())
 
     ;(async () => {
       try {
@@ -197,7 +185,8 @@ export function DashboardView() {
         const upcomingSchedules = (schedData.docs || []).filter((s: any) => {
           if (s.daysOfWeek?.length) {
             if (s.untilDate) {
-              const untilStr = new Intl.DateTimeFormat('en-CA', { timeZone: serverTz }).format(new Date(s.untilDate))
+              const tz = s.untilDate_tz || serverTz
+              const untilStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(s.untilDate))
               const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: serverTz }).format(now)
               if (untilStr < todayStr) return false
             }
@@ -522,7 +511,7 @@ export function DashboardView() {
               const deviceNames = (s.devices || []).map((d: any) => d.name || `Device ${d.id}`).join(', ')
               const dayLabels = (s.daysOfWeek || []).map((d: string) => d.charAt(0).toUpperCase() + d.slice(1))
               const locale = typeof navigator !== 'undefined' ? navigator.language : 'en-AU'
-              const fmtOpts: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: serverTz }
+              const fmtOpts: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
               return (
                 <a
                   key={s.id}
@@ -567,8 +556,8 @@ export function DashboardView() {
                     ))}
                     <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--theme-text)', whiteSpace: 'nowrap' }}>
                       {s.startTime ? (s.daysOfWeek?.length
-                        ? `${new Date(s.startTime).toLocaleString(locale, { hour: '2-digit', minute: '2-digit', timeZone: serverTz })} – ${new Date(s.endTime || s.startTime).toLocaleString(locale, { hour: '2-digit', minute: '2-digit', timeZone: serverTz })}`
-                        : `${new Date(s.startTime).toLocaleString(locale, fmtOpts)} – ${new Date(s.endTime || s.startTime).toLocaleString(locale, fmtOpts)}`
+                        ? `${new Date(s.startTime).toLocaleString(locale, { hour: '2-digit', minute: '2-digit', timeZone: s.startTime_tz || serverTz })} – ${new Date(s.endTime || s.startTime).toLocaleString(locale, { hour: '2-digit', minute: '2-digit', timeZone: s.endTime_tz || serverTz })}`
+                        : `${new Date(s.startTime).toLocaleString(locale, { ...fmtOpts, timeZone: s.startTime_tz || serverTz })} – ${new Date(s.endTime || s.startTime).toLocaleString(locale, { ...fmtOpts, timeZone: s.endTime_tz || serverTz })}`
                       ) : '––'}
                     </span>
                   </div>
