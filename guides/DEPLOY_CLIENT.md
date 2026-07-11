@@ -101,13 +101,17 @@ The device should appear as "online" in the CMS dashboard within 30 seconds.
 Install Chromium:
 
 ```bash
-sudo apt-get install -y chromium-browser unclutter
+sudo apt-get install -y chromium-browser unclutter pulseaudio alsa-utils
 ```
 
 Create a kiosk startup script at `/opt/peydx/kiosk.sh`:
 
 ```bash
 #!/bin/bash
+
+# Start PulseAudio for HDMI audio support
+pulseaudio --start --exit-idle-time=-1
+
 unclutter -idle 0 &
 /usr/bin/chromium-browser \
   --kiosk \
@@ -366,3 +370,31 @@ docker compose -f docker-compose.client.yaml up -d
 ```
 
 The `-v` flag removes the media volume. All media will be re-downloaded on the next sync cycle.
+
+### No Audio or Audio Issues (HDMI)
+
+If there's no audio or the audio is distorted/pulsing via HDMI:
+
+1. **Verify HDMI audio is detected by ALSA:**
+   ```bash
+   aplay -l
+   ```
+   Look for an "HDMI" entry. If none appears, check the TV is connected and powered on, then reboot.
+
+2. **List available PulseAudio cards and switch to an HDMI profile:**
+   ```bash
+   pactl list cards
+   ```
+   Find the card with HDMI profiles (e.g. `output:hdmi-stereo`) and activate it:
+   ```bash
+   pactl set-card-profile <card-name> output:hdmi-stereo
+   pactl set-default-sink <sink-name>
+   pactl set-sink-volume <sink-name> 100%
+   ```
+
+3. **Persist the HDMI profile in your kiosk startup script** (`/opt/peydx/kiosk.sh`) by adding the commands from step 2 after the `pulseaudio --start` line.
+
+4. **If audio volume pulses** (periodic fluctuation), disable PulseAudio timer scheduling by adding this before the Chromium command in `kiosk.sh`:
+   ```bash
+   export PULSE_PROP_OVERRIDE="sink.alsa.tsched=0"
+   ```
