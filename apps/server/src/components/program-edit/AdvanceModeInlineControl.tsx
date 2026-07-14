@@ -77,6 +77,10 @@ export const AdvanceModeInlineControl: FC<AdvanceModeInlineControlProps> = ({
   }, [duration])
 
   useEffect(() => {
+    setLocalMode(advanceMode)
+  }, [advanceMode])
+
+  useEffect(() => {
     setLocalLoop(loop)
   }, [loop])
 

@@ -300,14 +300,21 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     (blockType: string) => {
       const def = newSlideDefaults[blockType]
       if (!def) return
-      if (blockType !== 'blackScreenBlock') {
-        setEditingSlide({ ...def, _isNew: true })
-        setEditingSlideIndex(rawSlides.length)
-        setEditingSegmentId(undefined)
-        setDrawerOpen(true)
+      if (blockType === 'blackScreenBlock') {
+        addFieldRow({
+          path,
+          blockType,
+          schemaPath: `${path}.${blockType}`,
+          subFieldState: buildRowState(blockType, def),
+        })
+        return
       }
+      setEditingSlide({ ...def, _isNew: true })
+      setEditingSlideIndex(rawSlides.length)
+      setEditingSegmentId(undefined)
+      setDrawerOpen(true)
     },
-    [rawSlides]
+    [path, addFieldRow, rawSlides]
   )
 
   const handleEditSlide = useCallback(
