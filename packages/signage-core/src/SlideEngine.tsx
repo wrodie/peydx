@@ -87,7 +87,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       : false
 
     const isLastSlide = slides.length > 0 && currentIndex >= slides.length - 1
-    const effectiveProgramEnd = isLastSlide && (!segCtx || !(segCtx.loop || segCtx.advanceMode === 'manual'))
+    const effectiveProgramEnd = isLastSlide && (!segCtx || (!segCtx.loop && segCtx.advanceMode === 'slides'))
 
     const setIndex = useCallback((newIndex: number) => {
       const oldSlide = slides[currentIndex]
@@ -114,7 +114,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       }
     }, [effectiveProgramEnd, isEnded, slides, onProgramEnd])
 
-    const doNextSlide = useCallback(() => {
+    const doNextSlide = useCallback((userTriggered = false) => {
       if (isEnded) {
         onProgramEnd?.()
         return
@@ -131,17 +131,19 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
           setVideoError(null)
           return
         }
-        if (isLastSlideInSegment && ctx.advanceMode === 'manual') {
+        if (isLastSlideInSegment && ctx.advanceMode === 'manual' && !userTriggered) {
           return
         }
-        if (isLastSlideInSegment && ctx.advanceMode === 'timed') {
+        if (isLastSlideInSegment && ctx.advanceMode === 'timed' && !userTriggered) {
           return
         }
       }
 
       if (currentIndex < slides.length - 1) {
         setIndex(currentIndex + 1)
-      } else if (!onProgramEnd) {
+      } else if (onProgramEnd) {
+        onProgramEnd()
+      } else {
         setIndex(0)
       }
       setVideoError(null)
@@ -161,7 +163,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     }, [slides, setIndex])
 
     useImperativeHandle(ref, () => ({
-      nextSlide: doNextSlide,
+      nextSlide: () => doNextSlide(true),
       prevSlide: doPrevSlide,
       gotoSlide,
       getCurrentIndex: () => currentIndex,
@@ -268,7 +270,9 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
           const endIdx = getSegmentEndIndex(slides, currentIndex, segCtx)
           if (endIdx < slides.length - 1) {
             setIndex(endIdx + 1)
-          } else if (!onProgramEnd) {
+          } else if (onProgramEnd) {
+            onProgramEnd()
+          } else {
             setIndex(0)
           }
         }, durationMs)
@@ -285,7 +289,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       const handler = (e: KeyboardEvent) => {
         if (nextCodes.includes(e.code)) {
           e.preventDefault()
-          doNextSlide()
+          doNextSlide(true)
         } else if (prevCodes.includes(e.code)) {
           e.preventDefault()
           doPrevSlide()
