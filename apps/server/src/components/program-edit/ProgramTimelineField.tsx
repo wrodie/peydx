@@ -278,6 +278,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       body.program-editor-autosave [id^="action-save"] {
         display: none !important;
       }
+      body.program-editor-autosave .payload-toast-item:not(.toast-error) {
+        display: none !important;
+      }
     `
     document.head.appendChild(style)
     return () => {
