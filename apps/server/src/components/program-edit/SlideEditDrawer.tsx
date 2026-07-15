@@ -32,7 +32,6 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
   onSave,
 }) => {
   const [localSlide, setLocalSlide] = useState<any>(null)
-  const [dirty, setDirty] = useState(false)
   const [browseField, setBrowseField] = useState<string | null>(null)
   const [videoTitle, setVideoTitle] = useState<string | null>(null)
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -62,7 +61,6 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
   useEffect(() => {
     if (slide) {
       setLocalSlide({ ...slide, duration: slide.duration ?? 5 })
-      setDirty(false)
     }
   }, [slide, isOpen])
 
@@ -73,13 +71,12 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        if (dirty && !confirm('You have unsaved changes. Discard?')) return
-        onClose()
+        handleClose()
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [isOpen, dirty, onClose])
+  }, [isOpen])
 
   useEffect(() => {
     const ytId = localSlide?.blockType === 'youtubeBlock' ? extractYouTubeId(localSlide.youtubeId || '') : null
@@ -120,18 +117,11 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
       }
       return next
     })
-    setDirty(true)
-  }
-
-  const handleSave = () => {
-    if (!localSlide) return
-    onSave(localSlide, slideIndex, segmentId)
-    setDirty(false)
-    onClose()
   }
 
   const handleClose = () => {
-    if (dirty && !confirm('You have unsaved changes. Discard?')) return
+    if (!localSlide) { onClose(); return }
+    onSave(localSlide, slideIndex, segmentId)
     onClose()
   }
 
@@ -582,20 +572,6 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
             style={{
               flex: 1,
               padding: '8px 16px',
-              background: 'var(--theme-elevation-100, #f3f4f6)',
-              border: '1px solid var(--theme-elevation-300, #d1d5db)',
-              borderRadius: 4,
-              cursor: 'pointer',
-              fontSize: '0.8rem',
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            style={{
-              flex: 1,
-              padding: '8px 16px',
               background: 'var(--theme-primary-500, #3b82f6)',
               color: 'white',
               border: 'none',
@@ -605,7 +581,7 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
               fontWeight: 500,
             }}
           >
-            Save
+            Done
           </button>
         </div>
       </div>
