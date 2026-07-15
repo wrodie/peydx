@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { SlideEngine } from 'signage-core'
+import { SlideEngine, normalizeSlide } from 'signage-core'
 import type { Program } from 'signage-core'
 
 export default function ProgramPreview() {
@@ -17,7 +17,12 @@ export default function ProgramPreview() {
         if (!r.ok) throw new Error('Program not found')
         return r.json()
       })
-      .then(setProgram)
+      .then((data) => {
+        if (data.slides) {
+          data.slides = data.slides.map((s: any) => normalizeSlide(s))
+        }
+        setProgram(data)
+      })
       .catch((e) => {
         setError(e.message)
       })

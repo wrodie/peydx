@@ -39,7 +39,8 @@ export const Media: CollectionConfig = {
         name: 'fullHD',
         width: 1920,
         height: 1080,
-        position: 'centre',
+        fit: 'contain',
+        background: 'transparent',
       },
       {
         name: 'thumbnail',

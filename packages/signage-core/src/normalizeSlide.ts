@@ -29,6 +29,8 @@ export function normalizeSlide(
     advanceMode: slide.advanceMode,
     duration: slide.duration,
     transition: slide.transition,
+    scaleToFill: slide.scaleToFill,
+    loop: slide.loop,
     id: slide.id,
   }
 
