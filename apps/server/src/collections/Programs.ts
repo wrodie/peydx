@@ -8,6 +8,18 @@ import { programBeforeValidate } from '../hooks/programBeforeValidate'
 import { programAutoEndSlide } from '../hooks/programAutoEndSlide'
 import { getIO } from '../websocket/io'
 
+const notifyDebounce = new Map<number, ReturnType<typeof setTimeout>>()
+
+function debouncedNotify(io: ReturnType<typeof getIO>, programId: number, fn: () => void) {
+  if (notifyDebounce.has(programId)) {
+    clearTimeout(notifyDebounce.get(programId)!)
+  }
+  notifyDebounce.set(programId, setTimeout(() => {
+    notifyDebounce.delete(programId)
+    fn()
+  }, 2000))
+}
+
 export const Programs: CollectionConfig = {
   slug: 'programs',
   admin: {
@@ -112,67 +124,63 @@ export const Programs: CollectionConfig = {
     afterChange: [
       async (args) => {
         if (args.context?.preventSync) return
-        const { doc, operation, req } = args
+        const { doc, req } = args
 
         const io = getIO()
         if (!io) return
 
-        // Find all devices affected by this program change
-        const deviceIds = new Set<number>()
+        debouncedNotify(io, doc.id, async () => {
+          const deviceIds = new Set<number>()
 
-        // Devices from schedules that use this program
-        const schedules = await req.payload.find({
-          collection: 'schedule',
-          depth: 0,
-          pagination: false,
-          where: { program: { equals: doc.id } },
-        })
-        for (const schedule of schedules.docs) {
-          for (const deviceId of schedule.devices as number[]) {
-            deviceIds.add(typeof deviceId === 'object' ? (deviceId as any).id : deviceId)
-          }
-        }
-
-        // Devices from availableDevices
-        if (doc.availableDevices) {
-          for (const deviceId of doc.availableDevices as number[]) {
-            deviceIds.add(typeof deviceId === 'object' ? (deviceId as any).id : deviceId)
-          }
-        }
-
-        // Devices where currentProgram === this program
-        const devices = await req.payload.find({
-          collection: 'devices',
-          depth: 0,
-          pagination: false,
-          where: { currentProgram: { equals: doc.id } },
-        })
-        for (const device of devices.docs) {
-          deviceIds.add(device.id)
-        }
-
-        // Emit signal-only schedule:update to each device
-        for (const deviceId of deviceIds) {
-          io.to(`device:${deviceId}`).emit('schedule:update', {} as any)
-        }
-
-        // Department fallback if no specific devices
-        if (deviceIds.size === 0) {
-          try {
-            const program = await req.payload.findByID({
-              collection: 'programs',
-              id: doc.id,
-              depth: 1,
-            })
-            const deptId = (program as any)?.folder?.department
-            if (deptId) {
-              const deptIdNum = typeof deptId === 'object' ? deptId.id : deptId
-              io.to(`department:${deptIdNum}`).emit('schedule:update', {} as any)
+          const schedules = await req.payload.find({
+            collection: 'schedule',
+            depth: 0,
+            pagination: false,
+            where: { program: { equals: doc.id } },
+          })
+          for (const schedule of schedules.docs) {
+            for (const deviceId of schedule.devices as number[]) {
+              deviceIds.add(typeof deviceId === 'object' ? (deviceId as any).id : deviceId)
             }
-          } catch {
-            // Program not yet visible in this transaction — skip department fallback
           }
-        }
+
+          if (doc.availableDevices) {
+            for (const deviceId of doc.availableDevices as number[]) {
+              deviceIds.add(typeof deviceId === 'object' ? (deviceId as any).id : deviceId)
+            }
+          }
+
+          const devices = await req.payload.find({
+            collection: 'devices',
+            depth: 0,
+            pagination: false,
+            where: { currentProgram: { equals: doc.id } },
+          })
+          for (const device of devices.docs) {
+            deviceIds.add(device.id)
+          }
+
+          for (const deviceId of deviceIds) {
+            io.to(`device:${deviceId}`).emit('schedule:update', {} as any)
+          }
+
+          if (deviceIds.size === 0) {
+            try {
+              const program = await req.payload.findByID({
+                collection: 'programs',
+                id: doc.id,
+                depth: 1,
+              })
+              const deptId = (program as any)?.folder?.department
+              if (deptId) {
+                const deptIdNum = typeof deptId === 'object' ? deptId.id : deptId
+                io.to(`department:${deptIdNum}`).emit('schedule:update', {} as any)
+              }
+            } catch {
+              // Program not yet visible in this transaction — skip department fallback
+            }
+          }
+        })
       },
     ],
     afterDelete: [

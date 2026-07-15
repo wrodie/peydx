@@ -244,6 +244,63 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   const activeDragRef = useRef(activeDrag)
   activeDragRef.current = activeDrag
   const durationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const submittingRef = useRef(false)
+  const idRef = useRef(id)
+  idRef.current = id
+  const getDataByPathRef = useRef(getDataByPath)
+  getDataByPathRef.current = getDataByPath
+  const submitRef = useRef(submit)
+  submitRef.current = submit
+
+  const scheduleSubmit = useCallback(() => {
+    const currentId = idRef.current
+    const currentTitle = getDataByPathRef.current('title')
+    if (submittingRef.current) return
+    if (!currentId && !currentTitle) return
+    if (durationTimerRef.current) clearTimeout(durationTimerRef.current)
+    durationTimerRef.current = setTimeout(async () => {
+      durationTimerRef.current = null
+      submittingRef.current = true
+      try {
+        await submitRef.current()
+      } finally {
+        submittingRef.current = false
+      }
+    }, 400)
+  }, [])
+
+  useEffect(() => {
+    document.body.classList.add('program-editor-autosave')
+    const style = document.createElement('style')
+    style.id = 'program-autosave-style'
+    style.textContent = `
+      body.program-editor-autosave #action-save,
+      body.program-editor-autosave [id^="action-save"] {
+        display: none !important;
+      }
+      body.program-editor-autosave .payload-toast-item:not(.toast-error) {
+        display: none !important;
+      }
+      body.program-editor-autosave .doc-tabs__tabs > :first-child {
+        display: none !important;
+      }
+    `
+    document.head.appendChild(style)
+    return () => {
+      document.body.classList.remove('program-editor-autosave')
+      style.remove()
+    }
+  }, [])
+
+  useEffect(() => {
+    const handler = () => scheduleSubmit()
+    document.addEventListener('blur', handler, true)
+    document.addEventListener('change', handler, true)
+    return () => {
+      document.removeEventListener('blur', handler, true)
+      document.removeEventListener('change', handler, true)
+    }
+  }, [scheduleSubmit])
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 768)
@@ -251,6 +308,29 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  useEffect(() => {
+    const titleInput = document.querySelector('#field-title input, #field-title textarea') as HTMLInputElement | null
+    if (!titleInput) return
+    const handleBlur = () => {
+      const title = getDataByPathRef.current('title')
+      if (!idRef.current && !title) return
+      scheduleSubmit()
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        const title = getDataByPathRef.current('title')
+        if (!idRef.current && !title) return
+        scheduleSubmit()
+      }
+    }
+    titleInput.addEventListener('blur', handleBlur)
+    titleInput.addEventListener('keydown', handleKeyDown)
+    return () => {
+      titleInput.removeEventListener('blur', handleBlur)
+      titleInput.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [scheduleSubmit])
 
   const rawSlides = (getDataByPath(path) as any[]) || []
   const slides = rawSlides.filter(
@@ -307,6 +387,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           schemaPath: `${path}.${blockType}`,
           subFieldState: buildRowState(blockType, def),
         })
+        scheduleSubmit()
         return
       }
       setEditingSlide({ ...def, _isNew: true })
@@ -314,7 +395,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       setEditingSegmentId(undefined)
       setDrawerOpen(true)
     },
-    [path, addFieldRow, rawSlides]
+    [path, addFieldRow, rawSlides, scheduleSubmit]
   )
 
   const handleEditSlide = useCallback(
@@ -368,8 +449,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       setEditingSlide(null)
       setEditingSlideIndex(-1)
       setEditingSegmentId(undefined)
+      scheduleSubmit()
     },
-    [path, addFieldRow, replaceFieldRow, rawSlides, dispatchFields]
+    [path, addFieldRow, replaceFieldRow, rawSlides, dispatchFields, scheduleSubmit]
   )
 
   const handleRemoveSlide = useCallback(
@@ -383,8 +465,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       } else {
         removeFieldRow({ path, rowIndex: index })
       }
+      scheduleSubmit()
     },
-    [path, removeFieldRow, rawSlides]
+    [path, removeFieldRow, rawSlides, scheduleSubmit]
   )
 
   const handleEditSegmentName = useCallback(
@@ -394,16 +477,18 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         path: `${path}.${segmentIndex}.name`,
         value: name,
       })
+      scheduleSubmit()
     },
-    [path, dispatchFields]
+    [path, dispatchFields, scheduleSubmit]
   )
 
   const handleRemoveSegment = useCallback(
     (segmentIndex: number) => {
       if (!confirm('Remove this entire segment?')) return
       removeFieldRow({ path, rowIndex: segmentIndex })
+      scheduleSubmit()
     },
-    [path, removeFieldRow]
+    [path, removeFieldRow, scheduleSubmit]
   )
 
   const handleImportProgram = useCallback(
@@ -457,8 +542,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           })
         }
       }
+      scheduleSubmit()
     },
-    [path, rawSlides.length, addFieldRow]
+    [path, rawSlides.length, addFieldRow, scheduleSubmit]
   )
 
   const handleModeChange = useCallback(
@@ -528,9 +614,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         }
       }
 
-      requestAnimationFrame(() => submit())
+      scheduleSubmit()
     },
-    [path, getDataByPath, dispatchFields, submit]
+    [path, getDataByPath, dispatchFields, scheduleSubmit]
   )
 
   const handleDurationChange = useCallback(
@@ -566,12 +652,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       }
 
       if (durationTimerRef.current) clearTimeout(durationTimerRef.current)
-      durationTimerRef.current = setTimeout(() => {
-        durationTimerRef.current = null
-        submit()
-      }, 600)
+      scheduleSubmit()
     },
-    [path, getDataByPath, dispatchFields, submit]
+    [path, getDataByPath, dispatchFields, scheduleSubmit]
   )
 
   const handleLoopChange = useCallback(
@@ -592,9 +675,9 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         path: `${rowPath}.${index}.loop`,
         value: newLoop,
       })
-      submit()
+      scheduleSubmit()
     },
-    [path, getDataByPath, dispatchFields, id, submit]
+    [path, getDataByPath, dispatchFields, scheduleSubmit]
   )
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -613,14 +696,16 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
       if (activeData.type === 'media') {
         handleMediaDrop(activeData, overData)
+        scheduleSubmit()
         return
       }
 
       if (activeData.type === 'slide' || activeData.type === 'segment') {
         moveSlideTo(activeData, overData)
+        scheduleSubmit()
       }
     },
-    [slides, segmentCounts]
+    [slides, segmentCounts, scheduleSubmit]
   )
 
   const handleMediaDrop = useCallback(
