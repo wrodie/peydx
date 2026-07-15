@@ -1,7 +1,7 @@
 {
   "name": "peydx",
   "private": true,
-  "version": "v0.0.50",
+  "version": "v0.0.51",
   "workspaces": [
     "apps/server",
     "apps/player",
