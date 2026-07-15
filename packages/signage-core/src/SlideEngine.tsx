@@ -26,6 +26,7 @@ export interface SlideEngineHandle {
   getCurrentIndex: () => number
   getProgramId: () => number | undefined
   getMediaElements: () => { video: HTMLVideoElement | null; audio: HTMLAudioElement | null; youtubePlayer: any }
+  togglePause: () => void
 }
 
 interface SlideEngineProps {
@@ -34,6 +35,7 @@ interface SlideEngineProps {
   onSlideChange?: (index: number) => void
   initialSlideIndex?: number
   keyConfig?: Partial<KeyConfig>
+  onPauseChange?: (paused: boolean) => void
 }
 
 function findSegmentStartIndex(slides: Slide[], currentIndex: number, segCtx?: SegmentContext | null): number {
@@ -53,7 +55,7 @@ function getSegmentEndIndex(slides: Slide[], currentIndex: number, segCtx?: Segm
 }
 
 export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
-  ({ program, onProgramEnd, onSlideChange, initialSlideIndex, keyConfig: userKeyConfig }, ref) => {
+  ({ program, onProgramEnd, onSlideChange, initialSlideIndex, keyConfig: userKeyConfig, onPauseChange }, ref) => {
     const keys = mergeKeyConfig(userKeyConfig)
     const flattened = useMemo(() => flattenProgram(program), [program])
 
@@ -63,6 +65,8 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const [segmentLoopKey, setSegmentLoopKey] = useState(0)
     const [audioBlocked, setAudioBlocked] = useState(false)
     const [, forceRender] = useState(0)
+    const [showPaused, setShowPaused] = useState(false)
+    const pausedRef = useRef(false)
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const playerRef = useRef<any>(null)
@@ -162,10 +166,32 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       }
     }, [slides, setIndex])
 
+    const togglePause = useCallback(() => {
+      const slide = slides[currentIndex]
+      if (!slide) return
+      const blockType = slide.blockType
+      if (blockType !== 'videoBlock' && blockType !== 'audioBlock' && blockType !== 'youtubeBlock') return
+
+      if (pausedRef.current) {
+        if (blockType === 'videoBlock') videoRef.current?.play()
+        else if (blockType === 'audioBlock') audioRef.current?.play()
+        else if (blockType === 'youtubeBlock') playerRef.current?.playVideo()
+      } else {
+        if (blockType === 'videoBlock') videoRef.current?.pause()
+        else if (blockType === 'audioBlock') audioRef.current?.pause()
+        else if (blockType === 'youtubeBlock') playerRef.current?.pauseVideo()
+      }
+
+      setShowPaused((prev) => !prev)
+      pausedRef.current = !pausedRef.current
+      onPauseChange?.(pausedRef.current)
+    }, [slides, currentIndex, onPauseChange])
+
     useImperativeHandle(ref, () => ({
       nextSlide: () => doNextSlide(true),
       prevSlide: doPrevSlide,
       gotoSlide,
+      togglePause,
       getCurrentIndex: () => currentIndex,
       getProgramId: () => program.id,
       getMediaElements: () => ({
@@ -173,11 +199,16 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
         audio: audioRef.current,
         youtubePlayer: playerRef.current,
       }),
-    }), [doNextSlide, doPrevSlide, gotoSlide, currentIndex, program.id])
+    }), [doNextSlide, doPrevSlide, gotoSlide, togglePause, currentIndex, program.id])
 
     useEffect(() => {
       onSlideChange?.(currentIndex)
     }, [currentIndex, onSlideChange])
+
+    useEffect(() => {
+      setShowPaused(false)
+      pausedRef.current = false
+    }, [currentIndex])
 
     const runSlideLogic = useCallback(
       (slide: Slide | undefined) => {
@@ -286,6 +317,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     useEffect(() => {
       const nextCodes = normalizeKeyCode(keys.next)
       const prevCodes = normalizeKeyCode(keys.prev)
+      const pauseCodes = normalizeKeyCode(keys.pause || 'KeyP')
       const handler = (e: KeyboardEvent) => {
         if (nextCodes.includes(e.code)) {
           e.preventDefault()
@@ -293,11 +325,14 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
         } else if (prevCodes.includes(e.code)) {
           e.preventDefault()
           doPrevSlide()
+        } else if (pauseCodes.includes(e.code)) {
+          e.preventDefault()
+          togglePause()
         }
       }
       window.addEventListener('keydown', handler)
       return () => window.removeEventListener('keydown', handler)
-    }, [doNextSlide, doPrevSlide, keys.next, keys.prev])
+    }, [doNextSlide, doPrevSlide, togglePause, keys.next, keys.prev, keys.pause])
 
     useEffect(() => {
       if (!currentSlide || currentSlide.blockType !== 'youtubeBlock') return
@@ -316,6 +351,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
             videoId: ytId,
             playerVars: {
               autoplay: 1,
+              enablejsapi: 1,
               controls: 0,
               modestbranding: 1,
               rel: 0,
@@ -607,6 +643,24 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
         {slides && slides.length > 1 && (
           <div className="slide-slide-indicator">
             {currentIndex + 1} / {slides.length}
+          </div>
+        )}
+        {showPaused && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0, 0, 0, 0.4)',
+              zIndex: 20,
+              pointerEvents: 'none',
+            }}
+          >
+            <span style={{ color: 'white', fontSize: '3rem', fontWeight: 600, opacity: 0.8 }}>
+              ⏸ Paused
+            </span>
           </div>
         )}
       </div>
