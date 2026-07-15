@@ -494,14 +494,14 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           if (currentSlide.duration == null || currentSlide.duration <= 0) {
             dispatchFields({
               type: 'UPDATE',
-              path: `${rowPath}.${index}.duration.value`,
+              path: `${rowPath}.${index}.duration`,
               value: 1,
             })
           }
         } else if (currentSlide.advanceMode === 'timed') {
           dispatchFields({
             type: 'UPDATE',
-            path: `${rowPath}.${index}.duration.value`,
+            path: `${rowPath}.${index}.duration`,
             value: null,
           })
         }
@@ -554,7 +554,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       if (currentSlide.blockType === 'segmentBlock') {
         dispatchFields({
           type: 'UPDATE',
-          path: `${rowPath}.${index}.duration.value`,
+          path: `${rowPath}.${index}.duration`,
           value: newDuration,
         })
       } else {
