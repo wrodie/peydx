@@ -240,15 +240,26 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
         setSlideReady(false)
         const img = new Image()
         let cancelled = false
-        const done = () => {
+        img.onload = () => {
+          if (cancelled) return
+          loadedUrlsRef.current.add(imageUrl)
+          img.decode().then(() => {
+            if (!cancelled) setSlideReady(true)
+          }).catch(() => {
+            if (!cancelled) setSlideReady(true)
+          })
+        }
+        img.onerror = () => {
           if (cancelled) return
           loadedUrlsRef.current.add(imageUrl)
           setSlideReady(true)
         }
-        img.onload = done
-        img.onerror = done
         img.src = imageUrl
-        const timeout = setTimeout(done, 1000)
+        const timeout = setTimeout(() => {
+          if (cancelled) return
+          loadedUrlsRef.current.add(imageUrl)
+          setSlideReady(true)
+        }, 1000)
         return () => { cancelled = true; clearTimeout(timeout) }
       }
 
@@ -258,8 +269,9 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
         if (next?.blockType === 'imageBlock') {
           const nextUrl = resolveMedia(next.image)?.url
           if (nextUrl && !loadedUrlsRef.current.has(nextUrl)) {
-            loadedUrlsRef.current.add(nextUrl)
             const img = new Image()
+            img.onload = () => loadedUrlsRef.current.add(nextUrl)
+            img.onerror = () => loadedUrlsRef.current.add(nextUrl)
             img.src = nextUrl
           }
         }
