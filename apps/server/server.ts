@@ -71,7 +71,7 @@ async function handleDeviceHeartbeat(
       currentSlideIndex: data.slideIndex,
       status: 'online',
     }
-    if (data.programId != null) heartbeatUpdateData.currentProgram = data.programId
+    if (data.programId !== undefined) heartbeatUpdateData.currentProgram = data.programId ?? null
     if (data.clientVersion != null) heartbeatUpdateData.clientVersion = data.clientVersion
     await payload.update({
       collection: 'devices',

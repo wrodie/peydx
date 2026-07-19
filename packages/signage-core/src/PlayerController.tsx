@@ -489,8 +489,10 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     useEffect(() => {
       if (playerState !== 'playing' || !currentScheduleEntry?.endTime) return
 
+      const tz = scheduleDataRef.current?.timezone || 'UTC'
+
       const interval = setInterval(() => {
-        if (new Date() >= new Date(currentScheduleEntry.endTime!)) {
+        if (tzMinutes(new Date(), tz) >= tzMinutes(new Date(currentScheduleEntry.endTime!), tz)) {
           const schedule = scheduleDataRef.current
           const { availablePrograms } = resolveScheduleState(schedule?.schedule ?? [], schedule?.availability ?? [], schedule?.timezone)
           if (availablePrograms.length > 0 && !schedule?.hideProgramList) {
@@ -513,6 +515,34 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
 
       return () => clearInterval(interval)
     }, [playerState, currentScheduleEntry, emitState])
+
+    useEffect(() => {
+      const interval = setInterval(() => {
+        const schedule = scheduleDataRef.current
+        if (!schedule) return
+
+        const { activeAutoPlay, availablePrograms } = resolveScheduleState(
+          schedule.schedule, schedule.availability ?? [], schedule.timezone,
+        )
+
+        const currentState = stateRef.current
+        const currentProgramId = activeProgramRef.current?.id
+
+        if (activeAutoPlay) {
+          if (currentState !== 'playing' || currentProgramId !== activeAutoPlay.programId) {
+            transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0, availablePrograms)
+          }
+        } else if (currentState === 'playing' && currentScheduleEntryRef.current) {
+          if (availablePrograms.length > 0 && !schedule.hideProgramList) {
+            transitionTo('menu', null, null, 0, availablePrograms)
+          } else {
+            transitionTo('idle', null, null)
+          }
+        }
+      }, 15000)
+
+      return () => clearInterval(interval)
+    }, [transitionTo])
 
     useEffect(() => {
       const tick = () => setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))

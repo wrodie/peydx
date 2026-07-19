@@ -18,7 +18,7 @@ export const heartbeat = {
       currentSlideIndex: typeof body.slideIndex === 'number' ? body.slideIndex : req.user.currentSlideIndex ?? undefined,
       status: 'online',
     }
-    if (typeof body.programId === 'number') heartbeatData.currentProgram = body.programId
+    if (body.programId !== undefined) heartbeatData.currentProgram = typeof body.programId === 'number' ? body.programId : null
     if (typeof body.clientVersion === 'string') heartbeatData.clientVersion = body.clientVersion
     await req.payload.update({
       collection: 'devices',

@@ -82,12 +82,15 @@ export default function HealthDashboard() {
       updateDevice(data.id, {
         status: data.status as any,
         currentSlideIndex: data.slideIndex,
+        currentProgram: data.programId != null ? { id: data.programId, title: '' } as any : null,
       })
     })
 
     socket.on('device:stateChange', (data) => {
       updateDevice(data.id, {
         lastHeartbeat: new Date().toISOString(),
+        status: 'online' as any,
+        currentProgram: data.programId != null ? { id: data.programId, title: '' } as any : null,
       })
     })
 

@@ -52,6 +52,13 @@ function getWeekday(timeZone) {
   return name.toLowerCase().slice(0, 3)
 }
 
+function tzMinutes(dateStr, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(dateStr))
+  const h = Number(parts.find(p => p.type === 'hour').value) % 24
+  const m = Number(parts.find(p => p.type === 'minute').value)
+  return h * 60 + m
+}
+
 async function fetchWithRetry(url, opts, retries = 3) {
   let delay = 5000;
   for (let i = 0; i <= retries; i++) {
@@ -199,15 +206,16 @@ async function sync() {
       } else {
         const startDateInTZ = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date(item.startTime))
         if (startDateInTZ !== todayDateStr) return false;
+
+        const start = new Date(item.startTime);
+        const end = item.endTime ? new Date(item.endTime) : null;
+        if (start > tomorrow) return false;
+        if (end && end < graceStart) return false;
+        if (!end && start < graceStart) return false;
       }
 
       if (item.untilDate && item.untilDate.slice(0, 10) < todayDateStr) return false;
 
-      const start = new Date(item.startTime);
-      const end = item.endTime ? new Date(item.endTime) : null;
-      if (start > tomorrow) return false;
-      if (end && end < graceStart) return false;
-      if (!end && start < graceStart) return false;
       return true;
     });
 
@@ -387,10 +395,20 @@ async function sync() {
     const pNum = (v) => pMap[String(v || 'normal')] ?? 0;
     const nowPlaying = activeSchedule
       .filter(item => {
-        const start = new Date(item.startTime);
-        if (start > checkNow) return false;
-        const end = item.endTime ? new Date(item.endTime) : null;
-        if (end && checkNow >= end) return false;
+        const daysOfWeek = item.daysOfWeek || [];
+        const isRecurring = daysOfWeek.length > 0;
+
+        if (isRecurring) {
+          const startMin = tzMinutes(item.startTime, TIMEZONE);
+          const endMin = item.endTime ? tzMinutes(item.endTime, TIMEZONE) : startMin + 60;
+          const nowMin = tzMinutes(checkNow.toISOString(), TIMEZONE);
+          if (nowMin < startMin || nowMin >= endMin) return false;
+        } else {
+          const start = new Date(item.startTime);
+          if (start > checkNow) return false;
+          const end = item.endTime ? new Date(item.endTime) : null;
+          if (end && checkNow >= end) return false;
+        }
         return true;
       })
       .sort((a, b) => {
