@@ -25,6 +25,27 @@ export const Programs: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'updatedAt', 'createdBy'],
+    baseFilter: async ({ req }) => {
+      if (!req.user) return null
+      try {
+        const prefs = await req.payload.find({
+          collection: 'payload-preferences',
+          depth: 0,
+          pagination: false,
+          where: {
+            and: [
+              { key: { equals: 'current-folder-programs' } },
+              { 'user.value': { equals: req.user.id } },
+            ],
+          },
+        })
+        const folderId = (prefs.docs?.[0]?.value as any)?.value as number | null | undefined
+        if (folderId == null) return null
+        return { folder: { equals: folderId } }
+      } catch {
+        return null
+      }
+    },
     components: {
       views: {
         list: {

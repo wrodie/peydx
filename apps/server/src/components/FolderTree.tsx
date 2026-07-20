@@ -226,9 +226,7 @@ export function FolderTree() {
       const folderId = pref?.value as number | null | undefined
       if (folderId != null) {
         expandAncestors(folderId)
-        if (handleWhereChange) {
-          await handleWhereChange({ folder: { equals: folderId } })
-        }
+        setActiveFolder(folderId)
       }
       restoredRef.current = true
     }
@@ -267,12 +265,12 @@ export function FolderTree() {
 
   const canNest = (depth: number) => depth < 2
 
-  const saveFolderPreference = async (value: number | null) => {
+  const saveFolderPref = async (value: number | null) => {
     await setPreference(prefKey, { value })
   }
 
   const navigateToFolder = async (folderId: number) => {
-    await saveFolderPreference(folderId)
+    await saveFolderPref(folderId)
     if (handleWhereChange) {
       await handleWhereChange({ folder: { equals: folderId } })
     }
@@ -280,7 +278,7 @@ export function FolderTree() {
   }
 
   const navigateToUnfiled = async () => {
-    await saveFolderPreference(null)
+    await saveFolderPref(null)
     if (handleWhereChange) {
       await handleWhereChange({ folder: { exists: false } })
     }
@@ -288,7 +286,7 @@ export function FolderTree() {
   }
 
   const navigateToAll = async () => {
-    await saveFolderPreference(null)
+    await saveFolderPref(null)
     if (handleWhereChange) {
       await handleWhereChange({})
     }
