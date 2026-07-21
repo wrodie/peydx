@@ -220,6 +220,9 @@ export const Media: CollectionConfig = {
       admin: {
         position: 'sidebar',
         condition: (data) => !!data?.id,
+        components: {
+          Field: '/components/FolderSelectField#FolderSelectField',
+        },
       },
     },
     {

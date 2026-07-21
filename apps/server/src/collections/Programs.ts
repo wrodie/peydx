@@ -296,6 +296,9 @@ export const Programs: CollectionConfig = {
       admin: {
         position: 'sidebar',
         condition: (data) => !!data?.id,
+        components: {
+          Field: '/components/FolderSelectField#FolderSelectField',
+        },
       },
     },
     {
