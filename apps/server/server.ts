@@ -131,7 +131,7 @@ async function handleDeviceSlideChange(
       io.to(`department:${dep}`).emit('device:status', {
         id: device.id,
         slideIndex: data.slideIndex,
-        programId: null,
+        programId: existing?.programId ?? null,
         status: 'online',
         clientVersion: storedVersion,
       })
@@ -139,7 +139,7 @@ async function handleDeviceSlideChange(
     io.to('admin').emit('device:status', {
       id: device.id,
       slideIndex: data.slideIndex,
-      programId: null,
+      programId: existing?.programId ?? null,
       status: 'online',
       clientVersion: storedVersion,
     })
