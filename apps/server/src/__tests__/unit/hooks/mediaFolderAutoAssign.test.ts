@@ -51,16 +51,20 @@ describe('mediaFolderAutoAssign', () => {
     expect(req.payload.find).toHaveBeenCalledTimes(2)
   })
 
-  it('does not assign folder for admin with no preference', async () => {
+  it('falls back to department root folder for admin with no preference', async () => {
     const req = {
-      payload: { find: vi.fn().mockResolvedValue({ docs: [] }) },
+      payload: {
+        find: vi.fn()
+          .mockResolvedValueOnce({ docs: [] })
+          .mockResolvedValueOnce({ docs: [] }),
+      },
       user: { id: 1, role: 'admin', departments: [{ id: 10 }] },
     } as any
 
     const data = {}
     const result = await mediaFolderAutoAssign({ data, req } as any)
     expect(result.folder).toBeUndefined()
-    expect(req.payload.find).toHaveBeenCalledTimes(1)
+    expect(req.payload.find).toHaveBeenCalledTimes(2)
   })
 
   it('does nothing when folder is already set', async () => {

@@ -18,7 +18,7 @@ export const mediaFolderAutoAssign: CollectionBeforeChangeHook = async ({ data, 
     const prefValue = (prefs.docs?.[0]?.value as any)?.value as number | null
     if (prefValue) {
       data.folder = prefValue
-    } else if (user.role !== 'admin' && user.departments) {
+    } else if (user.departments) {
       const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
       if (deptIds.length > 0) {
         const rootFolder = await req.payload.find({
@@ -27,6 +27,7 @@ export const mediaFolderAutoAssign: CollectionBeforeChangeHook = async ({ data, 
           limit: 1,
           pagination: false,
           where: {
+            type: { equals: 'media' },
             department: { equals: deptIds[0] },
             parent: { exists: false },
           },

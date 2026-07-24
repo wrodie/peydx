@@ -114,7 +114,7 @@ export const Programs: CollectionConfig = {
           const prefValue = (prefs.docs?.[0]?.value as any)?.value as number | null
           if (prefValue) {
             data.folder = prefValue
-          } else if (user && user.role !== 'admin' && user.departments) {
+          } else if (user && user.departments) {
             // 2. Fall back to first department's root folder
             const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
             if (deptIds.length > 0) {
@@ -124,6 +124,7 @@ export const Programs: CollectionConfig = {
                 limit: 1,
                 pagination: false,
                 where: {
+                  type: { equals: 'programs' },
                   department: { equals: deptIds[0] },
                   parent: { exists: false },
                 },
