@@ -7,6 +7,7 @@ import { ListWithSidebar as ListWithSidebar_327dcbf0e0ac59d2715531a201bf0d0e } f
 import { PreviewLink as PreviewLink_67606df83359e7f8b6b18048103c8d46 } from '../../../src/components/PreviewLink'
 import { SlideMoveSelect as SlideMoveSelect_8baa4b9e7496e22bb4860e63ba10750f } from '../../../src/components/SlideMoveSelect'
 import { ProgramTimelineField as ProgramTimelineField_ed72df1cc39618f1d109f0b7d1cbbae2 } from '../../../src/components/program-edit/ProgramTimelineField'
+import { SlidesEditorView as SlidesEditorView_693f85eb43670ae174d55c4ea94c24bd } from '../../../src/components/slides/SlidesEditorView'
 import { CopyDeviceUrl as CopyDeviceUrl_c3fb7ae53bbbaf2333d03000968f1b88 } from '../../../src/components/CopyDeviceUrl'
 import { DeviceSlideStatus as DeviceSlideStatus_da2be90833f097f2a59789c8f68ee673 } from '../../../src/components/DeviceSlideStatus'
 import { UpdateButton as UpdateButton_bf545bd6f6a998f40765b0b03577982b } from '../../../src/components/UpdateButton'
@@ -27,6 +28,7 @@ export const importMap = {
   "/components/PreviewLink#PreviewLink": PreviewLink_67606df83359e7f8b6b18048103c8d46,
   "/components/SlideMoveSelect#SlideMoveSelect": SlideMoveSelect_8baa4b9e7496e22bb4860e63ba10750f,
   "/components/program-edit/ProgramTimelineField#ProgramTimelineField": ProgramTimelineField_ed72df1cc39618f1d109f0b7d1cbbae2,
+  "/components/slides/SlidesEditorView#SlidesEditorView": SlidesEditorView_693f85eb43670ae174d55c4ea94c24bd,
   "/components/CopyDeviceUrl#CopyDeviceUrl": CopyDeviceUrl_c3fb7ae53bbbaf2333d03000968f1b88,
   "/components/DeviceSlideStatus#DeviceSlideStatus": DeviceSlideStatus_da2be90833f097f2a59789c8f68ee673,
   "/components/UpdateButton#UpdateButton": UpdateButton_bf545bd6f6a998f40765b0b03577982b,

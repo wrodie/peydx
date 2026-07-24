@@ -75,6 +75,7 @@ export interface Config {
     schedule: Schedule;
     departments: Department;
     folders: Folder;
+    slides: Slide;
     users: User;
     devices: Device;
     integrations: Integration;
@@ -90,6 +91,7 @@ export interface Config {
     schedule: ScheduleSelect<false> | ScheduleSelect<true>;
     departments: DepartmentsSelect<false> | DepartmentsSelect<true>;
     folders: FoldersSelect<false> | FoldersSelect<true>;
+    slides: SlidesSelect<false> | SlidesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     devices: DevicesSelect<false> | DevicesSelect<true>;
     integrations: IntegrationsSelect<false> | IntegrationsSelect<true>;
@@ -639,6 +641,30 @@ export interface Schedule {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "slides".
+ */
+export interface Slide {
+  id: number;
+  title: string;
+  designJson:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  width?: number | null;
+  height?: number | null;
+  render?: (number | null) | Media;
+  department?: (number | null) | Department;
+  createdBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "integrations".
  */
 export interface Integration {
@@ -705,6 +731,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'folders';
         value: number | Folder;
+      } | null)
+    | ({
+        relationTo: 'slides';
+        value: number | Slide;
       } | null)
     | ({
         relationTo: 'users';
@@ -1019,6 +1049,21 @@ export interface FoldersSelect<T extends boolean = true> {
   type?: T;
   department?: T;
   order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "slides_select".
+ */
+export interface SlidesSelect<T extends boolean = true> {
+  title?: T;
+  designJson?: T;
+  width?: T;
+  height?: T;
+  render?: T;
+  department?: T;
+  createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
