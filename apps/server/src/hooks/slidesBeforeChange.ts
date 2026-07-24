@@ -81,13 +81,6 @@ export const slidesBeforeChange: CollectionBeforeChangeHook = async ({ data, req
   if (!data.width) data.width = 1920
   if (!data.height) data.height = 1080
 
-  if (user && !data.department) {
-    const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
-    if (deptIds.length > 0) {
-      data.department = deptIds[0]
-    }
-  }
-
   if (user && !data.createdBy) {
     data.createdBy = user.id
   }

@@ -1,12 +1,13 @@
 import type { CollectionConfig } from 'payload'
 import { slidesBeforeChange } from '../hooks/slidesBeforeChange'
+import { slidesFolderAutoAssign } from '../hooks/slidesFolderAutoAssign'
 
 export const Slides: CollectionConfig = {
   slug: 'slides',
   admin: {
     group: 'Content',
     useAsTitle: 'title',
-    defaultColumns: ['title', 'department', 'updatedAt'],
+    defaultColumns: ['title', 'folder', 'updatedAt'],
   },
   access: {
     read: ({ req: { user: u } }) => {
@@ -15,11 +16,11 @@ export const Slides: CollectionConfig = {
       if (user.role === 'admin') return true
       if (user.role === 'standard' || user.role === 'manager') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
-        return { department: { in: deptIds } }
+        return { 'folder.department': { in: deptIds } }
       }
       if (user.collection === 'devices') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
-        return { department: { in: deptIds } }
+        return { 'folder.department': { in: deptIds } }
       }
       return false
     },
@@ -36,7 +37,7 @@ export const Slides: CollectionConfig = {
       if (user.role === 'admin') return true
       if (user.role === 'standard' || user.role === 'manager') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
-        return { department: { in: deptIds } }
+        return { 'folder.department': { in: deptIds } }
       }
       return false
     },
@@ -46,13 +47,13 @@ export const Slides: CollectionConfig = {
       if (user.role === 'admin') return true
       if (user.role === 'standard' || user.role === 'manager') {
         const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
-        return { department: { in: deptIds } }
+        return { 'folder.department': { in: deptIds } }
       }
       return false
     },
   },
   hooks: {
-    beforeChange: [slidesBeforeChange],
+    beforeChange: [slidesBeforeChange, slidesFolderAutoAssign],
   },
   fields: [
     {
@@ -91,10 +92,20 @@ export const Slides: CollectionConfig = {
       admin: { hidden: true },
     },
     {
-      name: 'department',
+      name: 'folder',
       type: 'relationship',
-      relationTo: 'departments',
-      admin: { position: 'sidebar' },
+      relationTo: 'folders',
+      required: false,
+      filterOptions: {
+        type: { equals: 'slides' },
+      },
+      admin: {
+        position: 'sidebar',
+        condition: (data) => !!data?.id,
+        components: {
+          Field: '/components/FolderSelectField#FolderSelectField',
+        },
+      },
     },
     {
       name: 'createdBy',

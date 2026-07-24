@@ -71,7 +71,6 @@ export const Toolbar: FC<ToolbarProps> = ({
       <button className="btn btn--style-secondary btn--size-small" onClick={onAddImage}><ImageIcon size={20} /></button>
       <span style={{ width: 1, height: 20, background: 'var(--theme-elevation-300)', margin: '0 4px' }} />
       <button className="btn btn--style-secondary btn--size-small" onClick={onDuplicate} disabled={!hasSelection}>Duplicate</button>
-      <button className="btn btn--style-secondary btn--size-small" onClick={onDelete} disabled={!hasSelection}>Delete</button>
       <span style={{ width: 1, height: 20, background: 'var(--theme-elevation-300)', margin: '0 4px' }} />
       <button className="btn btn--style-secondary btn--size-small" onClick={onUndo} disabled={!canUndo}>&#8630;</button>
       <button className="btn btn--style-secondary btn--size-small" onClick={onRedo} disabled={!canRedo}>&#8631;</button>

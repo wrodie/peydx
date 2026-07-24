@@ -9,6 +9,7 @@ import {
   FormatAlignLeftIcon,
   FormatAlignCenterIcon,
   FormatAlignRightIcon,
+  DeleteIcon,
 } from '../../icons'
 
 interface FloatingToolbarProps {
@@ -16,6 +17,7 @@ interface FloatingToolbarProps {
   selectedElements: SlideElement[]
   onElementChange: (id: string, partial: Partial<SlideElement>) => void
   onUpdateBackground: (bg: Partial<SlideDesign['background']>) => void
+  onDelete: () => void
 }
 
 const CARD: React.CSSProperties = {
@@ -85,6 +87,7 @@ export const FloatingToolbar: FC<FloatingToolbarProps> = ({
   selectedElements,
   onElementChange,
   onUpdateBackground,
+  onDelete,
 }) => {
   const el = selectedElements[0]
   const pendingRef = useRef<Partial<SlideElement>>({})
@@ -134,19 +137,6 @@ export const FloatingToolbar: FC<FloatingToolbarProps> = ({
 
   return (
     <div style={CARD}>
-      {/* Rotation + opacity */}
-      <span style={{ fontSize: '0.7rem', color: 'var(--theme-elevation-500)', marginRight: 2 }}>Rot</span>
-      <input type="text" inputMode="numeric" pattern="[0-9]*" value={Math.round(el.rotation)}
-        onChange={(e) => { const v = e.target.value.replace(/[^0-9-]/g, ''); if (v) debouncedUpdate({ rotation: Number(v) % 360 }) }}
-        style={{ ...INPUT, width: 36 }} title="Rotation" />
-      <span style={{ fontSize: '0.7rem', color: 'var(--theme-elevation-500)', marginRight: 2 }}>Op</span>
-      <input type="range" min={0} max={1} step={0.01} value={el.opacity}
-        onChange={(e) => debouncedUpdate({ opacity: Number(e.target.value) })}
-        onMouseUp={() => { if (debounceRef.current) clearTimeout(debounceRef.current); onElementChange(el.id, { ...pendingRef.current }); pendingRef.current = {} }}
-        style={{ width: 44, margin: 0, accentColor: 'var(--theme-primary-500, #4a9eff)' }} title="Opacity"
-      />
-      <span style={{ fontSize: '0.7rem', color: 'var(--theme-elevation-500)', width: 28, textAlign: 'right' }}>{Math.round(el.opacity * 100)}%</span>
-
       {el.type === 'text' && el.textData && (
         <>
           <div style={DIVIDER} />
@@ -237,6 +227,17 @@ export const FloatingToolbar: FC<FloatingToolbarProps> = ({
           </button>
         </>
       )}
+
+      <div style={DIVIDER} />
+      <span style={{ fontSize: '0.7rem', color: 'var(--theme-elevation-500)', marginRight: 2 }}>Op</span>
+      <input type="range" min={0} max={1} step={0.01} value={el.opacity}
+        onChange={(e) => debouncedUpdate({ opacity: Number(e.target.value) })}
+        onMouseUp={() => { if (debounceRef.current) clearTimeout(debounceRef.current); onElementChange(el.id, { ...pendingRef.current }); pendingRef.current = {} }}
+        style={{ width: 44, margin: 0, accentColor: 'var(--theme-primary-500, #4a9eff)' }} title="Opacity"
+      />
+      <span style={{ fontSize: '0.7rem', color: 'var(--theme-elevation-500)', width: 28, textAlign: 'right' }}>{Math.round(el.opacity * 100)}%</span>
+      <div style={DIVIDER} />
+      <button style={BTN} onClick={onDelete} title="Delete"><DeleteIcon size={18} /></button>
     </div>
   )
 }

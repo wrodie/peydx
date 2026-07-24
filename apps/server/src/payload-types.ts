@@ -230,7 +230,7 @@ export interface Folder {
   /**
    * Which collection this folder belongs to.
    */
-  type: 'media' | 'programs';
+  type: 'media' | 'programs' | 'slides';
   department?: (number | null) | Department;
   /**
    * Sort order within sibling folders (lower = first).
@@ -658,7 +658,7 @@ export interface Slide {
   width?: number | null;
   height?: number | null;
   render?: (number | null) | Media;
-  department?: (number | null) | Department;
+  folder?: (number | null) | Folder;
   createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -1062,7 +1062,7 @@ export interface SlidesSelect<T extends boolean = true> {
   width?: T;
   height?: T;
   render?: T;
-  department?: T;
+  folder?: T;
   createdBy?: T;
   updatedAt?: T;
   createdAt?: T;

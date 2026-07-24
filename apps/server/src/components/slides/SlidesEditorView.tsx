@@ -294,6 +294,7 @@ export function SlidesEditorView({ path }: { path: string }) {
           selectedElements={selectedElements}
           onElementChange={handleElementChange}
           onUpdateBackground={updateBackground}
+          onDelete={deleteSelected}
         />
         {/* Canvas */}
         <div style={{

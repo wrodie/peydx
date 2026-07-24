@@ -8,6 +8,7 @@ import * as migration_20260703_000000_add_scale_to_fill from './20260703_000000_
 import * as migration_20260709_000000_add_schedule_priority from './20260709_000000_add_schedule_priority';
 import * as migration_20260709_000001_add_schedule_tz_columns from './20260709_000001_add_schedule_tz_columns';
 import * as migration_20260724_000000_create_slides from './20260724_000000_create_slides';
+import * as migration_20260724_000001_add_slides_folder from './20260724_000001_add_slides_folder';
 
 export const migrations = [
   {
@@ -59,5 +60,10 @@ export const migrations = [
     up: migration_20260724_000000_create_slides.up,
     down: migration_20260724_000000_create_slides.down,
     name: '20260724_000000_create_slides'
+  },
+  {
+    up: migration_20260724_000001_add_slides_folder.up,
+    down: migration_20260724_000001_add_slides_folder.down,
+    name: '20260724_000001_add_slides_folder'
   },
 ];
