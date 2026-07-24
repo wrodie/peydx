@@ -136,9 +136,8 @@ describe('PlayerController', () => {
       rerender(<PlayerController scheduleData={emptySchedule} />)
 
       // initial program was already consumed — falls through to normal resolution
-      // With empty schedule+availability, should go to idle
-      expect(screen.queryByAltText('Slide 0')).toBeNull()
-      expect(screen.getByText('Test')).toBeTruthy()
+      // With empty schedule+availability but program already playing from availability, should continue
+      expect(screen.getByAltText('Slide 0')).toBeTruthy()
     })
   })
 })

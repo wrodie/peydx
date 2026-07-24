@@ -411,7 +411,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         }
       } else {
         setAvailableEntries(availablePrograms)
-        if (currentState === 'playing' && currentScheduleEntryRef.current) {
+        if (currentState === 'playing' && currentScheduleEntryRef.current?.scheduleType === 'autoplay') {
           if (availablePrograms.length > 0) {
             if (!scheduleData?.hideProgramList) {
               transitionTo('menu', null, null, 0, availablePrograms)
@@ -532,7 +532,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           if (currentState !== 'playing' || currentProgramId !== activeAutoPlay.programId) {
             transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0, availablePrograms)
           }
-        } else if (currentState === 'playing' && currentScheduleEntryRef.current) {
+        } else if (currentState === 'playing' && currentScheduleEntryRef.current?.scheduleType === 'autoplay') {
           if (availablePrograms.length > 0 && !schedule.hideProgramList) {
             transitionTo('menu', null, null, 0, availablePrograms)
           } else {
