@@ -95,6 +95,7 @@ export const Folders: CollectionConfig = {
       options: [
         { label: 'Media', value: 'media' },
         { label: 'Programs', value: 'programs' },
+        { label: 'Slides', value: 'slides' },
       ],
       admin: {
         description: 'Which collection this folder belongs to.',
