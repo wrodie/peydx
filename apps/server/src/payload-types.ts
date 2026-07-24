@@ -230,7 +230,7 @@ export interface Folder {
   /**
    * Which collection this folder belongs to.
    */
-  type: 'media' | 'programs' | 'slides';
+  type: 'media' | 'programs';
   department?: (number | null) | Department;
   /**
    * Sort order within sibling folders (lower = first).
