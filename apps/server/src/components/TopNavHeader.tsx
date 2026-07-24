@@ -15,7 +15,6 @@ import {
   KeyboardArrowDownIcon,
   MenuIcon,
   CloseIcon,
-  DescriptionIcon,
 } from './icons'
 
 export function TopNavHeader() {
@@ -76,7 +75,6 @@ export function TopNavHeader() {
   const mainLinks = [
     { slug: 'home', label: 'Home', icon: HomeIcon, href: `${adminRoute}` },
     { slug: 'media', label: 'Media', icon: PhotoLibraryIcon, href: `${adminRoute}/collections/media` },
-    { slug: 'slides', label: 'Slides', icon: DescriptionIcon, href: `${adminRoute}/collections/slides` },
     { slug: 'programs', label: 'Programs', icon: SlideshowIcon, href: `${adminRoute}/collections/programs` },
     { slug: 'schedule', label: 'Schedules', icon: CalendarMonthIcon, href: `${adminRoute}/collections/schedule` },
   ]

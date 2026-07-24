@@ -97,7 +97,7 @@ export const Slides: CollectionConfig = {
       relationTo: 'folders',
       required: false,
       filterOptions: {
-        type: { equals: 'slides' },
+        type: { equals: 'media' },
       },
       admin: {
         position: 'sidebar',

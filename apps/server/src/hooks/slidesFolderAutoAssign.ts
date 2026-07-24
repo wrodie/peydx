@@ -27,7 +27,7 @@ export const slidesFolderAutoAssign: CollectionBeforeChangeHook = async ({ data,
           limit: 1,
           pagination: false,
           where: {
-            type: { equals: 'slides' },
+            type: { equals: 'media' },
             department: { equals: deptIds[0] },
             parent: { exists: false },
           },
