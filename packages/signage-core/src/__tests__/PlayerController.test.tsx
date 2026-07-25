@@ -103,6 +103,39 @@ describe('PlayerController', () => {
     expect(screen.getByAltText('Slide 4')).toBeTruthy()
   })
 
+  it('exitProgram returns to idle when no approved programs', () => {
+    const ref = createRef<PlayerControllerHandle>()
+    const data: ResolvedSchedule = {
+      lastUpdated: '2020-01-01T00:00:00.000Z',
+      schedule: [],
+      availability: [],
+      deviceName: null,
+    }
+    render(<PlayerController ref={ref} scheduleData={data} />)
+
+    expect(screen.getByText('Signage')).toBeTruthy()
+  })
+
+  it('exitProgram from playing returns to menu when availability exists', () => {
+    const ref = createRef<PlayerControllerHandle>()
+    render(<PlayerController ref={ref} scheduleData={makeScheduleData(makeSlides(3))} />)
+
+    act(() => { ref.current?.selectProgram(10) })
+    expect(screen.getByAltText('Slide 0')).toBeTruthy()
+
+    act(() => { ref.current?.exitProgram() })
+    expect(screen.getAllByText('Test Program').length).toBeGreaterThan(0)
+    expect(screen.queryByAltText('Slide 0')).toBeNull()
+  })
+
+  it('exitProgram from idle is no-op', () => {
+    const ref = createRef<PlayerControllerHandle>()
+    render(<PlayerController ref={ref} scheduleData={null} />)
+
+    act(() => { ref.current?.exitProgram() })
+    expect(screen.getByText('Signage')).toBeTruthy()
+  })
+
   describe('URL program param (?program=&slide=)', () => {
     beforeEach(() => {
       window.history.replaceState({}, '', window.location.pathname)

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import React from 'react'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, cleanup } from '@testing-library/react'
 import { SlideEngine } from '../SlideEngine'
 import type { Program } from '../types'
 
@@ -31,6 +31,15 @@ const mockYT = {
 ;(window as any).onYouTubeIframeAPIReady = null
 
 describe('SlideEngine', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+    cleanup()
+  })
+
   const baseProgram: Program = {
     id: 1,
     title: 'Test Program',
@@ -157,5 +166,62 @@ describe('SlideEngine', () => {
 
     vi.useRealTimers()
     vi.unstubAllGlobals()
+  })
+
+  it('timed slide advances after duration', () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'))
+    const prog: Program = {
+      ...baseProgram,
+      slides: [
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 3, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 3, image: { id: 2, url: '/img2.jpg', alt: 'Slide 2' } },
+      ],
+    }
+    render(<SlideEngine program={prog} />)
+
+    act(() => { vi.advanceTimersByTime(3 * 1000 + 500) })
+    expect(screen.getByAltText('Slide 2')).toBeTruthy()
+
+    vi.useRealTimers()
+  })
+
+  it('timed slide does not advance before duration', () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'))
+    const prog: Program = {
+      ...baseProgram,
+      slides: [
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 5, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 5, image: { id: 2, url: '/img2.jpg', alt: 'Slide 2' } },
+      ],
+    }
+    render(<SlideEngine program={prog} />)
+
+    // At 4 seconds, still on slide 1
+    act(() => { vi.advanceTimersByTime(4 * 1000) })
+    const slides1 = screen.queryAllByAltText('Slide 1')
+    expect(slides1.length).toBe(1)
+    expect(screen.queryByAltText('Slide 2')).toBeNull()
+
+    vi.useRealTimers()
+  })
+
+  it('onProgramEnd fires after last timed slide', () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'))
+    const onEnd = vi.fn()
+    const prog: Program = {
+      ...baseProgram,
+      slides: [
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 2, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+      ],
+    }
+    render(<SlideEngine program={prog} onProgramEnd={onEnd} />)
+
+    act(() => { vi.advanceTimersByTime(2 * 1000 + 500) })
+    expect(onEnd).toHaveBeenCalledTimes(1)
+
+    vi.useRealTimers()
   })
 })

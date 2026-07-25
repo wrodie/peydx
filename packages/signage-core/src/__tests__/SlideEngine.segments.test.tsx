@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import React, { createRef } from 'react'
-import { render, act } from '@testing-library/react'
+import { render, act, cleanup } from '@testing-library/react'
 import { SlideEngine } from '../SlideEngine'
 import type { SlideEngineHandle } from '../SlideEngine'
 import type { Program } from '../types'
@@ -9,6 +9,7 @@ describe('SlideEngine segments', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     vi.useRealTimers()
+    cleanup()
   })
 
   function makeProgram(slides: any[]): Program {
@@ -193,5 +194,41 @@ describe('SlideEngine segments', () => {
     act(() => { ref.current?.nextSlide() })
 
     expect(onEnd).toHaveBeenCalledTimes(1)
+  })
+
+  it('timed slide within segment advances exactly once per duration', () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'))
+    const prog = makeProgram([{
+      blockType: 'segmentBlock',
+      id: 'seg1',
+      name: 'Timed Inner',
+      loop: false,
+      advanceMode: 'slides',
+      slides: [
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 3, image: { id: 1, url: '/img1.jpg', alt: 'inner-1' } },
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 3, image: { id: 2, url: '/img2.jpg', alt: 'inner-2' } },
+      ],
+    }])
+
+    render(<SlideEngine program={prog} />)
+
+    act(() => { vi.advanceTimersByTime(3 * 1000 + 500) })
+    expect(document.querySelector('img[alt="inner-2"]')).toBeTruthy()
+    const indicator = document.querySelector('.slide-slide-indicator')
+    expect(indicator?.textContent?.trim()).toBe('2 / 2')
+  })
+
+  it('timed segment: does not advance before segment duration', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'))
+    const onEnd = vi.fn()
+    const prog = makeProgram([makeSegment('seg1', 'timed', 30)])
+
+    render(<SlideEngine program={prog} onProgramEnd={onEnd} />)
+
+    act(() => { vi.advanceTimersByTime(4 * 60 * 1000) })
+
+    expect(onEnd).not.toHaveBeenCalled()
   })
 })
