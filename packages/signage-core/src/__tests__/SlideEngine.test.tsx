@@ -1,27 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import React from 'react'
 import { render, screen, act, cleanup } from '@testing-library/react'
-import { SlideEngine } from '../SlideEngine'
+import { SlideEngine, clearDecodedCache } from '../SlideEngine'
 import type { Program } from '../types'
-
-let decodeResolve: (() => void) | null = null
-
-function createImageMock() {
-  const self = {
-    onload: null as (() => void) | null,
-    onerror: null as (() => void) | null,
-    decode: vi.fn().mockReturnValue(new Promise<void>((resolve) => {
-      decodeResolve = resolve
-    })),
-  }
-  Object.defineProperty(self, 'src', {
-    set(_: string) {
-      setTimeout(() => self.onload?.(), 0)
-    },
-    get() { return '' },
-  })
-  return self
-}
 
 // Mock YouTube IFrame API
 const mockYT = {
@@ -32,6 +13,7 @@ const mockYT = {
 
 describe('SlideEngine', () => {
   beforeEach(() => {
+    clearDecodedCache()
     cleanup()
   })
   afterEach(() => {
@@ -136,36 +118,12 @@ describe('SlideEngine', () => {
     expect(img).toBeTruthy()
   })
 
-  it('holds image at opacity 0 until decode resolves for a non-cached URL', async () => {
-    vi.useFakeTimers()
-    vi.stubGlobal('Image', vi.fn(function() { return createImageMock() }))
-
-    const prog: Program = {
-      ...baseProgram,
-      slides: [{
-        blockType: 'imageBlock',
-        advanceMode: 'manual',
-        image: { id: 1, url: 'https://example.com/uncached.svg', alt: 'Slide' },
-        transition: 'fade',
-      }],
-    }
-
-    const { container } = render(<SlideEngine program={prog} />)
-
-    await act(() => vi.advanceTimersByTime(10))
-
+  it('image slide renders without fade delay (animation always applied)', () => {
+    const { container } = render(<SlideEngine program={baseProgram} />)
     const wrapper = container.querySelector('.slide-slide-wrapper') as HTMLElement
     expect(wrapper).toBeTruthy()
-    expect(wrapper.style.opacity).toBe('0')
-
-    await act(() => {
-      decodeResolve?.()
-    })
-
-    expect(wrapper.style.opacity).toBe('')
-
-    vi.useRealTimers()
-    vi.unstubAllGlobals()
+    const anim = wrapper.style.animation as string
+    expect(anim).toContain('signageFadeIn')
   })
 
   it('timed slide advances after duration', () => {
