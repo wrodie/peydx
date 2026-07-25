@@ -182,6 +182,55 @@ describe('buildScheduleJson', () => {
     expect(result.deviceName).toBeNull()
     expect(result.hideProgramList).toBe(false)
   })
+
+  describe('priority mapping', () => {
+    it('maps normal to 0', () => {
+      const items = [{
+        id: 1,
+        program: { id: 1, title: 'Test', loop: false, slides: [] },
+        startTime: '2024-01-15T09:00:00Z',
+        daysOfWeek: ['mon'],
+        priority: 'normal',
+      }]
+      const result = buildScheduleJson(items, [], null, null, false)
+      expect(result.schedule[0].priority).toBe(0)
+    })
+
+    it('maps high to 10', () => {
+      const items = [{
+        id: 1,
+        program: { id: 1, title: 'Test', loop: false, slides: [] },
+        startTime: '2024-01-15T09:00:00Z',
+        daysOfWeek: ['mon'],
+        priority: 'high',
+      }]
+      const result = buildScheduleJson(items, [], null, null, false)
+      expect(result.schedule[0].priority).toBe(10)
+    })
+
+    it('maps override to 20', () => {
+      const items = [{
+        id: 1,
+        program: { id: 1, title: 'Test', loop: false, slides: [] },
+        startTime: '2024-01-15T09:00:00Z',
+        daysOfWeek: ['mon'],
+        priority: 'override',
+      }]
+      const result = buildScheduleJson(items, [], null, null, false)
+      expect(result.schedule[0].priority).toBe(20)
+    })
+
+    it('defaults missing priority to 0 (normal)', () => {
+      const items = [{
+        id: 1,
+        program: { id: 1, title: 'Test', loop: false, slides: [] },
+        startTime: '2024-01-15T09:00:00Z',
+        daysOfWeek: ['mon'],
+      }]
+      const result = buildScheduleJson(items, [], null, null, false)
+      expect(result.schedule[0].priority).toBe(0)
+    })
+  })
 })
 
 describe('writeScheduleAtomically', () => {
