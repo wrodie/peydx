@@ -67,7 +67,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const [, forceRender] = useState(0)
     const [showPaused, setShowPaused] = useState(false)
     const pausedRef = useRef(false)
-    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const advanceAtRef = useRef(0)
     const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const playerRef = useRef<any>(null)
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -210,21 +210,23 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       pausedRef.current = false
     }, [currentIndex])
 
-    const runSlideLogic = useCallback(
-      (slide: Slide | undefined) => {
-        if (timerRef.current) clearTimeout(timerRef.current)
-        if (!slide || slide.advanceMode !== 'timed') return
-        timerRef.current = setTimeout(doNextSlide, (slide.duration || 5) * 1000)
-      },
-      [doNextSlide],
-    )
+    useEffect(() => {
+      if (!currentSlide || currentSlide.advanceMode !== 'timed') {
+        advanceAtRef.current = 0
+        return
+      }
+      advanceAtRef.current = Date.now() + (currentSlide.duration || 5) * 1000
+    }, [currentSlide])
 
     useEffect(() => {
-      runSlideLogic(currentSlide)
-      return () => {
-        if (timerRef.current) clearTimeout(timerRef.current)
-      }
-    }, [currentSlide, runSlideLogic])
+      const interval = setInterval(() => {
+        if (advanceAtRef.current > 0 && Date.now() >= advanceAtRef.current) {
+          advanceAtRef.current = 0
+          doNextSlide()
+        }
+      }, 250)
+      return () => clearInterval(interval)
+    }, [doNextSlide])
 
     // Preload images: wait for current image to load, preload next
     useEffect(() => {
