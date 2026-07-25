@@ -111,4 +111,55 @@ describe('resolveScheduleState', () => {
     expect(result.activeAutoPlay).toBeNull()
     expect(result.availablePrograms).toEqual([])
   })
+
+  describe('priority resolution', () => {
+    it('high priority beats normal priority regardless of startTime', () => {
+      const now = new Date('2025-06-16T10:00:00Z')
+      vi.setSystemTime(now)
+
+      const entries = [
+        makeScheduleEntry({ programId: 1, priority: 0, startTime: '2025-06-16T09:45:00.000Z', endTime: '2025-06-16T11:00:00.000Z' }),
+        makeScheduleEntry({ programId: 2, priority: 10, startTime: '2025-06-16T09:00:00.000Z', endTime: '2025-06-16T11:00:00.000Z' }),
+      ]
+      const result = resolveScheduleState(entries, [])
+      expect(result.activeAutoPlay!.programId).toBe(2)
+    })
+
+    it('override beats high regardless of startTime', () => {
+      const now = new Date('2025-06-16T10:00:00Z')
+      vi.setSystemTime(now)
+
+      const entries = [
+        makeScheduleEntry({ programId: 1, priority: 10, startTime: '2025-06-16T09:45:00.000Z', endTime: '2025-06-16T11:00:00.000Z' }),
+        makeScheduleEntry({ programId: 2, priority: 20, startTime: '2025-06-16T09:00:00.000Z', endTime: '2025-06-16T11:00:00.000Z' }),
+      ]
+      const result = resolveScheduleState(entries, [])
+      expect(result.activeAutoPlay!.programId).toBe(2)
+    })
+
+    it('within same priority, latest startTime wins', () => {
+      const now = new Date('2025-06-16T10:00:00Z')
+      vi.setSystemTime(now)
+
+      const entries = [
+        makeScheduleEntry({ programId: 1, priority: 0, startTime: '2025-06-16T09:00:00.000Z', endTime: '2025-06-16T11:00:00.000Z' }),
+        makeScheduleEntry({ programId: 2, priority: 0, startTime: '2025-06-16T09:30:00.000Z', endTime: '2025-06-16T11:00:00.000Z' }),
+      ]
+      const result = resolveScheduleState(entries, [])
+      expect(result.activeAutoPlay!.programId).toBe(2)
+    })
+
+    it('uses numeric priority values 0/10/20', () => {
+      const now = new Date('2025-06-16T10:00:00Z')
+      vi.setSystemTime(now)
+
+      const entries = [
+        makeScheduleEntry({ programId: 1, priority: 20, startTime: '2025-06-16T09:00:00.000Z', endTime: '2025-06-16T11:00:00.000Z' }),
+        makeScheduleEntry({ programId: 2, priority: 10, startTime: '2025-06-16T09:00:00.000Z', endTime: '2025-06-16T11:00:00.000Z' }),
+        makeScheduleEntry({ programId: 3, priority: 0, startTime: '2025-06-16T09:00:00.000Z', endTime: '2025-06-16T11:00:00.000Z' }),
+      ]
+      const result = resolveScheduleState(entries, [])
+      expect(result.activeAutoPlay!.programId).toBe(1)
+    })
+  })
 })

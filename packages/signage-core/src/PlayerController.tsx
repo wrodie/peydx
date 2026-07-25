@@ -179,7 +179,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const [menuIndex, setMenuIndex] = useState(0)
     const [showExitOverlay, setShowExitOverlay] = useState(false)
     const [availableEntries, setAvailableEntries] = useState<AvailabilityEntry[]>([])
-    const [currentScheduleEntry, setCurrentScheduleEntry] = useState<{ program?: Program; endTime?: string } | null>(null)
+    const [currentScheduleEntry, setCurrentScheduleEntry] = useState<ScheduleEntry | AvailabilityEntry | null>(null)
     const [showPaused, setShowPaused] = useState(false)
     const [currentTime, setCurrentTime] = useState('')
     const pausedRef = useRef(false)
@@ -190,7 +190,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const stateRef = useRef<PlayerState>(playerState)
     const activeProgramRef = useRef<Program | null>(activeProgram)
     const menuIndexRef = useRef(menuIndex)
-    const currentScheduleEntryRef = useRef<{ program?: Program; endTime?: string } | null>(null)
+    const currentScheduleEntryRef = useRef<ScheduleEntry | AvailabilityEntry | null>(null)
     const availableEntriesRef = useRef<AvailabilityEntry[]>([])
     const scheduleDataRef = useRef<ResolvedSchedule | null>(null)
     const showExitOverlayRef = useRef(false)
@@ -232,7 +232,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }, [])
 
     const transitionTo = useCallback(
-      (state: PlayerState, program?: Program | null, entry?: { program?: Program; endTime?: string } | null, index?: number, availEntries?: AvailabilityEntry[], slideIndex: number = 0) => {
+      (state: PlayerState, program?: Program | null, entry?: ScheduleEntry | AvailabilityEntry | null, index?: number, availEntries?: AvailabilityEntry[], slideIndex: number = 0) => {
         clearMenuTimeout()
         setPlayerState(state)
         setShowExitOverlay(false)
@@ -487,12 +487,14 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }, [scheduleData, transitionTo, clearMenuTimeout])
 
     useEffect(() => {
-      if (playerState !== 'playing' || !currentScheduleEntry?.endTime) return
+      if (playerState !== 'playing') return
+      if (!currentScheduleEntry || currentScheduleEntry.scheduleType !== 'autoplay' || !currentScheduleEntry.endTime) return
 
       const tz = scheduleDataRef.current?.timezone || 'UTC'
 
+      const endTime = currentScheduleEntry.endTime
       const interval = setInterval(() => {
-        if (tzMinutes(new Date(), tz) >= tzMinutes(new Date(currentScheduleEntry.endTime!), tz)) {
+        if (tzMinutes(new Date(), tz) >= tzMinutes(new Date(endTime), tz)) {
           const schedule = scheduleDataRef.current
           const { availablePrograms } = resolveScheduleState(schedule?.schedule ?? [], schedule?.availability ?? [], schedule?.timezone)
           if (availablePrograms.length > 0 && !schedule?.hideProgramList) {

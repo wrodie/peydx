@@ -86,4 +86,24 @@ describe('mediaFolderAutoAssign', () => {
     expect(result.folder).toBeUndefined()
     expect(req.payload.find).toHaveBeenCalledTimes(2)
   })
+
+  it('multi-department user: uses first department root folder, not any', async () => {
+    const req = {
+      payload: { find: vi.fn() },
+      user: { id: 1, role: 'standard', departments: [{ id: 10 }, { id: 20 }] },
+    } as any
+
+    req.payload.find
+      .mockResolvedValueOnce({ docs: [] })
+      .mockResolvedValueOnce({ docs: [{ id: 77 }] })
+
+    const data = {}
+    const result = await mediaFolderAutoAssign({ data, req } as any)
+
+    expect(result.folder).toBe(77)
+    // Verify the root folder query used the FIRST department (dept 10), not dept 20
+    expect(req.payload.find).toHaveBeenCalledTimes(2)
+    const rootQuery = (req.payload.find as any).mock.calls[1][0]
+    expect(rootQuery.where.department.equals).toBe(10)
+  })
 })

@@ -481,3 +481,61 @@ describe('resolveScheduleState with timezone', () => {
     expect(result.activeAutoPlay).toBeTruthy()
   })
 })
+
+describe('resolveScheduleState priority', () => {
+  function mkEntry(overrides: Partial<ScheduleEntry> = {}): ScheduleEntry {
+    const now = new Date('2024-01-15T12:00:00Z')
+    return {
+      programId: 1,
+      scheduleType: 'autoplay',
+      startTime: '2024-01-15T09:00:00.000Z',
+      endTime: '2024-01-15T13:00:00.000Z',
+      daysOfWeek: ['mon'],
+      untilDate: null,
+      priority: 0,
+      program: { id: 1, title: 'Test', slides: [] },
+      ...overrides,
+    }
+  }
+
+  it('high (10) beats normal (0) regardless of startTime', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'))
+    const entries = [
+      mkEntry({ programId: 1, priority: 0, startTime: '2024-01-15T09:30:00.000Z' }),
+      mkEntry({ programId: 2, priority: 10, startTime: '2024-01-15T09:00:00.000Z' }),
+    ]
+    const result = resolveScheduleState(entries, [])
+    expect(result.activeAutoPlay!.programId).toBe(2)
+  })
+
+  it('override (20) beats high (10)', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'))
+    const entries = [
+      mkEntry({ programId: 1, priority: 10, startTime: '2024-01-15T09:30:00.000Z' }),
+      mkEntry({ programId: 2, priority: 20, startTime: '2024-01-15T09:00:00.000Z' }),
+    ]
+    const result = resolveScheduleState(entries, [])
+    expect(result.activeAutoPlay!.programId).toBe(2)
+  })
+
+  it('within same priority, latest startTime wins', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'))
+    const entries = [
+      mkEntry({ programId: 1, priority: 0, startTime: '2024-01-15T09:00:00.000Z' }),
+      mkEntry({ programId: 2, priority: 0, startTime: '2024-01-15T09:30:00.000Z' }),
+    ]
+    const result = resolveScheduleState(entries, [])
+    expect(result.activeAutoPlay!.programId).toBe(2)
+  })
+
+  it('numeric priority values 0/10/20 are honored', () => {
+    vi.setSystemTime(new Date('2024-01-15T12:00:00Z'))
+    const entries = [
+      mkEntry({ programId: 1, priority: 20, startTime: '2024-01-15T09:00:00.000Z' }),
+      mkEntry({ programId: 2, priority: 10, startTime: '2024-01-15T09:00:00.000Z' }),
+      mkEntry({ programId: 3, priority: 0, startTime: '2024-01-15T09:00:00.000Z' }),
+    ]
+    const result = resolveScheduleState(entries, [])
+    expect(result.activeAutoPlay!.programId).toBe(1)
+  })
+})
