@@ -1,77 +1,150 @@
 # AGENTS.md
 
 ## Project overview
-Church education and presentation system with digital signage — Payload CMS v3 backend, React + Vite offline-first player, Node.js sync agent.
-Full architecture and data model spec: [`REQUIREMENTS.md`](./REQUIREMENTS.md)
+Church education and presentation system with digital signage — Payload CMS v3
+backend, React + Vite offline-first player, Node.js sync agent. Full architecture
+and data model spec: [`guides/ARCHITECTURE.md`](./guides/ARCHITECTURE.md).
 
 ## Monorepo layout
-- `apps/server/` — Payload CMS v3 collections, blocks, hooks
+- `apps/server/` — Payload CMS v3 collections, blocks, hooks, endpoints
+  - `apps/server/src/payload.config.ts` — Payload config (a 1-line re-export
+    shim lives at `apps/server/payload.config.ts`; **not** at repo root)
+  - `apps/server/server.ts` — Next.js + Socket.IO bootstrap: connection
+    handlers, room joining (`department:{id}`, `device:{id}`, `integration:{id}`),
+    heartbeat, remote-control emit gates
 - `apps/player/` — React + Vite signage player
 - `packages/signage-core/` — Shared slide rendering engine (SlideEngine, types)
-- `sync/sync-agent.js` — Background cron worker for local media sync
-- `payload.config.ts` — **Repo root** (not inside apps/server/); imports from `apps/server/src/`
-- `nginx/` — Reverse proxy + SSL termination config for deployment
+- `sync/` — `sync-agent.js` (cron worker) + `ecosystem.config.js` (PM2)
+- `scripts/` — `bootstrap-client.sh`, `deploy.sh`, `server-manager.py` (Flask
+  update-listener), `peydx-logrotate.conf`
+- `nginx/` — Reverse proxy + SSL termination
+- `guides/` — ARCHITECTURE.md, DEPLOY_SERVER.md, DEPLOY_CLIENT.md, INTEGRATION.md
+- `docs/` — `openapi.yaml`, `asyncapi.yaml`
+- `.github/workflows/ci.yml` — CI (Test + Build)
 
 ## Dev commands
 ```bash
-npm run dev:server      # Payload CMS dev server (Next.js on port 3000)
-npm run dev:player      # Vite dev server on port 5000 (HMR)
-npm run build:all       # Build both workspaces
-npm run sync            # node sync/sync-agent.js (runs sync + Express server on port 5000)
+npm run dev:server   # Payload CMS dev server (Next.js on port 3000)
+npm run dev:player   # Vite dev server on port 5000 (HMR)
+npm run build:all    # Build both workspaces
+npm run sync         # sync-agent.js (sync + Express server on port 5000)
 ```
+Test runner: `npm test` (all), `npm run test:server` (vitest), `test:core`,
+`test:player`, `test:sync`. `test:ci` exists for CI. No lint or typecheck
+commands are configured.
 
-Test runner: `npm test` (runs all workspace tests), `npm run test:server` (vitest), `npm run test:core`, `npm run test:player`, `npm run test:sync`. No lint or typecheck commands are configured.
-
-## Required environment variables
-No `.env.example` exists. Server requires:
+## Environment variables
+No `.env.example`. Server requires:
 - `DATABASE_URI` — Postgres connection string
 - `PAYLOAD_SECRET` — Payload CMS secret
 
 Server optional:
-- `YOUTUBE_DOWNLOAD_ENABLED` — Set to `true` to enable YouTube → MP4 conversion via yt-dlp. Requires `yt-dlp` and `deno` binaries installed (both included in Docker image). When disabled, YouTube blocks use the iframe embed player.
+- `TIMEZONE` — default timezone (used in payload config, schedule hooks, sync-agent)
+- `CORS_ORIGIN` — cross-origin WebSocket (required in production)
+- `YOUTUBE_DOWNLOAD_ENABLED` — `true` enables YouTube → MP4 via `yt-dlp` + `deno`
+  (both in Docker image). Disabled → YouTube blocks use the iframe embed player.
+- `SERVER_MANAGER_URL` / `SERVER_MANAGER_TOKEN` — used by deploy / pushUpdate /
+  deployStatus / serverStatus endpoints
 
-Docker Compose additionally requires: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+Docker Compose additionally requires: `POSTGRES_USER`, `POSTGRES_PASSWORD`,
+`POSTGRES_DB`. Client compose uses `CLOUDFLARE_TUNNEL_TOKEN`, `REGISTRY_URL`,
+`LOCAL_DIR`, `SCHEDULE_PATH`, `UPDATE_LISTENER_URL`, `CLIENT_VERSION`.
 
 Sync agent requires:
 - `API_URL` — Payload CMS API base URL (e.g. `http://localhost:3000/api`)
 - `DEVICE_API_KEY` — API key generated for the device in CMS
 
 ## Auth header format
-Payload v3 uses `Authorization: {collection-slug} API-Key {key}` (e.g. `Authorization: devices API-Key ...`).
-The old Payload v2 format (`Authorization: PayloadAPIKey ...`) no longer works.
+Payload v3 uses `Authorization: {collection-slug} API-Key {key}`
+(e.g. `Authorization: devices API-Key ...`).
 
-## Current state
-- **Player app is complete**: React + Vite project, builds successfully to `apps/player/dist/`.
-- **Sync agent is functional**: Resolves device ID, fetches approved schedules, downloads media, writes `schedule.json` atomically, serves player on port 5000.
-- **All workspace dependencies are `"latest"`** — not pinned, no lockfile committed.
+Auth modes on `Devices`:
+- Hardware devices: API-Key auth (above)
+- Browser devices: `browser-token` auth strategy + `deviceType` field
+  (`browser` vs `hardware`); connect directly to CMS over WebSocket
 
 ## Deployment
-- **Server**: `docker-compose up -d --build` (Postgres + Payload + Nginx on AWS Lightsail)
-- **Client**: `pm2 start ecosystem.config.js` (sync agent on bare metal, serves player + schedule + media)
+- **Server**: `docker compose up -d --build` (Postgres + Payload + Nginx, AWS
+  Lightsail). Optional Cloudflare Tunnel via `cloudflared` service profile.
+- **Client (recommended)**: `docker compose -f docker-compose.client.yaml up -d`
+  (sync-agent as Docker image pulling from registry)
+- **Client (manual/dev fallback)**: `pm2 start ecosystem.config.js`
+
+## Current state
+- Player app is complete (React + Vite; builds to `apps/player/dist/`).
+- Sync agent is functional: resolves device ID, fetches device-assigned
+  schedules filtered by time window + day-of-week, downloads media, writes
+  `schedule.json` atomically (`tmp` + `renameSync`), serves player on port 5000.
+- `package-lock.json` is committed; sub-workspace deps use caret ranges.
 
 ## Known decisions & trade-offs
 
-1. **Media list view**: Uses Payload's default table view (bulk upload, search, sort, pagination all work). Organization is handled via `listSearchableFields: ['name', 'filename']` plus a custom `Folders` collection (see item 2). The `department` field was removed from Media/Programs — department is now inherited from the folder's `department` field.
-2. **Folders (custom tree structure)**: A custom `Folders` collection provides hierarchical organization for Media and Programs. Folders are scoped per-collection (`type` field: `media`/`programs`) and per-department. Max 3 levels deep. Non-admin users can create folders within their department. Delete is blocked if folder contains items or sub-folders. **Department inheritance**: When a child folder is created, its `department` is automatically inherited from the parent (cannot be overridden). The `folder` field on Media/Programs is hidden on create (auto-assigned from `current-folder` preference, falls back to department's root folder) and visible on edit. A `FolderTree` component renders a collapsible tree above the list table, with "All", "Unfiled", and clickable folder nodes that filter the list view. The folder tree uses `useListQuery.handleWhereChange` to update the list filter. Known limitation: the ListDrawer/media-picker in slide blocks does not include folder filtering yet.
-3. **autoCreateSlides hook**: Program bulk media → slide auto-creation runs as a `beforeChange` hook. Must pass `req` through to `payload.update()` to share the parent create transaction (prevents "Not Found" error from uncommitted transaction).
-4. **Media name auto-fill**: `beforeChange` hook sets `name` from `req.file.name` (ext-stripped) if left blank. Field is not required — UX is "type a name or leave blank to use filename".
-5. **Migration strategy**: The system is in production — the database cannot be dropped for schema changes. Migrations must be non-destructive and backwards-compatible. Use `npx payload migrate:create` to generate a diff, then review/edit the generated SQL to ensure it doesn't recreate tables or drop data. For enum changes, use `ALTER TYPE ... ADD VALUE` rather than recreating the type. Apply migrations with `npx payload migrate`. Existing migrations are in `apps/server/src/migrations/`.
-    - **All DB schema changes must have a migration.** Adding a field to a Payload collection config is not enough — the column won't exist in the DB until a migration creates it. Always create a migration (via `npx payload migrate:create` or manually) for every collection/field change.
-6. **Schedule access for devices**: Device-authenticated requests bypass department filtering on the Schedule collection — the query's `where[devices][contains]` filter already restricts results to the device's own schedules.
-7. **Devices access for self-read**: Device-authenticated requests can read their own record via `{ id: { equals: user.id } }`. The `deviceId` field was removed — the numeric Payload `id` is the sole identifier.
-8. **Media download URLs**: Payload v3 serves files at `/api/media/file/<filename>` (not `/api/media/<filename>`).
-9. **Multi-department users**: The `department` field on Users was changed from a single `relationship` to a `departments` hasMany relationship. The field is saved to JWT (`saveToJWT: ['role', 'departments']`). All access controls use the pattern: `const deptIds = (user.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)` followed by `{ department: { in: deptIds } }`. Non-admin users with multiple departments see data from all their departments. Schedule departments are inferred from the selected program's `folder.department`. For folder/media/program creation without a parent folder, the first department in the user's list is used as the default. WebSocket rooms follow the same multi-department pattern — users join `department:{id}` rooms for each of their departments.
-10. **PPTX import**: `POST /api/import-pptx` parses `.pptx` files, extracts full-screen images/videos/audios, imports as `media` records, and creates a `programs` record. Across-slides audio (`numSld > 1`) creates a `segmentBlock` with `backgroundAudio`. Incompatible codecs (EMF/WMF/WMV) are skipped with warnings. Pure parsing in `pptxImporter.ts` (no Payload deps), endpoint in `mediaImportPptx.ts`. Requires `jszip` + `fast-xml-parser`.
-    - **Chunked upload**: Files >90 MB are automatically split into 80 MB chunks client-side and uploaded via `POST /api/import-pptx-chunk`. Chunks are stored in `os.tmpdir()/pptx-uploads/{uploadId}/` and reassembled on the server when the final chunk arrives. A `DELETE` method on the same path cleans up temp files for cancelled uploads. Stale temp dirs (>1 hour) are cleaned lazily on each chunk request. Both the single-upload and chunked paths share the same `processPptxImport()` backend logic.
-11. **Schedule priority (overlap resolution)**: A `priority` select field (`normal`/`high`/`override`) on the Schedule collection controls which program plays when schedules overlap on a device. Numeric mapping: normal=0, high=10, override=20. Overlap detection is only enforced **within the same priority level** — different-priority schedules can freely overlap. Resolution: the player/sync-agent groups matching schedules by priority (descending), picks from the highest group first, and within the same priority picks the latest startTime. Only admins can set `override`. Add a migration for any change to this field.
+1. **autoCreateSlides hook** (`apps/server/src/hooks/autoCreateSlides.ts`):
+   Program bulk media → slide auto-creation runs as `beforeChange` and mutates
+   `data.slides` in place (no `payload.update()` call). `req` is passed only to
+   `req.payload.findByID` / `req.payload.logger`.
+2. **Migration strategy**: System is in production — DB cannot be dropped.
+   Migrations must be non-destructive and backwards-compatible. Use
+   `npx payload migrate:create` to generate a diff, then review/edit the SQL
+   (no recreating tables, no dropping data; for enums use
+   `ALTER TYPE ... ADD VALUE`). Apply via `npx payload migrate`. Existing
+   migrations in `apps/server/src/migrations/`. **Every collection/field change
+   must ship with a migration** — adding a field to Payload config alone won't
+   create the column.
+3. **Multi-department users**: `Users.department` was a single relationship;
+   now `departments` hasMany, saved to JWT (`['role', 'departments']`). All
+   access controls use
+   `const deptIds = (user.departments || []).map((d) => typeof d === 'object' ? d.id : d)`
+   then `{ department: { in: deptIds } }`. Schedule department is inferred
+   from the program's `folder.department`. Default for folder/media/program
+   creation without a parent folder = first department in the user's list.
+   WebSocket rooms follow the same pattern. See item 6 for Folders.
+4. **PPTX import**: `POST /api/import-pptx`
+   (`apps/server/src/endpoints/mediaImportPptx.ts`) parses `.pptx` via
+   `apps/server/src/utilities/pptxImporter.ts` (pure, no Payload deps; needs
+   `jszip` + `fast-xml-parser`). Extracts full-screen images/videos/audios,
+   imports `media`, creates a `programs` record; across-slides audio
+   (`numSld > 1`) creates a `segmentBlock` with `backgroundAudio`. EMF/WMF/WMV
+   are skipped with warnings. Files >90 MB are auto-split client-side
+   (`ImportPptxButton.tsx`; 80 MB chunks) → `POST /api/import-pptx-chunk`;
+   chunks reassemble on the final chunk; `DELETE /api/import-pptx-chunk` aborts.
+   Stale temp dirs (>1 h) cleaned lazily on each chunk request.
+5. **Schedule priority (overlap resolution)**: `Schedule.priority` select
+   (`normal`/`high`/`override`, default `normal`). Numeric map `normal=0,
+   high=10, override=20` lives in `PRIORITY_MAP` in `sync/schedule-utils.ts`.
+   Overlap detection is enforced **within the same priority level** only;
+   different-priority schedules may freely overlap. Player/sync-agent group by
+   priority desc, pick from highest group; within a group pick latest startTime.
+   Only admins set `override`. Any change to this field must ship a migration.
+
+(Folders, media name auto-fill, device self-read, media download URLs, and the
+schedule device-access pattern are routine behavior enforced by hooks/tests —
+see `apps/server/src/__tests__/unit/hooks/` and `sync/__tests__/`. Not
+repeated here.)
 
 ## Testing discipline
 
-1. **Every bug-fix commit must include a test** that fails before the fix and passes after. The test lives in the corresponding `__tests__/` directory for the file touched.
-2. **`npm test` must be green before any commit claiming to fix something.** Run it locally with Postgres up via `docker compose -f docker-compose.test.yml up -d payload-db`.
-3. **Changes to these high-regression areas must update or add assertions in the matching test files:**
-   - `SlideEngine.tsx` timing model → `packages/signage-core/src/__tests__/SlideEngine.test.tsx` and `SlideEngine.segments.test.tsx`.
-   - `PlayerController.tsx` state transitions or manual-kill → `packages/signage-core/src/__tests__/PlayerController.test.tsx` and `PlayerController.schedule.test.tsx`.
-   - Folder default assignment / department inheritance → `apps/server/src/__tests__/unit/hooks/mediaFolderAutoAssign.test.ts` and `folderBeforeChange.test.ts`.
-   - Schedule overlap priority resolution → `sync/__tests__/unit/schedule-filter.test.ts` and `apps/player/src/__tests__/schedule-resolver.test.ts`. The numeric mapping (normal=0, high=10, override=20) is documented in item 11 above and must be asserted by tests.
-4. **CI is the source of truth, not local feels.** If GitHub Actions `Test` or `Build` is red on `main`, the build is broken regardless of how it ran locally. Fix forward, don't merge around it.
+1. **Every bug-fix commit must include a test** that fails before the fix and
+   passes after, in the matching `__tests__/` directory.
+2. **`npm test` must be green before any fix commit.** Bring up Postgres via
+   `docker compose -f docker-compose.yaml -f docker-compose.test.yml up -d
+   payload-db` (the test compose is **volume overrides only** — it does not
+   define services; both files are required).
+3. **High-regression areas must update the matching test files:**
+   - `SlideEngine.tsx` timing model →
+     `packages/signage-core/src/__tests__/SlideEngine.test.tsx`,
+     `SlideEngine.segments.test.tsx`
+   - `PlayerController.tsx` state transitions or manual-kill →
+     `packages/signage-core/src/__tests__/PlayerController.test.tsx`,
+     `PlayerController.schedule.test.tsx`
+   - Folder default assignment / department inheritance →
+     `apps/server/src/__tests__/unit/hooks/mediaFolderAutoAssign.test.ts`,
+     `folderBeforeChange.test.ts`
+   - Schedule overlap priority resolution →
+     `sync/__tests__/unit/schedule-filter.test.ts`,
+     `apps/player/src/__tests__/schedule-resolver.test.ts`
+     (the `normal=0/high=10/override=20` map must be asserted by tests)
+   - WebSocket control-access emit gates → `apps/server/src/__tests__/.../verifyControlAccess.test.ts`
+4. **CI is source of truth.** If `.github/workflows/ci.yml` is red on `main`,
+   the build is broken regardless of local result. Fix forward, don't merge
+   around it.
