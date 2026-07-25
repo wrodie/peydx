@@ -4,6 +4,25 @@ import { render, screen, act } from '@testing-library/react'
 import { SlideEngine } from '../SlideEngine'
 import type { Program } from '../types'
 
+let decodeResolve: (() => void) | null = null
+
+function createImageMock() {
+  const self = {
+    onload: null as (() => void) | null,
+    onerror: null as (() => void) | null,
+    decode: vi.fn().mockReturnValue(new Promise<void>((resolve) => {
+      decodeResolve = resolve
+    })),
+  }
+  Object.defineProperty(self, 'src', {
+    set(_: string) {
+      setTimeout(() => self.onload?.(), 0)
+    },
+    get() { return '' },
+  })
+  return self
+}
+
 // Mock YouTube IFrame API
 const mockYT = {
   Player: vi.fn(),
@@ -106,5 +125,37 @@ describe('SlideEngine', () => {
     const { container } = render(<SlideEngine program={prog} />)
     const img = container.querySelector('img')
     expect(img).toBeTruthy()
+  })
+
+  it('holds image at opacity 0 until decode resolves for a non-cached URL', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('Image', vi.fn(function() { return createImageMock() }))
+
+    const prog: Program = {
+      ...baseProgram,
+      slides: [{
+        blockType: 'imageBlock',
+        advanceMode: 'manual',
+        image: { id: 1, url: 'https://example.com/uncached.svg', alt: 'Slide' },
+        transition: 'fade',
+      }],
+    }
+
+    const { container } = render(<SlideEngine program={prog} />)
+
+    await act(() => vi.advanceTimersByTime(10))
+
+    const wrapper = container.querySelector('.slide-slide-wrapper') as HTMLElement
+    expect(wrapper).toBeTruthy()
+    expect(wrapper.style.opacity).toBe('0')
+
+    await act(() => {
+      decodeResolve?.()
+    })
+
+    expect(wrapper.style.opacity).toBe('')
+
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 })

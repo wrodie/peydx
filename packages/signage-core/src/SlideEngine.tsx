@@ -4,7 +4,8 @@ import { flattenProgram } from './flattenProgram'
 import { mergeKeyConfig, normalizeKeyCode } from './keyConfig'
 import './transitions.css'
 
-const TRANSITION_DURATION = 2500
+const TRANSITION_DURATION = 600
+const TRANSITION_EASING = 'cubic-bezier(0.26, 0.86, 0.44, 0.985)'
 
 function resolveMedia(value: { url?: string | null; alt?: string | null } | number | undefined): { url?: string | null; alt?: string | null } | null {
   if (!value) return null
@@ -78,7 +79,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const prevProgramIdRef = useRef(program.id)
     const outgoingRef = useRef<{ slide: Slide; index: number } | null>(null)
     const outgoingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const loadedUrlsRef = useRef(new Set<string>())
+    const decodedRef = useRef(new Set<string>())
     const [slideReady, setSlideReady] = useState(true)
 
     const slides = flattened.slides
@@ -228,7 +229,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       return () => clearInterval(interval)
     }, [doNextSlide])
 
-    // Preload images: wait for current image to load, preload next
+    // Preload images: wait for current image to decode, preload next
     useEffect(() => {
       const slide = slides[currentIndex]
       if (!slide) return
@@ -236,7 +237,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       const isImage = slide.blockType === 'imageBlock'
       const imageUrl = isImage ? resolveMedia(slide.image)?.url ?? null : null
 
-      if (!isImage || !imageUrl || loadedUrlsRef.current.has(imageUrl)) {
+      if (!isImage || !imageUrl || decodedRef.current.has(imageUrl)) {
         setSlideReady(true)
       } else {
         setSlideReady(false)
@@ -244,22 +245,26 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
         let cancelled = false
         img.onload = () => {
           if (cancelled) return
-          loadedUrlsRef.current.add(imageUrl)
           img.decode().then(() => {
-            if (!cancelled) setSlideReady(true)
+            if (!cancelled) {
+              decodedRef.current.add(imageUrl)
+              setSlideReady(true)
+            }
           }).catch(() => {
-            if (!cancelled) setSlideReady(true)
+            if (!cancelled) {
+              decodedRef.current.add(imageUrl)
+              setSlideReady(true)
+            }
           })
         }
         img.onerror = () => {
           if (cancelled) return
-          loadedUrlsRef.current.add(imageUrl)
+          decodedRef.current.add(imageUrl)
           setSlideReady(true)
         }
         img.src = imageUrl
         const timeout = setTimeout(() => {
           if (cancelled) return
-          loadedUrlsRef.current.add(imageUrl)
           setSlideReady(true)
         }, 1000)
         return () => { cancelled = true; clearTimeout(timeout) }
@@ -270,10 +275,14 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
         const next = slides[nextIdx]
         if (next?.blockType === 'imageBlock') {
           const nextUrl = resolveMedia(next.image)?.url
-          if (nextUrl && !loadedUrlsRef.current.has(nextUrl)) {
+          if (nextUrl && !decodedRef.current.has(nextUrl)) {
             const img = new Image()
-            img.onload = () => loadedUrlsRef.current.add(nextUrl)
-            img.onerror = () => loadedUrlsRef.current.add(nextUrl)
+            img.onload = () => {
+              img.decode().then(() => {
+                decodedRef.current.add(nextUrl)
+              }).catch(() => {})
+            }
+            img.onerror = () => {}
             img.src = nextUrl
           }
         }
@@ -608,11 +617,11 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
           className="slide-slide-wrapper"
           style={{
             animation: isOutgoing
-              ? `signageFadeOut ${TRANSITION_DURATION}ms ease both`
+              ? `signageFadeOut ${TRANSITION_DURATION}ms ${TRANSITION_EASING} both`
               : shouldAnimate && animName === 'fade'
-                ? `signageFadeIn ${TRANSITION_DURATION}ms ease both`
+                ? `signageFadeIn ${TRANSITION_DURATION}ms ${TRANSITION_EASING} both`
                 : shouldAnimate && animName === 'slide'
-                  ? `signageSlideIn ${TRANSITION_DURATION}ms ease both`
+                  ? `signageSlideIn ${TRANSITION_DURATION}ms ${TRANSITION_EASING} both`
                   : undefined,
             opacity: !isOutgoing && !shouldAnimate
               ? 0
@@ -643,7 +652,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
               height: '100%',
               zIndex: 10,
               background: 'black',
-              animation: `signageFadeIn ${TRANSITION_DURATION}ms ease both`,
+              animation: `signageFadeIn ${TRANSITION_DURATION}ms ${TRANSITION_EASING} both`,
               display: 'flex',
               alignItems: 'flex-end',
               justifyContent: 'center',
