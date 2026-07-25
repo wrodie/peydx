@@ -22,8 +22,9 @@ function parseYouTubeId(input: string): string | null {
 
 const DECODED_CACHE_MAX = 100
 
-function getCacheKey(img: { id?: number; filename?: string | null } | null | undefined): string | null {
-  if (!img || !img.id) return null
+function getCacheKey(img: { id?: number; filename?: string | null } | number | null | undefined): string | null {
+  if (!img || typeof img === 'number') return null
+  if (!img.id) return null
   return `${img.id}::${img.filename ?? ''}`
 }
 
@@ -33,7 +34,7 @@ function isDecoded(key: string): boolean {
   return decodedCache.has(key)
 }
 
-function markDecoded(img: { id?: number; filename?: string | null } | null | undefined): void {
+function markDecoded(img: { id?: number; filename?: string | null } | number | null | undefined): void {
   const key = getCacheKey(img)
   if (!key) return
   if (decodedCache.size >= DECODED_CACHE_MAX) {
