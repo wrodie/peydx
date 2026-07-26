@@ -20,6 +20,34 @@ function parseYouTubeId(input: string): string | null {
   return match ? match[1] : null
 }
 
+const DECODED_CACHE_MAX = 100
+
+function getCacheKey(img: { id?: number; filename?: string | null } | number | null | undefined): string | null {
+  if (!img || typeof img === 'number') return null
+  if (!img.id) return null
+  return `${img.id}::${img.filename ?? ''}`
+}
+
+const decodedCache = new Map<string, number>()
+
+function isDecoded(key: string): boolean {
+  return decodedCache.has(key)
+}
+
+function markDecoded(img: { id?: number; filename?: string | null } | number | null | undefined): void {
+  const key = getCacheKey(img)
+  if (!key) return
+  if (decodedCache.size >= DECODED_CACHE_MAX) {
+    const oldest = decodedCache.keys().next().value
+    if (oldest !== undefined) decodedCache.delete(oldest)
+  }
+  decodedCache.set(key, Date.now())
+}
+
+export function clearDecodedCache(): void {
+  decodedCache.clear()
+}
+
 export interface SlideEngineHandle {
   nextSlide: () => void
   prevSlide: () => void
@@ -79,8 +107,6 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const prevProgramIdRef = useRef(program.id)
     const outgoingRef = useRef<{ slide: Slide; index: number } | null>(null)
     const outgoingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const decodedRef = useRef(new Set<string>())
-    const [slideReady, setSlideReady] = useState(true)
 
     const slides = flattened.slides
 
@@ -229,61 +255,47 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       return () => clearInterval(interval)
     }, [doNextSlide])
 
-    // Preload images: wait for current image to decode, preload next
+    // Preload current image and upcoming slides into browser cache
     useEffect(() => {
       const slide = slides[currentIndex]
       if (!slide) return
 
-      const isImage = slide.blockType === 'imageBlock'
-      const imageUrl = isImage ? resolveMedia(slide.image)?.url ?? null : null
-
-      if (!isImage || !imageUrl || decodedRef.current.has(imageUrl)) {
-        setSlideReady(true)
-      } else {
-        setSlideReady(false)
-        const img = new Image()
-        let cancelled = false
-        img.onload = () => {
-          if (cancelled) return
-          img.decode().then(() => {
-            if (!cancelled) {
-              decodedRef.current.add(imageUrl)
-              setSlideReady(true)
-            }
-          }).catch(() => {
-            if (!cancelled) {
-              decodedRef.current.add(imageUrl)
-              setSlideReady(true)
-            }
-          })
-        }
-        img.onerror = () => {
-          if (cancelled) return
-          decodedRef.current.add(imageUrl)
-          setSlideReady(true)
-        }
-        img.src = imageUrl
-        const timeout = setTimeout(() => {
-          if (cancelled) return
-          setSlideReady(true)
-        }, 1000)
-        return () => { cancelled = true; clearTimeout(timeout) }
-      }
-
-      if (slides.length > 1) {
-        const nextIdx = (currentIndex + 1) % slides.length
-        const next = slides[nextIdx]
-        if (next?.blockType === 'imageBlock') {
-          const nextUrl = resolveMedia(next.image)?.url
-          if (nextUrl && !decodedRef.current.has(nextUrl)) {
+      // Preload current slide's image if not already decoded
+      if (slide.blockType === 'imageBlock') {
+        const imgKey = getCacheKey(slide.image)
+        if (imgKey && !isDecoded(imgKey)) {
+          const media = resolveMedia(slide.image)
+          const url = media?.url
+          if (url) {
             const img = new Image()
             img.onload = () => {
-              img.decode().then(() => {
-                decodedRef.current.add(nextUrl)
-              }).catch(() => {})
+              img.decode().then(() => markDecoded(slide.image)).catch(() => {})
             }
             img.onerror = () => {}
-            img.src = nextUrl
+            img.src = url
+          }
+        }
+      }
+
+      // Preload next 3 slides' images
+      if (slides.length > 1) {
+        for (let i = 1; i <= 3; i++) {
+          const nextIdx = (currentIndex + i) % slides.length
+          if (nextIdx === currentIndex) break
+          const next = slides[nextIdx]
+          if (next?.blockType === 'imageBlock') {
+            const nextKey = getCacheKey(next.image)
+            if (nextKey && !isDecoded(nextKey)) {
+              const nextUrl = resolveMedia(next.image)?.url
+              if (nextUrl) {
+                const img = new Image()
+                img.onload = () => {
+                  img.decode().then(() => markDecoded(next.image)).catch(() => {})
+                }
+                img.onerror = () => {}
+                img.src = nextUrl
+              }
+            }
           }
         }
       }
@@ -609,8 +621,6 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
 
     function renderSlideWrapper(slide: Slide, index: number, isOutgoing: boolean) {
       const animName = slide.transition || 'fade'
-      const isImage = slide.blockType === 'imageBlock'
-      const shouldAnimate = isOutgoing || !isImage || slideReady
       return (
         <div
           key={isOutgoing ? `out-${index}` : index}
@@ -618,16 +628,12 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
           style={{
             animation: isOutgoing
               ? `signageFadeOut ${TRANSITION_DURATION}ms ${TRANSITION_EASING} both`
-              : shouldAnimate && animName === 'fade'
+              : animName === 'fade'
                 ? `signageFadeIn ${TRANSITION_DURATION}ms ${TRANSITION_EASING} both`
-                : shouldAnimate && animName === 'slide'
+                : animName === 'slide'
                   ? `signageSlideIn ${TRANSITION_DURATION}ms ${TRANSITION_EASING} both`
                   : undefined,
-            opacity: !isOutgoing && !shouldAnimate
-              ? 0
-              : !isOutgoing && shouldAnimate && animName !== 'fade' && animName !== 'slide'
-                ? 1
-                : undefined,
+            opacity: !isOutgoing && animName !== 'fade' && animName !== 'slide' ? 1 : undefined,
             zIndex: isOutgoing ? 1 : 2,
           }}
         >
