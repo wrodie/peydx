@@ -195,6 +195,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const scheduleDataRef = useRef<ResolvedSchedule | null>(null)
     const showExitOverlayRef = useRef(false)
     const initialUrlProgramConsumed = useRef(false)
+    const userOverrideRef = useRef(false)
 
     useEffect(() => { stateRef.current = playerState }, [playerState])
     useEffect(() => { activeProgramRef.current = activeProgram }, [activeProgram])
@@ -251,7 +252,10 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           setCurrentScheduleEntry(null)
         }
         if (index !== undefined) setMenuIndex(index)
-        if (state !== 'playing') setCurrentScheduleEntry(null)
+        if (state !== 'playing') {
+          setCurrentScheduleEntry(null)
+          userOverrideRef.current = false
+        }
         emitState(state, program?.id, index)
       },
       [clearMenuTimeout, emitState],
@@ -263,21 +267,23 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       return resolveScheduleState(sched, avail, scheduleDataRef.current?.timezone)
     }, [])
     const handleProgramEnd = useCallback(() => {
+      const wasUserOverride = userOverrideRef.current
       const { availablePrograms } = getResolvedState()
       if (availablePrograms.length > 0 && !scheduleDataRef.current?.hideProgramList) {
-        setAvailableEntries(availablePrograms)
-        setMenuIndex(0)
-        setPlayerState('menu')
-        setActiveProgram(null)
-        setCurrentScheduleEntry(null)
-        emitState('menu', undefined, 0)
+        transitionTo('menu', null, null, 0, availablePrograms)
       } else {
-        setActiveProgram(null)
-        setCurrentScheduleEntry(null)
-        setPlayerState('idle')
-        emitState('idle')
+        transitionTo('idle', null, null)
       }
-    }, [emitState, getResolvedState])
+      if (wasUserOverride) {
+        const schedule = scheduleDataRef.current
+        if (schedule) {
+          const { activeAutoPlay } = resolveScheduleState(schedule.schedule, schedule.availability ?? [], schedule.timezone)
+          if (activeAutoPlay) {
+            transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0)
+          }
+        }
+      }
+    }, [transitionTo, getResolvedState])
 
 
     const openMenu = useCallback(() => {
@@ -310,21 +316,23 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       clearMenuTimeout()
       setShowExitOverlay(false)
 
+      const wasUserOverride = userOverrideRef.current
       const { availablePrograms } = getResolvedState()
       if (availablePrograms.length > 0 && !scheduleDataRef.current?.hideProgramList) {
-        setAvailableEntries(availablePrograms)
-        setMenuIndex(0)
-        setPlayerState('menu')
-        setActiveProgram(null)
-        setCurrentScheduleEntry(null)
-        emitState('menu', undefined, 0)
+        transitionTo('menu', null, null, 0, availablePrograms)
       } else {
-        setCurrentScheduleEntry(null)
-        setActiveProgram(null)
-        setPlayerState('idle')
-        emitState('idle')
+        transitionTo('idle', null, null)
       }
-    }, [clearMenuTimeout, getResolvedState, emitState])
+      if (wasUserOverride) {
+        const schedule = scheduleDataRef.current
+        if (schedule) {
+          const { activeAutoPlay } = resolveScheduleState(schedule.schedule, schedule.availability ?? [], schedule.timezone)
+          if (activeAutoPlay) {
+            transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0)
+          }
+        }
+      }
+    }, [clearMenuTimeout, getResolvedState, transitionTo])
 
     const selectItem = useCallback(() => {
       const entries = availableEntriesRef.current
@@ -332,6 +340,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       if (playerState === 'menu' && entries.length > 0 && idx >= 0 && idx < entries.length) {
         const entry = entries[idx]
         primeAutoplay()
+        userOverrideRef.current = true
         transitionTo('playing', entry.program, entry, idx)
       }
     }, [playerState, transitionTo])
@@ -341,6 +350,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         const entry = scheduleDataRef.current?.availability?.find((e) => e.programId === programId)
           || scheduleDataRef.current?.schedule?.find((e) => e.programId === programId)
         if (entry) {
+          userOverrideRef.current = true
           transitionTo('playing', entry.program, null, 0, undefined, slideIndex)
         }
       },
@@ -394,6 +404,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           if (entry) {
             initialUrlProgramConsumed.current = true
             const urlSlideIndex = Math.max(0, parseInt(params.get('slide') || '0', 10))
+            userOverrideRef.current = true
             transitionTo('playing', entry.program, entry, 0, undefined, urlSlideIndex)
             return
           }
@@ -405,7 +416,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       const currentState = stateRef.current
       const currentProgramId = activeProgramRef.current?.id
 
-      if (activeAutoPlay) {
+      if (activeAutoPlay && !userOverrideRef.current) {
         if (currentState !== 'playing' || currentProgramId !== activeAutoPlay.programId) {
           transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0, availablePrograms)
         }
@@ -464,6 +475,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       if (!sched) return
 
       const interval = setInterval(() => {
+        if (userOverrideRef.current) return
         const next = getNextAutoPlay(sched.schedule, sched.timezone)
         if (!next) return
 
@@ -530,7 +542,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         const currentState = stateRef.current
         const currentProgramId = activeProgramRef.current?.id
 
-        if (activeAutoPlay) {
+        if (activeAutoPlay && !userOverrideRef.current) {
           if (currentState !== 'playing' || currentProgramId !== activeAutoPlay.programId) {
             transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0, availablePrograms)
           }
