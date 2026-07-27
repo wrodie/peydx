@@ -136,6 +136,85 @@ describe('PlayerController', () => {
     expect(screen.getByText('Signage')).toBeTruthy()
   })
 
+  describe('manual override (userOverrideRef)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2020-01-01T12:00:00Z'))
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    function makeDualSchedule(): ResolvedSchedule {
+      return {
+        lastUpdated: '2020-01-01T00:00:00.000Z',
+        schedule: [
+          {
+            programId: 1,
+            scheduleType: 'autoplay',
+            startTime: '2020-01-01T00:00:00.000Z',
+            endTime: '2020-01-01T23:59:00.000Z',
+            daysOfWeek: [],
+            program: { id: 1, title: 'Scheduled Program', slides: [
+              { blockType: 'imageBlock', advanceMode: 'timed', duration: 60, image: { id: 1, url: '/scheduled.jpg', alt: 'Scheduled Slide' } },
+            ]},
+          },
+        ],
+        availability: [
+          {
+            programId: 10,
+            scheduleType: 'availability',
+            startDate: '2020-01-01',
+            program: { id: 10, title: 'Available Program', slides: [
+              { blockType: 'imageBlock', advanceMode: 'timed', duration: 60, image: { id: 2, url: '/manual.jpg', alt: 'Manual Slide' } },
+            ]},
+          },
+        ],
+        deviceName: 'Test',
+      }
+    }
+
+    it('selectProgram manual override prevents schedule takeover on schedule data refresh', () => {
+      const ref = createRef<PlayerControllerHandle>()
+      const data = makeDualSchedule()
+      const { rerender } = render(<PlayerController ref={ref} scheduleData={data} />)
+
+      // Initial: active autoplay schedule should be playing
+      expect(screen.getByAltText('Scheduled Slide')).toBeTruthy()
+
+      // User manually selects a different program from availability
+      act(() => { ref.current?.selectProgram(10) })
+      expect(screen.getByAltText('Manual Slide')).toBeTruthy()
+      expect(screen.queryByAltText('Scheduled Slide')).toBeNull()
+
+      // Simulate a schedule data refresh — would normally override
+      rerender(<PlayerController ref={ref} scheduleData={{ ...data }} />)
+
+      // Manual program should still be playing (not overridden by schedule)
+      expect(screen.getByAltText('Manual Slide')).toBeTruthy()
+      expect(screen.queryByAltText('Scheduled Slide')).toBeNull()
+    })
+
+    it('exitProgram from manual override resumes schedule autoplay', () => {
+      const ref = createRef<PlayerControllerHandle>()
+      render(<PlayerController ref={ref} scheduleData={makeDualSchedule()} />)
+
+      // Initial: active autoplay schedule should be playing
+      expect(screen.getByAltText('Scheduled Slide')).toBeTruthy()
+
+      // User manually selects a different program
+      act(() => { ref.current?.selectProgram(10) })
+      expect(screen.getByAltText('Manual Slide')).toBeTruthy()
+
+      // User exits the manual program
+      act(() => { ref.current?.exitProgram() })
+
+      // Schedule should immediately resume
+      expect(screen.getByAltText('Scheduled Slide')).toBeTruthy()
+    })
+  })
+
   describe('URL program param (?program=&slide=)', () => {
     beforeEach(() => {
       window.history.replaceState({}, '', window.location.pathname)
