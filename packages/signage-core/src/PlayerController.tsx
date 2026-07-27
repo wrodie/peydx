@@ -170,6 +170,22 @@ function getNextAutoPlay(scheduleEntries: ScheduleEntry[], timezone?: string | n
   return upcoming.length > 0 ? upcoming[0] : null
 }
 
+function resolveUpdatedSlideIndex(
+  oldSlides: Slide[],
+  newProgram: Program,
+  currentIndex: number,
+): number {
+  if (!oldSlides?.length || !newProgram.slides?.length) return 0
+  const newSlides = flattenProgram(newProgram).slides
+  if (!newSlides.length) return 0
+  const currentId = oldSlides[currentIndex]?.id
+  if (currentId) {
+    const found = newSlides.findIndex(s => s.id === currentId)
+    if (found !== -1) return found
+  }
+  return Math.min(currentIndex, newSlides.length - 1)
+}
+
 export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControllerProps>(
   ({ scheduleData, keyConfig: userKeyConfig, onSlideChange, onStateChange, onPauseChange }, ref) => {
     const [playerState, setPlayerState] = useState<PlayerState>('idle')
@@ -419,6 +435,24 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       if (activeAutoPlay && !userOverrideRef.current) {
         if (currentState !== 'playing' || currentProgramId !== activeAutoPlay.programId) {
           transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0, availablePrograms)
+        } else if (currentState === 'playing' && currentProgramId === activeAutoPlay.programId) {
+          const oldSlides = flattenedSlidesRef.current
+          const newProgram = activeAutoPlay.program
+          if (JSON.stringify(oldSlides) !== JSON.stringify(flattenProgram(newProgram).slides)) {
+            const newIndex = resolveUpdatedSlideIndex(oldSlides, newProgram, engineRef.current?.getCurrentIndex() ?? 0)
+            transitionTo('playing', newProgram, activeAutoPlay, 0, availablePrograms, newIndex)
+          }
+        }
+      } else if (currentState === 'playing' && userOverrideRef.current && currentProgramId) {
+        const entry = scheduleData.availability?.find((e) => e.programId === currentProgramId)
+          || scheduleData.schedule?.find((e) => e.programId === currentProgramId)
+        if (entry) {
+          const oldSlides = flattenedSlidesRef.current
+          const newProgram = entry.program
+          if (JSON.stringify(oldSlides) !== JSON.stringify(flattenProgram(newProgram).slides)) {
+            const newIndex = resolveUpdatedSlideIndex(oldSlides, newProgram, engineRef.current?.getCurrentIndex() ?? 0)
+            transitionTo('playing', newProgram, null, 0, undefined, newIndex)
+          }
         }
       } else {
         setAvailableEntries(availablePrograms)
@@ -545,6 +579,13 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         if (activeAutoPlay && !userOverrideRef.current) {
           if (currentState !== 'playing' || currentProgramId !== activeAutoPlay.programId) {
             transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0, availablePrograms)
+          } else if (currentState === 'playing' && currentProgramId === activeAutoPlay.programId) {
+            const oldSlides = flattenedSlidesRef.current
+            const newProgram = activeAutoPlay.program
+            if (JSON.stringify(oldSlides) !== JSON.stringify(flattenProgram(newProgram).slides)) {
+              const newIndex = resolveUpdatedSlideIndex(oldSlides, newProgram, engineRef.current?.getCurrentIndex() ?? 0)
+              transitionTo('playing', newProgram, activeAutoPlay, 0, availablePrograms, newIndex)
+            }
           }
         } else if (currentState === 'playing' && currentScheduleEntryRef.current?.scheduleType === 'autoplay') {
           if (availablePrograms.length > 0 && !schedule.hideProgramList) {
@@ -646,6 +687,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
             if (idx >= 0 && idx < availableEntries.length) {
               const entry = availableEntries[idx]
               primeAutoplay()
+              userOverrideRef.current = true
               transitionTo('playing', entry.program, entry, idx)
             }
           }}
