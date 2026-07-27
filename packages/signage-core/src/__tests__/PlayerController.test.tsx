@@ -252,4 +252,243 @@ describe('PlayerController', () => {
       expect(screen.getByAltText('Slide 0')).toBeTruthy()
     })
   })
+
+  describe('content updates during playback', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2020-01-01T12:00:00Z'))
+      window.history.replaceState({}, '', window.location.pathname)
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    function makeBaseSchedule(): ResolvedSchedule {
+      return {
+        lastUpdated: '2020-01-01T00:00:00.000Z',
+        schedule: [{
+          programId: 1,
+          scheduleType: 'autoplay',
+          startTime: '2020-01-01T00:00:00.000Z',
+          endTime: '2020-01-01T23:59:00.000Z',
+          daysOfWeek: [],
+          priority: 0,
+          program: { id: 1, title: 'Scheduled', slides: [
+            { id: 's1', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+            { id: 's2', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 2, url: '/img2.jpg', alt: 'Slide 2' } },
+            { id: 's3', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 3, url: '/img3.jpg', alt: 'Slide 3' } },
+          ]},
+        }],
+        availability: [],
+        deviceName: 'Test',
+      }
+    }
+
+    it('updates program content in place when slides are appended (same program ID)', () => {
+      const ref = createRef<PlayerControllerHandle>()
+      const data = makeBaseSchedule()
+      const { rerender } = render(<PlayerController ref={ref} scheduleData={data} />)
+
+      expect(screen.getByAltText('Slide 1')).toBeTruthy()
+      expect(screen.getByText('1 / 3')).toBeTruthy()
+
+      act(() => { ref.current?.gotoSlide(1) })
+      expect(screen.getByAltText('Slide 2')).toBeTruthy()
+
+      const updated: ResolvedSchedule = {
+        ...data,
+        schedule: [{
+          ...data.schedule[0],
+          program: {
+            ...data.schedule[0].program,
+            slides: [
+              { id: 's1', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+              { id: 's2', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 2, url: '/img2.jpg', alt: 'Slide 2' } },
+              { id: 's3', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 3, url: '/img3.jpg', alt: 'Slide 3' } },
+              { id: 's4', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 4, url: '/img4.jpg', alt: 'Slide 4' } },
+            ],
+          },
+        }],
+      }
+      rerender(<PlayerController ref={ref} scheduleData={updated} />)
+
+      // Same slide (s2) now at index 1 of 4
+      expect(screen.getByAltText('Slide 2')).toBeTruthy()
+      expect(screen.getByText('2 / 4')).toBeTruthy()
+    })
+
+    it('adjusts slide index when new slides are inserted before current', () => {
+      const ref = createRef<PlayerControllerHandle>()
+      const data = makeBaseSchedule()
+      const { rerender } = render(<PlayerController ref={ref} scheduleData={data} />)
+
+      act(() => { ref.current?.gotoSlide(2) })
+      expect(screen.getByAltText('Slide 3')).toBeTruthy()
+
+      const updated: ResolvedSchedule = {
+        ...data,
+        schedule: [{
+          ...data.schedule[0],
+          program: {
+            ...data.schedule[0].program,
+            slides: [
+              { id: 's1', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+              { id: 'sX', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 99, url: '/imgX.jpg', alt: 'Inserted' } },
+              { id: 's2', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 2, url: '/img2.jpg', alt: 'Slide 2' } },
+              { id: 's3', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 3, url: '/img3.jpg', alt: 'Slide 3' } },
+            ],
+          },
+        }],
+      }
+      rerender(<PlayerController ref={ref} scheduleData={updated} />)
+
+      // Slide 3 (s3) now at index 3 of 4
+      expect(screen.getByAltText('Slide 3')).toBeTruthy()
+      expect(screen.getByText('4 / 4')).toBeTruthy()
+    })
+
+    it('clamps to last slide when current slide is deleted', () => {
+      const ref = createRef<PlayerControllerHandle>()
+      const data = makeBaseSchedule()
+      const { rerender } = render(<PlayerController ref={ref} scheduleData={data} />)
+
+      act(() => { ref.current?.gotoSlide(2) })
+      expect(screen.getByAltText('Slide 3')).toBeTruthy()
+
+      const updated: ResolvedSchedule = {
+        ...data,
+        schedule: [{
+          ...data.schedule[0],
+          program: {
+            ...data.schedule[0].program,
+            slides: [
+              { id: 's1', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+              { id: 's2', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 2, url: '/img2.jpg', alt: 'Slide 2' } },
+            ],
+          },
+        }],
+      }
+      rerender(<PlayerController ref={ref} scheduleData={updated} />)
+
+      // Clamped to last slide (s2 at index 1)
+      expect(screen.getByAltText('Slide 2')).toBeTruthy()
+      expect(screen.getByText('2 / 2')).toBeTruthy()
+    })
+
+    it('preserves current slide by identity when availability program content changes (user override)', () => {
+      const ref = createRef<PlayerControllerHandle>()
+      const data: ResolvedSchedule = {
+        lastUpdated: '2020-01-01T00:00:00.000Z',
+        schedule: [{
+          programId: 1,
+          scheduleType: 'autoplay',
+          startTime: '2020-01-01T00:00:00.000Z',
+          endTime: '2020-01-01T23:59:00.000Z',
+          daysOfWeek: [],
+          priority: 0,
+          program: { id: 1, title: 'Scheduled', slides: [
+            { id: 's1', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 1, url: '/sched.jpg', alt: 'Scheduled' } },
+          ]},
+        }],
+        availability: [{
+          programId: 10,
+          scheduleType: 'availability',
+          startDate: '2020-01-01',
+          program: { id: 10, title: 'Available', slides: [
+            { id: 'm1', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 2, url: '/manual.jpg', alt: 'Manual Slide' } },
+          ]},
+        }],
+        deviceName: 'Test',
+      }
+      const { rerender } = render(<PlayerController ref={ref} scheduleData={data} />)
+
+      // Autoplay starts first
+      expect(screen.getByAltText('Scheduled')).toBeTruthy()
+
+      // User selects availability program
+      act(() => { ref.current?.selectProgram(10) })
+      expect(screen.getByAltText('Manual Slide')).toBeTruthy()
+
+      // Update the availability program content (same slide IDs, changed content)
+      const updated: ResolvedSchedule = {
+        ...data,
+        availability: [{
+          ...data.availability[0],
+          program: {
+            ...data.availability[0].program,
+            slides: [
+              { id: 'm1', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 5, url: '/updated.jpg', alt: 'Updated Slide' } },
+            ],
+          },
+        }],
+      }
+      rerender(<PlayerController ref={ref} scheduleData={updated} />)
+
+      expect(screen.getByAltText('Updated Slide')).toBeTruthy()
+      expect(screen.queryByAltText('Manual Slide')).toBeNull()
+    })
+
+    it('updates program content when selected via menu (userOverrideRef path)', () => {
+      const data: ResolvedSchedule = {
+        lastUpdated: '2020-01-01T00:00:00.000Z',
+        schedule: [],
+        availability: [{
+          programId: 10,
+          scheduleType: 'availability',
+          startDate: '2020-01-01',
+          program: {
+            id: 10,
+            title: 'My Program',
+            slides: [
+              { id: 'm1', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 1, url: '/img1.jpg', alt: 'Slide A' } },
+            ],
+          },
+        }],
+        deviceName: 'Test',
+      }
+      const { rerender } = render(<PlayerController scheduleData={data} />)
+
+      // Should show menu with program title
+      expect(screen.getByText('My Program')).toBeTruthy()
+
+      // Click to select via menu (the bug path — onSelect must set userOverrideRef.current)
+      act(() => { screen.getByText('My Program').click() })
+      expect(screen.getByAltText('Slide A')).toBeTruthy()
+
+      // Update the program content
+      const updated: ResolvedSchedule = {
+        ...data,
+        availability: [{
+          ...data.availability[0],
+          program: {
+            ...data.availability[0].program,
+            slides: [
+              { id: 'm1', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 2, url: '/img2.jpg', alt: 'Slide B' } },
+            ],
+          },
+        }],
+      }
+      rerender(<PlayerController scheduleData={updated} />)
+
+      expect(screen.getByAltText('Slide B')).toBeTruthy()
+      expect(screen.queryByAltText('Slide A')).toBeNull()
+    })
+
+    it('does not re-transition when schedule data has identical slides', () => {
+      const ref = createRef<PlayerControllerHandle>()
+      const data = makeBaseSchedule()
+      const { rerender } = render(<PlayerController ref={ref} scheduleData={data} />)
+
+      expect(screen.getByAltText('Slide 1')).toBeTruthy()
+      expect(screen.getByText('1 / 3')).toBeTruthy()
+
+      // Rerender with shallow copy of same data (triggers effect but identical slides)
+      rerender(<PlayerController ref={ref} scheduleData={{ ...data }} />)
+
+      // Still showing same slide
+      expect(screen.getByAltText('Slide 1')).toBeTruthy()
+      expect(screen.getByText('1 / 3')).toBeTruthy()
+    })
+  })
 })
