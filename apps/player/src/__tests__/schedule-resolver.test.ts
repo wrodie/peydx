@@ -286,13 +286,11 @@ describe('resolveScheduleState', () => {
     const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
     // Set start time 2 hours in the future
     const future = new Date(now.getTime() + 2 * 60 * 60 * 1000)
-    const hours = String(future.getUTCHours()).padStart(2, '0')
-    const mins = String(future.getUTCMinutes()).padStart(2, '0')
     const schedule: ResolvedSchedule = {
       lastUpdated: now.toISOString(),
       schedule: [makeEntry({
-        startTime: `${day}T${hours}:${mins}:00Z`,
-        endTime: `${day}T23:59:00Z`,
+        startTime: future.toISOString(),
+        endTime: new Date(future.getTime() + 60 * 60 * 1000).toISOString(),
         daysOfWeek: [DAY_NAMES[now.getUTCDay()]],
         untilDate: undefined,
       })],
@@ -306,15 +304,13 @@ describe('resolveScheduleState', () => {
     const now = new Date()
     const day = now.toISOString().split('T')[0]
     const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
-    // Set end time 2 hours in the past
-    const past = new Date(now.getTime() - 2 * 60 * 60 * 1000)
-    const hours = String(past.getUTCHours()).padStart(2, '0')
-    const mins = String(past.getUTCMinutes()).padStart(2, '0')
+    // Set end time 1 second in the past (guarantees same UTC day)
+    const past = new Date(now.getTime() - 1000)
     const schedule: ResolvedSchedule = {
       lastUpdated: now.toISOString(),
       schedule: [makeEntry({
         startTime: `${day}T00:00:00Z`,
-        endTime: `${day}T${hours}:${mins}:00Z`,
+        endTime: past.toISOString(),
         daysOfWeek: [DAY_NAMES[now.getUTCDay()]],
         untilDate: undefined,
       })],
