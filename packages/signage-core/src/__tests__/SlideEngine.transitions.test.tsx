@@ -61,7 +61,7 @@ describe('SlideEngine transitions', () => {
     expect(wrapper.style.animation).toBe('')
   })
 
-  it('scaleToFill default uses natural size and backdrop always renders', () => {
+  it('scaleToFill default uses natural size and backdrop renders on initial render', () => {
     vi.useFakeTimers()
     const prog = makeProgram([{
       blockType: 'imageBlock',
@@ -79,7 +79,7 @@ describe('SlideEngine transitions', () => {
     expect(backdrop.getAttribute('src')).toContain('/img.jpg')
   })
 
-  it('scaleToFill true fills viewport and backdrop always renders', () => {
+  it('scaleToFill true fills viewport and backdrop renders on initial render', () => {
     vi.useFakeTimers()
     const prog = makeProgram([{
       blockType: 'imageBlock',
@@ -98,7 +98,7 @@ describe('SlideEngine transitions', () => {
     expect(backdrop.getAttribute('src')).toContain('/img.jpg')
   })
 
-  it('scaleToFill false uses natural size and backdrop always renders', () => {
+  it('scaleToFill false uses natural size and backdrop renders on initial render', () => {
     vi.useFakeTimers()
     const prog = makeProgram([{
       blockType: 'imageBlock',
@@ -117,20 +117,40 @@ describe('SlideEngine transitions', () => {
     expect(backdrop.getAttribute('src')).toContain('/img.jpg')
   })
 
-  it('backdrop uses same image URL as foreground', () => {
+  it('backdrop renders after advance when aspect ratios differ', () => {
     vi.useFakeTimers()
-    const prog = makeProgram([{
-      blockType: 'imageBlock',
-      advanceMode: 'manual',
-      image: { id: 1, url: '/my-image.jpg', alt: 'Slide 1' },
-    }])
+    const prog = makeProgram([
+      { blockType: 'imageBlock', advanceMode: 'timed', duration: 2, image: { id: 1, url: '/slide1.jpg', alt: 'S1' } },
+      { blockType: 'imageBlock', advanceMode: 'timed', duration: 2, image: { id: 2, url: '/slide2.jpg', alt: 'S2' } },
+    ])
     const { container } = render(<SlideEngine program={prog} />)
-    act(() => { vi.advanceTimersByTime(1000) })
+    act(() => { vi.advanceTimersByTime(4000) })
+    const alt = container.querySelector('.slide-foreground')?.getAttribute('alt')
+    expect(alt).toBe('S2')
     const backdrop = container.querySelector('.slide-backdrop') as HTMLImageElement
-    const foreground = container.querySelector('.slide-foreground') as HTMLImageElement
     expect(backdrop).toBeTruthy()
-    expect(foreground).toBeTruthy()
-    expect(backdrop.getAttribute('src')).toContain('/my-image.jpg')
-    expect(foreground.getAttribute('src')).toContain('/my-image.jpg')
+    expect(backdrop.getAttribute('src')).toContain('/slide2.jpg')
+  })
+
+  it('backdrop skipped after advance when aspect ratios match', () => {
+    const origW = window.innerWidth
+    const origH = window.innerHeight
+    try {
+      Object.defineProperty(window, 'innerWidth', { value: 1920, writable: true, configurable: true })
+      Object.defineProperty(window, 'innerHeight', { value: 1080, writable: true, configurable: true })
+      vi.useFakeTimers()
+      const prog = makeProgram([
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 2, image: { id: 1, url: '/slide1.jpg', alt: 'S1' } },
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 2, image: { id: 2, url: '/slide2.jpg', alt: 'S2' } },
+      ])
+      const { container } = render(<SlideEngine program={prog} />)
+      act(() => { vi.advanceTimersByTime(4000) })
+      const alt = container.querySelector('.slide-foreground')?.getAttribute('alt')
+      expect(alt).toBe('S2')
+      expect(container.querySelector('.slide-backdrop')).toBeNull()
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { value: origW, writable: true, configurable: true })
+      Object.defineProperty(window, 'innerHeight', { value: origH, writable: true, configurable: true })
+    }
   })
 })

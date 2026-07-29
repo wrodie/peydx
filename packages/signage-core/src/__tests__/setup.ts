@@ -10,6 +10,8 @@ if (typeof window !== 'undefined') {
   class MockImage {
     onload: (() => void) | null = null
     onerror: (() => void) | null = null
+    naturalWidth = 1920
+    naturalHeight = 1080
     set src(_url: string) {
       if (this.onload) this.onload()
     }

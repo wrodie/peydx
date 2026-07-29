@@ -479,9 +479,15 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       const ytBg = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null
 
       if (slide.blockType === 'imageBlock') {
+        const key = getCacheKey(slide.image)
+        const preloaded = key ? retainedImages.current.get(key) : undefined
+        const nw = preloaded?.naturalWidth ?? 0
+        const nh = preloaded?.naturalHeight ?? 0
+        const skip = nw > 0 && nh > 0 && window.innerWidth > 0 && window.innerHeight > 0
+          && Math.abs(nw / nh - window.innerWidth / window.innerHeight) < 0.01
         return (
           <>
-            <img src={mu} className="slide-backdrop" alt="" aria-hidden="true" />
+            {!skip && <img src={mu} className="slide-backdrop" alt="" aria-hidden="true" />}
             <img
               src={mu}
               className="slide-foreground"
