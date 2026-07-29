@@ -20,33 +20,13 @@ function parseYouTubeId(input: string): string | null {
   return match ? match[1] : null
 }
 
-const DECODED_CACHE_MAX = 100
-
-function getCacheKey(img: { id?: number; filename?: string | null } | number | null | undefined): string | null {
+function getCacheKey(img: { id?: number; url?: string | null } | number | null | undefined): string | null {
   if (!img || typeof img === 'number') return null
   if (!img.id) return null
-  return `${img.id}::${img.filename ?? ''}`
+  return `${img.id}::${img.url ?? ''}`
 }
 
-const decodedCache = new Map<string, number>()
-
-function isDecoded(key: string): boolean {
-  return decodedCache.has(key)
-}
-
-function markDecoded(img: { id?: number; filename?: string | null } | number | null | undefined): void {
-  const key = getCacheKey(img)
-  if (!key) return
-  if (decodedCache.size >= DECODED_CACHE_MAX) {
-    const oldest = decodedCache.keys().next().value
-    if (oldest !== undefined) decodedCache.delete(oldest)
-  }
-  decodedCache.set(key, Date.now())
-}
-
-export function clearDecodedCache(): void {
-  decodedCache.clear()
-}
+const ADVANCE_SAFETY_MS = 5000
 
 export interface SlideEngineHandle {
   nextSlide: () => void
@@ -107,6 +87,8 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const prevProgramIdRef = useRef(program.id)
     const outgoingRef = useRef<{ slide: Slide; index: number } | null>(null)
     const outgoingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const retainedImages = useRef<Map<string, HTMLImageElement>>(new Map())
+    const readyImages = useRef<Set<string>>(new Set())
 
     const slides = flattened.slides
 
@@ -248,54 +230,50 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     useEffect(() => {
       const interval = setInterval(() => {
         if (advanceAtRef.current > 0 && Date.now() >= advanceAtRef.current) {
+          const nextIdx = currentIndex < slides.length - 1 ? currentIndex + 1 : 0
+          const nextSlide = slides[nextIdx]
+          const nextKey = nextSlide?.blockType === 'imageBlock' ? getCacheKey(nextSlide.image) : null
+          if (nextKey && !readyImages.current.has(nextKey) && Date.now() < advanceAtRef.current + ADVANCE_SAFETY_MS) {
+            return
+          }
           advanceAtRef.current = 0
           doNextSlide()
         }
       }, 250)
       return () => clearInterval(interval)
-    }, [doNextSlide])
+    }, [doNextSlide, currentIndex, slides])
 
-    // Preload current image and upcoming slides into browser cache
     useEffect(() => {
-      const slide = slides[currentIndex]
-      if (!slide) return
+      const ready = readyImages.current
+      const map = retainedImages.current
 
-      // Preload current slide's image if not already decoded
-      if (slide.blockType === 'imageBlock') {
-        const imgKey = getCacheKey(slide.image)
-        if (imgKey && !isDecoded(imgKey)) {
-          const media = resolveMedia(slide.image)
-          const url = media?.url
-          if (url) {
-            const img = new Image()
-            img.onload = () => {
-              img.decode().then(() => markDecoded(slide.image)).catch(() => {})
-            }
-            img.onerror = () => {}
-            img.src = url
-          }
+      function preloadImage(imgObj: any) {
+        const key = getCacheKey(imgObj)
+        if (!key || ready.has(key)) return
+        const url = resolveMedia(imgObj)?.url
+        if (!url) return
+
+        const img = new Image()
+        img.onload = () => {
+          img.decode().then(() => { ready.add(key) }).catch(() => {})
         }
+        img.onerror = () => {}
+        img.src = url
+        map.set(key, img)
       }
 
-      // Preload next 3 slides' images
+      const slide = slides[currentIndex]
+      if (slide?.blockType === 'imageBlock') {
+        preloadImage(slide.image)
+      }
+
       if (slides.length > 1) {
         for (let i = 1; i <= 3; i++) {
           const nextIdx = (currentIndex + i) % slides.length
           if (nextIdx === currentIndex) break
           const next = slides[nextIdx]
           if (next?.blockType === 'imageBlock') {
-            const nextKey = getCacheKey(next.image)
-            if (nextKey && !isDecoded(nextKey)) {
-              const nextUrl = resolveMedia(next.image)?.url
-              if (nextUrl) {
-                const img = new Image()
-                img.onload = () => {
-                  img.decode().then(() => markDecoded(next.image)).catch(() => {})
-                }
-                img.onerror = () => {}
-                img.src = nextUrl
-              }
-            }
+            preloadImage(next.image)
           }
         }
       }
@@ -501,14 +479,20 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       const ytBg = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null
 
       if (slide.blockType === 'imageBlock') {
+        const key = getCacheKey(slide.image)
+        const preloaded = key ? retainedImages.current.get(key) : undefined
+        const nw = preloaded?.naturalWidth ?? 0
+        const nh = preloaded?.naturalHeight ?? 0
+        const skip = nw > 0 && nh > 0 && window.innerWidth > 0 && window.innerHeight > 0
+          && Math.abs(nw / nh - window.innerWidth / window.innerHeight) < 0.01
         return (
           <>
-            <img src={mu} className="slide-backdrop" alt="" aria-hidden="true" />
+            {!skip && <img src={mu} className="slide-backdrop" alt="" aria-hidden="true" />}
             <img
               src={mu}
               className="slide-foreground"
               alt={sm?.alt || 'Slide'}
-              style={slide.scaleToFill !== false ? { width: '100%', height: '100%' } : undefined}
+              style={slide.scaleToFill === true ? { width: '100%', height: '100%' } : undefined}
             />
           </>
         )
@@ -539,7 +523,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
               }}
               className="slide-foreground"
               style={{
-                ...(slide.scaleToFill !== false ? { width: '100%', height: '100%' } : {}),
+                ...(slide.scaleToFill === true ? { width: '100%', height: '100%' } : {}),
                 display: videoError ? 'none' : undefined,
               }}
             />
