@@ -13,11 +13,6 @@ function resolveMedia(value: { url?: string | null; alt?: string | null } | numb
   return null
 }
 
-export function imageFillsViewport(naturalWidth: number, naturalHeight: number, viewportWidth: number, viewportHeight: number): boolean {
-  if (viewportWidth === 0 || viewportHeight === 0) return false
-  return Math.abs(naturalWidth / naturalHeight - viewportWidth / viewportHeight) < 0.01
-}
-
 function parseYouTubeId(input: string): string | null {
   const match = input.match(
     /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
@@ -80,7 +75,6 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     const [audioBlocked, setAudioBlocked] = useState(false)
     const [, forceRender] = useState(0)
     const [showPaused, setShowPaused] = useState(false)
-    const [fillsViewport, setFillsViewport] = useState(false)
     const pausedRef = useRef(false)
     const advanceAtRef = useRef(0)
     const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -223,10 +217,6 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     useEffect(() => {
       setShowPaused(false)
       pausedRef.current = false
-    }, [currentIndex])
-
-    useEffect(() => {
-      setFillsViewport(false)
     }, [currentIndex])
 
     useEffect(() => {
@@ -489,24 +479,14 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       const ytBg = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null
 
       if (slide.blockType === 'imageBlock') {
-        const thumbUrl = (slide.image && typeof slide.image === 'object' && slide.image.thumbnailUrl) || null
-        const scaled = slide.scaleToFill === true
         return (
           <>
-            {thumbUrl && !fillsViewport && (
-              <img src={thumbUrl} className="slide-backdrop" alt="" aria-hidden="true" />
-            )}
+            <img src={mu} className="slide-backdrop" alt="" aria-hidden="true" />
             <img
               src={mu}
               className="slide-foreground"
               alt={sm?.alt || 'Slide'}
-              style={scaled ? { width: '100%', height: '100%' } : undefined}
-              onLoad={(e) => {
-                const img = e.currentTarget
-                if (imageFillsViewport(img.naturalWidth, img.naturalHeight, window.innerWidth, window.innerHeight)) {
-                  setFillsViewport(true)
-                }
-              }}
+              style={slide.scaleToFill === true ? { width: '100%', height: '100%' } : undefined}
             />
           </>
         )

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import React from 'react'
 import { render, act } from '@testing-library/react'
-import { SlideEngine, imageFillsViewport } from '../SlideEngine'
+import { SlideEngine } from '../SlideEngine'
 import type { Program } from '../types'
 
 describe('SlideEngine transitions', () => {
@@ -61,12 +61,12 @@ describe('SlideEngine transitions', () => {
     expect(wrapper.style.animation).toBe('')
   })
 
-  it('scaleToFill default uses natural size and renders backdrop when thumbnailUrl present', () => {
+  it('scaleToFill default uses natural size and backdrop always renders', () => {
     vi.useFakeTimers()
     const prog = makeProgram([{
       blockType: 'imageBlock',
       advanceMode: 'manual',
-      image: { id: 1, url: '/img.jpg', alt: 'Slide 1', thumbnailUrl: '/thumb.jpg' },
+      image: { id: 1, url: '/img.jpg', alt: 'Slide 1' },
     }])
     const { container } = render(<SlideEngine program={prog} />)
     act(() => { vi.advanceTimersByTime(1000) })
@@ -76,15 +76,15 @@ describe('SlideEngine transitions', () => {
     expect(foreground.style.height).toBe('')
     const backdrop = container.querySelector('.slide-backdrop') as HTMLImageElement
     expect(backdrop).toBeTruthy()
-    expect(backdrop.getAttribute('src')).toContain('thumb.jpg')
+    expect(backdrop.getAttribute('src')).toContain('/img.jpg')
   })
 
-  it('scaleToFill true fills viewport and renders backdrop', () => {
+  it('scaleToFill true fills viewport and backdrop always renders', () => {
     vi.useFakeTimers()
     const prog = makeProgram([{
       blockType: 'imageBlock',
       advanceMode: 'manual',
-      image: { id: 1, url: '/img.jpg', alt: 'Slide 1', thumbnailUrl: '/thumb.jpg' },
+      image: { id: 1, url: '/img.jpg', alt: 'Slide 1' },
       scaleToFill: true,
     }])
     const { container } = render(<SlideEngine program={prog} />)
@@ -95,15 +95,15 @@ describe('SlideEngine transitions', () => {
     expect(foreground.style.height).toBe('100%')
     const backdrop = container.querySelector('.slide-backdrop') as HTMLImageElement
     expect(backdrop).toBeTruthy()
-    expect(backdrop.getAttribute('src')).toContain('thumb.jpg')
+    expect(backdrop.getAttribute('src')).toContain('/img.jpg')
   })
 
-  it('scaleToFill false uses natural size and renders backdrop', () => {
+  it('scaleToFill false uses natural size and backdrop always renders', () => {
     vi.useFakeTimers()
     const prog = makeProgram([{
       blockType: 'imageBlock',
       advanceMode: 'manual',
-      image: { id: 1, url: '/img.jpg', alt: 'Slide 1', thumbnailUrl: '/thumb.jpg' },
+      image: { id: 1, url: '/img.jpg', alt: 'Slide 1' },
       scaleToFill: false,
     }])
     const { container } = render(<SlideEngine program={prog} />)
@@ -114,60 +114,23 @@ describe('SlideEngine transitions', () => {
     expect(foreground.style.height).toBe('')
     const backdrop = container.querySelector('.slide-backdrop') as HTMLImageElement
     expect(backdrop).toBeTruthy()
-    expect(backdrop.getAttribute('src')).toContain('thumb.jpg')
+    expect(backdrop.getAttribute('src')).toContain('/img.jpg')
   })
 
-  it('no thumbnailUrl renders no backdrop', () => {
+  it('backdrop uses same image URL as foreground', () => {
     vi.useFakeTimers()
     const prog = makeProgram([{
       blockType: 'imageBlock',
       advanceMode: 'manual',
-      image: { id: 1, url: '/img.jpg', alt: 'Slide 1' },
-      scaleToFill: false,
+      image: { id: 1, url: '/my-image.jpg', alt: 'Slide 1' },
     }])
     const { container } = render(<SlideEngine program={prog} />)
     act(() => { vi.advanceTimersByTime(1000) })
-    expect(container.querySelector('.slide-backdrop')).toBeNull()
-  })
-
-  it('hides backdrop when image aspect ratio matches viewport', () => {
-    const origW = window.innerWidth
-    const origH = window.innerHeight
-    try {
-      Object.defineProperty(window, 'innerWidth', { value: 1920, writable: true, configurable: true })
-      Object.defineProperty(window, 'innerHeight', { value: 1080, writable: true, configurable: true })
-      vi.useFakeTimers()
-      const prog = makeProgram([{
-        blockType: 'imageBlock',
-        advanceMode: 'manual',
-        image: { id: 1, url: '/img.jpg', alt: 'Slide 1', thumbnailUrl: '/thumb.jpg' },
-      }])
-      const { container } = render(<SlideEngine program={prog} />)
-      act(() => { vi.advanceTimersByTime(1000) })
-      const foreground = container.querySelector('.slide-foreground')!
-      Object.defineProperty(foreground, 'naturalWidth', { get: () => 1920, configurable: true })
-      Object.defineProperty(foreground, 'naturalHeight', { get: () => 1080, configurable: true })
-      act(() => { foreground.dispatchEvent(new Event('load', { bubbles: true })) })
-      expect(container.querySelector('.slide-backdrop')).toBeNull()
-    } finally {
-      Object.defineProperty(window, 'innerWidth', { value: origW, writable: true, configurable: true })
-      Object.defineProperty(window, 'innerHeight', { value: origH, writable: true, configurable: true })
-    }
-  })
-
-  describe('imageFillsViewport', () => {
-    it('returns true when aspect ratios match (16:9)', () => {
-      expect(imageFillsViewport(1920, 1080, 1920, 1080)).toBe(true)
-      expect(imageFillsViewport(1280, 720, 1920, 1080)).toBe(true)
-    })
-
-    it('returns false when aspect ratios differ', () => {
-      expect(imageFillsViewport(1920, 1080, 1024, 768)).toBe(false)
-    })
-
-    it('returns false when viewport has zero dimension', () => {
-      expect(imageFillsViewport(1920, 1080, 0, 1080)).toBe(false)
-      expect(imageFillsViewport(1920, 1080, 1920, 0)).toBe(false)
-    })
+    const backdrop = container.querySelector('.slide-backdrop') as HTMLImageElement
+    const foreground = container.querySelector('.slide-foreground') as HTMLImageElement
+    expect(backdrop).toBeTruthy()
+    expect(foreground).toBeTruthy()
+    expect(backdrop.getAttribute('src')).toContain('/my-image.jpg')
+    expect(foreground.getAttribute('src')).toContain('/my-image.jpg')
   })
 })
