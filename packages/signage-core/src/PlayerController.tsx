@@ -170,6 +170,22 @@ function getNextAutoPlay(scheduleEntries: ScheduleEntry[], timezone?: string | n
   return upcoming.length > 0 ? upcoming[0] : null
 }
 
+function resolveUpdatedSlideIndex(
+  oldSlides: Slide[],
+  newProgram: Program,
+  currentIndex: number,
+): number {
+  if (!oldSlides?.length || !newProgram.slides?.length) return 0
+  const newSlides = flattenProgram(newProgram).slides
+  if (!newSlides.length) return 0
+  const currentId = oldSlides[currentIndex]?.id
+  if (currentId) {
+    const found = newSlides.findIndex(s => s.id === currentId)
+    if (found !== -1) return found
+  }
+  return Math.min(currentIndex, newSlides.length - 1)
+}
+
 export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControllerProps>(
   ({ scheduleData, keyConfig: userKeyConfig, onSlideChange, onStateChange, onPauseChange }, ref) => {
     const [playerState, setPlayerState] = useState<PlayerState>('idle')
@@ -195,6 +211,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const scheduleDataRef = useRef<ResolvedSchedule | null>(null)
     const showExitOverlayRef = useRef(false)
     const initialUrlProgramConsumed = useRef(false)
+    const userOverrideRef = useRef(false)
 
     useEffect(() => { stateRef.current = playerState }, [playerState])
     useEffect(() => { activeProgramRef.current = activeProgram }, [activeProgram])
@@ -251,7 +268,10 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           setCurrentScheduleEntry(null)
         }
         if (index !== undefined) setMenuIndex(index)
-        if (state !== 'playing') setCurrentScheduleEntry(null)
+        if (state !== 'playing') {
+          setCurrentScheduleEntry(null)
+          userOverrideRef.current = false
+        }
         emitState(state, program?.id, index)
       },
       [clearMenuTimeout, emitState],
@@ -263,21 +283,23 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       return resolveScheduleState(sched, avail, scheduleDataRef.current?.timezone)
     }, [])
     const handleProgramEnd = useCallback(() => {
+      const wasUserOverride = userOverrideRef.current
       const { availablePrograms } = getResolvedState()
       if (availablePrograms.length > 0 && !scheduleDataRef.current?.hideProgramList) {
-        setAvailableEntries(availablePrograms)
-        setMenuIndex(0)
-        setPlayerState('menu')
-        setActiveProgram(null)
-        setCurrentScheduleEntry(null)
-        emitState('menu', undefined, 0)
+        transitionTo('menu', null, null, 0, availablePrograms)
       } else {
-        setActiveProgram(null)
-        setCurrentScheduleEntry(null)
-        setPlayerState('idle')
-        emitState('idle')
+        transitionTo('idle', null, null)
       }
-    }, [emitState, getResolvedState])
+      if (wasUserOverride) {
+        const schedule = scheduleDataRef.current
+        if (schedule) {
+          const { activeAutoPlay } = resolveScheduleState(schedule.schedule, schedule.availability ?? [], schedule.timezone)
+          if (activeAutoPlay) {
+            transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0)
+          }
+        }
+      }
+    }, [transitionTo, getResolvedState])
 
 
     const openMenu = useCallback(() => {
@@ -310,21 +332,23 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       clearMenuTimeout()
       setShowExitOverlay(false)
 
+      const wasUserOverride = userOverrideRef.current
       const { availablePrograms } = getResolvedState()
       if (availablePrograms.length > 0 && !scheduleDataRef.current?.hideProgramList) {
-        setAvailableEntries(availablePrograms)
-        setMenuIndex(0)
-        setPlayerState('menu')
-        setActiveProgram(null)
-        setCurrentScheduleEntry(null)
-        emitState('menu', undefined, 0)
+        transitionTo('menu', null, null, 0, availablePrograms)
       } else {
-        setCurrentScheduleEntry(null)
-        setActiveProgram(null)
-        setPlayerState('idle')
-        emitState('idle')
+        transitionTo('idle', null, null)
       }
-    }, [clearMenuTimeout, getResolvedState, emitState])
+      if (wasUserOverride) {
+        const schedule = scheduleDataRef.current
+        if (schedule) {
+          const { activeAutoPlay } = resolveScheduleState(schedule.schedule, schedule.availability ?? [], schedule.timezone)
+          if (activeAutoPlay) {
+            transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0)
+          }
+        }
+      }
+    }, [clearMenuTimeout, getResolvedState, transitionTo])
 
     const selectItem = useCallback(() => {
       const entries = availableEntriesRef.current
@@ -332,6 +356,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       if (playerState === 'menu' && entries.length > 0 && idx >= 0 && idx < entries.length) {
         const entry = entries[idx]
         primeAutoplay()
+        userOverrideRef.current = true
         transitionTo('playing', entry.program, entry, idx)
       }
     }, [playerState, transitionTo])
@@ -341,6 +366,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         const entry = scheduleDataRef.current?.availability?.find((e) => e.programId === programId)
           || scheduleDataRef.current?.schedule?.find((e) => e.programId === programId)
         if (entry) {
+          userOverrideRef.current = true
           transitionTo('playing', entry.program, null, 0, undefined, slideIndex)
         }
       },
@@ -394,6 +420,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
           if (entry) {
             initialUrlProgramConsumed.current = true
             const urlSlideIndex = Math.max(0, parseInt(params.get('slide') || '0', 10))
+            userOverrideRef.current = true
             transitionTo('playing', entry.program, entry, 0, undefined, urlSlideIndex)
             return
           }
@@ -405,9 +432,27 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       const currentState = stateRef.current
       const currentProgramId = activeProgramRef.current?.id
 
-      if (activeAutoPlay) {
+      if (activeAutoPlay && !userOverrideRef.current) {
         if (currentState !== 'playing' || currentProgramId !== activeAutoPlay.programId) {
           transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0, availablePrograms)
+        } else if (currentState === 'playing' && currentProgramId === activeAutoPlay.programId) {
+          const oldSlides = flattenedSlidesRef.current
+          const newProgram = activeAutoPlay.program
+          if (JSON.stringify(oldSlides) !== JSON.stringify(flattenProgram(newProgram).slides)) {
+            const newIndex = resolveUpdatedSlideIndex(oldSlides, newProgram, engineRef.current?.getCurrentIndex() ?? 0)
+            transitionTo('playing', newProgram, activeAutoPlay, 0, availablePrograms, newIndex)
+          }
+        }
+      } else if (currentState === 'playing' && userOverrideRef.current && currentProgramId) {
+        const entry = scheduleData.availability?.find((e) => e.programId === currentProgramId)
+          || scheduleData.schedule?.find((e) => e.programId === currentProgramId)
+        if (entry) {
+          const oldSlides = flattenedSlidesRef.current
+          const newProgram = entry.program
+          if (JSON.stringify(oldSlides) !== JSON.stringify(flattenProgram(newProgram).slides)) {
+            const newIndex = resolveUpdatedSlideIndex(oldSlides, newProgram, engineRef.current?.getCurrentIndex() ?? 0)
+            transitionTo('playing', newProgram, null, 0, undefined, newIndex)
+          }
         }
       } else {
         setAvailableEntries(availablePrograms)
@@ -464,6 +509,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       if (!sched) return
 
       const interval = setInterval(() => {
+        if (userOverrideRef.current) return
         const next = getNextAutoPlay(sched.schedule, sched.timezone)
         if (!next) return
 
@@ -530,9 +576,16 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         const currentState = stateRef.current
         const currentProgramId = activeProgramRef.current?.id
 
-        if (activeAutoPlay) {
+        if (activeAutoPlay && !userOverrideRef.current) {
           if (currentState !== 'playing' || currentProgramId !== activeAutoPlay.programId) {
             transitionTo('playing', activeAutoPlay.program, activeAutoPlay, 0, availablePrograms)
+          } else if (currentState === 'playing' && currentProgramId === activeAutoPlay.programId) {
+            const oldSlides = flattenedSlidesRef.current
+            const newProgram = activeAutoPlay.program
+            if (JSON.stringify(oldSlides) !== JSON.stringify(flattenProgram(newProgram).slides)) {
+              const newIndex = resolveUpdatedSlideIndex(oldSlides, newProgram, engineRef.current?.getCurrentIndex() ?? 0)
+              transitionTo('playing', newProgram, activeAutoPlay, 0, availablePrograms, newIndex)
+            }
           }
         } else if (currentState === 'playing' && currentScheduleEntryRef.current?.scheduleType === 'autoplay') {
           if (availablePrograms.length > 0 && !schedule.hideProgramList) {
@@ -634,6 +687,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
             if (idx >= 0 && idx < availableEntries.length) {
               const entry = availableEntries[idx]
               primeAutoplay()
+              userOverrideRef.current = true
               transitionTo('playing', entry.program, entry, idx)
             }
           }}

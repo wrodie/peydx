@@ -134,9 +134,10 @@ repeated here.)
    - `SlideEngine.tsx` timing model →
      `packages/signage-core/src/__tests__/SlideEngine.test.tsx`,
      `SlideEngine.segments.test.tsx`
-   - `PlayerController.tsx` state transitions or manual-kill →
-     `packages/signage-core/src/__tests__/PlayerController.test.tsx`,
-     `PlayerController.schedule.test.tsx`
+    - `PlayerController.tsx` state transitions, manual-kill, or
+      content-update-in-place →
+      `packages/signage-core/src/__tests__/PlayerController.test.tsx`
+      (content-update tests are under `content updates during playback`)`
    - Folder default assignment / department inheritance →
      `apps/server/src/__tests__/unit/hooks/mediaFolderAutoAssign.test.ts`,
      `folderBeforeChange.test.ts`

@@ -17,6 +17,13 @@ interface Device {
   currentSlideIndex?: number | null
 }
 
+function fetchProgram(programId: number): Promise<any> {
+  return fetch(`/api/programs/${programId}?depth=2`).then((r) => {
+    if (!r.ok) throw new Error('Failed to fetch program')
+    return r.json()
+  })
+}
+
 function computeStatus(lastHeartbeat: string | null | undefined): 'online' | 'stale' | 'offline' {
   if (!lastHeartbeat) return 'offline'
   const diff = Date.now() - new Date(lastHeartbeat).getTime()
@@ -79,19 +86,71 @@ export default function HealthDashboard() {
     socketRef.current = socket
 
     socket.on('device:status', (data) => {
-      updateDevice(data.id, {
-        status: data.status as any,
-        currentSlideIndex: data.slideIndex,
-        currentProgram: data.programId != null ? { id: data.programId, title: '' } as any : null,
-      })
+      const fetchMap: Record<number, Promise<any>> = {}
+      setDevices((prev) =>
+        prev.map((d) => {
+          if (d.id !== data.id) return d
+          const patch: Partial<Device> = {
+            status: data.status as any,
+            currentSlideIndex: data.slideIndex,
+          }
+          if (data.programId != null) {
+            if (d.currentProgram?.id !== data.programId) {
+              patch.currentProgram = { id: data.programId, title: '' } as any
+              if (!fetchMap[data.id]) {
+                fetchMap[data.id] = fetchProgram(data.programId)
+              }
+            }
+          } else {
+            patch.currentProgram = null
+          }
+          return { ...d, ...patch }
+        }),
+      )
+      if (data.programId != null) {
+        ;(fetchMap[data.id] || fetchProgram(data.programId))
+          .then((program: any) => {
+            setDevices((prev) =>
+              prev.map((d) =>
+                d.id === data.id
+                  ? { ...d, currentProgram: program }
+                  : d,
+              ),
+            )
+          })
+          .catch(() => {})
+      }
     })
 
     socket.on('device:stateChange', (data) => {
-      updateDevice(data.id, {
-        lastHeartbeat: new Date().toISOString(),
-        status: 'online' as any,
-        currentProgram: data.programId != null ? { id: data.programId, title: '' } as any : null,
-      })
+      setDevices((prev) =>
+        prev.map((d) => {
+          if (d.id !== data.id) return d
+          const patch: Partial<Device> = {
+            lastHeartbeat: new Date().toISOString(),
+            status: 'online' as any,
+          }
+          if (data.programId != null) {
+            if (d.currentProgram?.id !== data.programId) {
+              patch.currentProgram = { id: data.programId, title: '' } as any
+              fetchProgram(data.programId)
+                .then((program: any) => {
+                  setDevices((prev2) =>
+                    prev2.map((d2) =>
+                      d2.id === data.id
+                        ? { ...d2, currentProgram: program }
+                        : d2,
+                    ),
+                  )
+                })
+                .catch(() => {})
+            }
+          } else {
+            patch.currentProgram = null
+          }
+          return { ...d, ...patch }
+        }),
+      )
     })
 
     return () => { socket.disconnect() }
