@@ -64,8 +64,8 @@ Auth modes on `Devices`:
   (`browser` vs `hardware`); connect directly to CMS over WebSocket
 
 ## Deployment
-- **Server**: `docker compose up -d --build` (Postgres + Payload + Nginx, AWS
-  Lightsail). Optional Cloudflare Tunnel via `cloudflared` service profile.
+- **Server**: `docker compose up -d --build` (Postgres + Payload + Nginx
+  ). Optional Cloudflare Tunnel via `cloudflared` service profile.
 - **Client (recommended)**: `docker compose -f docker-compose.client.yaml up -d`
   (sync-agent as Docker image pulling from registry)
 - **Client (manual/dev fallback)**: `pm2 start ecosystem.config.js`

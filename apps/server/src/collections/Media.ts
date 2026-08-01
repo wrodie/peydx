@@ -72,6 +72,10 @@ export const Media: CollectionConfig = {
       },
     ],
     adminThumbnail: 'thumbnail',
+    modifyResponseHeaders: ({ headers }) => {
+      headers.set('Cache-Control', 'public, max-age=31536000')
+      return headers
+    },
   },
   endpoints: [
     {

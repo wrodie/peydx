@@ -1,3 +1,9 @@
+function versionUrl(url: string | null | undefined, updatedAt?: string | null): string | null {
+  if (!url || !updatedAt) return url ?? null
+  const ts = new Date(updatedAt).getTime()
+  return `${url}${url.includes('?') ? '&' : '?'}v=${ts}`
+}
+
 export function normalizeSlide(
   slide: any,
   resolveMediaUrl: (url: string) => string = (url) => url,
@@ -11,7 +17,7 @@ export function normalizeSlide(
         bgAudio && typeof bgAudio === 'object'
           ? {
               id: bgAudio.id,
-              url: bgAudio.url ? resolveMediaUrl(bgAudio.url) : null,
+              url: bgAudio.url ? resolveMediaUrl(versionUrl(bgAudio.url, bgAudio.updatedAt)!) : null,
               alt: bgAudio.alt,
               filename: bgAudio.filename,
             }
@@ -35,15 +41,15 @@ export function normalizeSlide(
   }
 
   if (slide.blockType === 'imageBlock' && slide.image && typeof slide.image === 'object') {
+    const media = slide.image
+    const rawUrl = media.sizes?.fullHD?.url || media.url || null
+    const thumbRawUrl = media.sizes?.thumbnail?.url || null
     result.image = {
-      id: slide.image.id,
-      url: slide.image.sizes?.fullHD?.url
-        ? resolveMediaUrl(slide.image.sizes.fullHD.url)
-        : slide.image.url
-          ? resolveMediaUrl(slide.image.url)
-          : null,
-      alt: slide.image.alt,
-      filename: slide.image.filename,
+      id: media.id,
+      url: rawUrl ? resolveMediaUrl(versionUrl(rawUrl, media.updatedAt)!) : null,
+      alt: media.alt,
+      filename: media.filename,
+      thumbnailUrl: thumbRawUrl ? resolveMediaUrl(versionUrl(thumbRawUrl, media.updatedAt)!) : null,
     }
   }
   if (slide.blockType === 'videoBlock' && slide.video && typeof slide.video === 'object') {

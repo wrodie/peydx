@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import React from 'react'
 import { render, screen, act, cleanup } from '@testing-library/react'
-import { SlideEngine, clearDecodedCache } from '../SlideEngine'
+import { SlideEngine } from '../SlideEngine'
 import type { Program } from '../types'
 
 // Mock YouTube IFrame API
@@ -13,7 +13,6 @@ const mockYT = {
 
 describe('SlideEngine', () => {
   beforeEach(() => {
-    clearDecodedCache()
     cleanup()
   })
   afterEach(() => {

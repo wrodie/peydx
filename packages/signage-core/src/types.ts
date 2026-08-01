@@ -3,6 +3,7 @@ export interface Media {
   url?: string | null
   filename?: string | null
   alt?: string | null
+  thumbnailUrl?: string | null
 }
 
 export interface Slide {
