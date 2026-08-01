@@ -92,6 +92,7 @@ export default function HealthDashboard() {
           if (d.id !== data.id) return d
           const patch: Partial<Device> = {
             status: data.status as any,
+            lastHeartbeat: new Date().toISOString(),
             currentSlideIndex: data.slideIndex,
           }
           if (data.programId != null) {
