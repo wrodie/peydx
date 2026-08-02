@@ -5,12 +5,13 @@ import { PlayerController, useRemoteControl, createCmsProvider } from 'signage-c
 import type { PlayerControllerHandle, PlayerState } from 'signage-core'
 import type { Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
+import { shouldReloadAfterFreeze } from '@/components/shouldReloadAfterFreeze'
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
 const POLL_INTERVAL = 60_000
 const HEARTBEAT_INTERVAL = 30_000
-const RELOAD_GRACE_MS = 60_000
+const FREEZE_THRESHOLD_MS = 5 * 60_000
 
 interface Props {
   id: string
@@ -25,6 +26,7 @@ export function BrowserPlayer({ id, token }: Props) {
   const lastStateRef = useRef<{ state: PlayerState; programId?: number; menuIndex?: number } | null>(null)
   const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastPollTickRef = useRef<number>(Date.now())
   const recoveryKeyRef = useRef(0)
   const needsWakeRecoveryRef = useRef(false)
 
@@ -100,9 +102,21 @@ export function BrowserPlayer({ id, token }: Props) {
 
     startHeartbeat()
 
-    pollTimerRef.current = setInterval(() => {
+    const pollTick = () => {
+      const now = Date.now()
+      const gap = now - lastPollTickRef.current
+      lastPollTickRef.current = now
+      if (shouldReloadAfterFreeze(
+        gap, FREEZE_THRESHOLD_MS,
+        lastStateRef.current?.state === 'playing',
+        document.visibilityState === 'visible',
+      )) {
+        window.location.reload()
+        return
+      }
       fetchAndSetSchedule()
-    }, POLL_INTERVAL)
+    }
+    pollTimerRef.current = setInterval(pollTick, POLL_INTERVAL)
 
     return () => {
       provider.disconnect()
@@ -115,16 +129,9 @@ export function BrowserPlayer({ id, token }: Props) {
     }
   }, [provider, fetchAndSetSchedule, startHeartbeat, stopHeartbeat])
 
-  // Wake / visibility recovery
+  // Wake / visibility recovery (soft recovery only — no reload safety net)
   useEffect(() => {
-    let reloadTimeout: ReturnType<typeof setTimeout> | null = null
-
     const handleWake = () => {
-      if (reloadTimeout) {
-        clearTimeout(reloadTimeout)
-        reloadTimeout = null
-      }
-
       const s = socketRef.current
       if (s && !s.connected) {
         s.connect()
@@ -138,12 +145,6 @@ export function BrowserPlayer({ id, token }: Props) {
 
       startHeartbeat()
       lastSlideChangeRef.current = Date.now()
-
-      reloadTimeout = setTimeout(() => {
-        if (Date.now() - lastSlideChangeRef.current > RELOAD_GRACE_MS) {
-          window.location.reload()
-        }
-      }, RELOAD_GRACE_MS)
     }
 
     const handleVisibilityChange = () => {
@@ -162,25 +163,26 @@ export function BrowserPlayer({ id, token }: Props) {
       }
     }
 
+    const handleFocus = () => {
+      handleWake()
+    }
+
     const handleBeforeUnload = () => {
-      if (reloadTimeout) {
-        clearTimeout(reloadTimeout)
-        reloadTimeout = null
-      }
       stopHeartbeat()
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('online', handleOnline)
     window.addEventListener('pageshow', handlePageShow)
+    window.addEventListener('focus', handleFocus)
     window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('pageshow', handlePageShow)
+      window.removeEventListener('focus', handleFocus)
       window.removeEventListener('beforeunload', handleBeforeUnload)
-      if (reloadTimeout) clearTimeout(reloadTimeout)
     }
   }, [fetchAndSetSchedule, startHeartbeat, stopHeartbeat])
 
