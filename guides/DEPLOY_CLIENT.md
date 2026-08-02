@@ -398,3 +398,25 @@ If there's no audio or the audio is distorted/pulsing via HDMI:
    ```bash
    export PULSE_PROP_OVERRIDE="sink.alsa.tsched=0"
    ```
+
+### Device Powers Off When a Wireless Remote Button Is Pressed
+
+Some 2.4 GHz wireless remotes and presentation clickers send the `Power` keycode when certain buttons are pressed. systemd-logind handles that keycode by default and powers the machine off, interrupting the kiosk.
+
+1. Edit `/etc/systemd/logind.conf` and add:
+   ```ini
+   HandlePowerKey=ignore
+   HandleSuspendKey=ignore
+   ```
+
+2. On laptops, also ignore the lid switch:
+   ```ini
+   HandleLidSwitch=ignore
+   ```
+
+3. Apply the changes:
+   ```bash
+   sudo systemctl restart systemd-logind
+   ```
+
+This only disables the Linux power-button handling — the kiosk's key mapping is configured separately via `key-config.json` (see section 9).
