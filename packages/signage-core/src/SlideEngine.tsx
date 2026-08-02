@@ -244,6 +244,24 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
     }, [doNextSlide, currentIndex, slides])
 
     useEffect(() => {
+      const handleVisibilityChange = () => {
+        if (document.visibilityState !== 'visible') return
+        if (advanceAtRef.current > 0 && Date.now() >= advanceAtRef.current) {
+          advanceAtRef.current = 0
+          doNextSlide()
+        }
+        videoRef.current?.play?.()?.catch?.(() => {})
+        audioRef.current?.play?.()?.catch?.(() => {})
+        bgAudioRef.current?.play?.()?.catch?.(() => {})
+        if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
+          playerRef.current.playVideo()
+        }
+      }
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }, [doNextSlide, currentIndex])
+
+    useEffect(() => {
       const ready = readyImages.current
       const map = retainedImages.current
 
@@ -511,9 +529,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
               loop={slide.loop || false}
               onError={() => {
                 setVideoError('unknown format')
-                if (slide.advanceMode !== 'timed') {
-                  setTimeout(doNextSlide, 3000)
-                }
+                setTimeout(doNextSlide, 3000)
               }}
               onEnded={() => {
                 if (!slide.loop && slide.advanceMode === 'onEnd') doNextSlide()
