@@ -654,11 +654,11 @@ app.prepare().then(async () => {
             await payload.update({
               collection: 'devices',
               id,
-              data: { status: 'offline' },
+              data: { status: 'stale' },
               overrideAccess: true,
             })
           } catch (err) {
-            console.error('Failed to set device offline:', err)
+            console.error('Failed to set device stale:', err)
           }
         }
         const storedOnDisconnect = deviceStateStore.get(id)
@@ -667,7 +667,7 @@ app.prepare().then(async () => {
             id,
             slideIndex: 0,
             programId: null,
-            status: 'offline',
+            status: 'stale',
             clientVersion: storedOnDisconnect?.clientVersion,
           })
         }
@@ -675,7 +675,7 @@ app.prepare().then(async () => {
           id,
           slideIndex: 0,
           programId: null,
-          status: 'offline',
+          status: 'stale',
           clientVersion: storedOnDisconnect?.clientVersion,
         })
       })

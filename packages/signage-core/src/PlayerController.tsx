@@ -20,6 +20,7 @@ export interface PlayerControllerHandle {
 interface PlayerControllerProps {
   scheduleData: ResolvedSchedule | null
   keyConfig?: Partial<KeyConfig>
+  recoveryKey?: number
   onSlideChange?: (index: number) => void
   onStateChange?: (state: PlayerState, programId?: number, menuIndex?: number) => void
   onPauseChange?: (paused: boolean) => void
@@ -187,7 +188,7 @@ function resolveUpdatedSlideIndex(
 }
 
 export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControllerProps>(
-  ({ scheduleData, keyConfig: userKeyConfig, onSlideChange, onStateChange, onPauseChange }, ref) => {
+  ({ scheduleData, keyConfig: userKeyConfig, recoveryKey, onSlideChange, onStateChange, onPauseChange }, ref) => {
     const [playerState, setPlayerState] = useState<PlayerState>('idle')
     const [activeProgram, setActiveProgram] = useState<Program | null>(null)
     const [programKey, setProgramKey] = useState(0)
@@ -481,6 +482,13 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
         }
       }
     }, [scheduleData, transitionTo])
+
+    useEffect(() => {
+      if (recoveryKey !== undefined && recoveryKey > 0 && activeProgramRef.current && stateRef.current === 'playing') {
+        setProgramKey((k) => k + 1)
+        setPendingSlideIndex(engineRef.current?.getCurrentIndex() ?? 0)
+      }
+    }, [recoveryKey])
 
     useEffect(() => {
       const menuCodes = normalizeKeyCode(keys.menu)
