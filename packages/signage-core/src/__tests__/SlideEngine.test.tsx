@@ -181,4 +181,35 @@ describe('SlideEngine', () => {
 
     vi.useRealTimers()
   })
+
+  it('visibilitychange to visible catches up overdue timed slide', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'))
+    const prog: Program = {
+      ...baseProgram,
+      slides: [
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 5, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 5, image: { id: 2, url: '/img2.jpg', alt: 'Slide 2' } },
+      ],
+    }
+    render(<SlideEngine program={prog} />)
+
+    expect(screen.getByAltText('Slide 1')).toBeTruthy()
+
+    // Jump the system clock past the advance point without firing setInterval
+    vi.setSystemTime(new Date('2024-01-01T00:00:20Z'))
+
+    // Still on slide 1 — interval was frozen and never fired
+    expect(screen.getByAltText('Slide 1')).toBeTruthy()
+
+    // Simulate wake: page becomes visible, visibility handler fires
+    act(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(screen.getByAltText('Slide 2')).toBeTruthy()
+
+    vi.useRealTimers()
+  })
 })

@@ -5,6 +5,7 @@ import { io, type Socket } from 'socket.io-client'
 import type { ServerToClientEvents, ClientToServerEvents } from 'signage-core'
 import { flattenProgram } from 'signage-core'
 import { TopNavHeader } from '@/components/TopNavHeader'
+import { buildDeviceStatusPatch } from '@/components/deviceStatusPatch'
 
 interface Device {
   id: number
@@ -82,6 +83,16 @@ export default function HealthDashboard() {
   }, [])
 
   useEffect(() => {
+    const interval = setInterval(() => {
+      fetch('/api/devices?depth=2')
+        .then((r) => r.json())
+        .then((data) => setDevices(data.docs || []))
+        .catch(() => {})
+    }, 60_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
     const socket: TypedSocket = io(window.location.origin, { path: '/api/ws' })
     socketRef.current = socket
 
@@ -92,7 +103,9 @@ export default function HealthDashboard() {
           if (d.id !== data.id) return d
           const patch: Partial<Device> = {
             status: data.status as any,
+            lastHeartbeat: new Date().toISOString(),
             currentSlideIndex: data.slideIndex,
+            ...buildDeviceStatusPatch(data),
           }
           if (data.programId != null) {
             if (d.currentProgram?.id !== data.programId) {

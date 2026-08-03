@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { io, type Socket } from 'socket.io-client'
 import type { ServerToClientEvents, ClientToServerEvents } from 'signage-core'
+import { buildDeviceStatusPatch } from './deviceStatusPatch'
 import {
   MusicNote2Icon,
   CaptureIcon,
@@ -217,7 +218,7 @@ export function DashboardView() {
       setDevices((prev) =>
         prev.map((d) =>
           d.id === data.id
-            ? { ...d, status: data.status, lastHeartbeat: new Date().toISOString(), currentProgram: data.programId ?? d.currentProgram, currentSlideIndex: data.slideIndex }
+            ? { ...d, status: data.status, ...buildDeviceStatusPatch(data), currentProgram: data.programId ?? d.currentProgram, currentSlideIndex: data.slideIndex }
             : d
         )
       )

@@ -491,4 +491,75 @@ describe('PlayerController', () => {
       expect(screen.getByText('1 / 3')).toBeTruthy()
     })
   })
+
+  describe('recoveryKey', () => {
+    it('remounts SlideEngine when recoveryKey increments during active playback', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2020-01-01T12:00:00Z'))
+      window.history.replaceState({}, '', window.location.pathname)
+
+      const data: ResolvedSchedule = {
+        lastUpdated: '2020-01-01T00:00:00.000Z',
+        schedule: [{
+          programId: 1,
+          scheduleType: 'autoplay',
+          startTime: '2020-01-01T00:00:00.000Z',
+          endTime: '2020-01-01T23:59:00.000Z',
+          daysOfWeek: [],
+          priority: 0,
+          program: { id: 1, title: 'Scheduled', slides: [
+            { id: 's1', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+            { id: 's2', blockType: 'imageBlock' as const, advanceMode: 'timed' as const, duration: 60, image: { id: 2, url: '/img2.jpg', alt: 'Slide 2' } },
+          ]},
+        }],
+        availability: [],
+        deviceName: 'Test',
+      }
+
+      const ref = createRef<PlayerControllerHandle>()
+      const { rerender } = render(<PlayerController ref={ref} scheduleData={data} recoveryKey={0} />)
+
+      // Autoplay program is active
+      expect(screen.getByAltText('Slide 1')).toBeTruthy()
+
+      // Move to slide 2
+      act(() => { ref.current?.gotoSlide(1) })
+      expect(screen.getByAltText('Slide 2')).toBeTruthy()
+
+      // Increment recoveryKey — should remount SlideEngine at the same slide
+      rerender(<PlayerController ref={ref} scheduleData={data} recoveryKey={1} />)
+
+      // Slide should still render (remounted at the same index via getCurrentIndex)
+      expect(screen.getByAltText('Slide 2')).toBeTruthy()
+
+      vi.useRealTimers()
+    })
+
+    it('does nothing when recoveryKey increments while not in playing state', () => {
+      const data: ResolvedSchedule = {
+        lastUpdated: '2020-01-01T00:00:00.000Z',
+        schedule: [],
+        availability: [],
+        deviceName: null,
+      }
+
+      const { rerender } = render(<PlayerController scheduleData={data} recoveryKey={0} />)
+      expect(screen.getByText('Signage')).toBeTruthy()
+
+      rerender(<PlayerController scheduleData={data} recoveryKey={1} />)
+      expect(screen.getByText('Signage')).toBeTruthy()
+    })
+
+    it('does nothing when recoveryKey is undefined or 0', () => {
+      const data: ResolvedSchedule = {
+        lastUpdated: '2020-01-01T00:00:00.000Z',
+        schedule: [],
+        availability: [],
+        deviceName: null,
+      }
+
+      render(<PlayerController scheduleData={data} />)
+      expect(screen.getByText('Signage')).toBeTruthy()
+    })
+  })
 })

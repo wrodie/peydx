@@ -4,6 +4,7 @@ import { useAuth } from '@payloadcms/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import type { ServerToClientEvents, ClientToServerEvents } from 'signage-core'
+import { buildDeviceStatusPatch } from './deviceStatusPatch'
 import {
   FiberManualRecordIcon,
   PendingIcon,
@@ -216,7 +217,7 @@ export function UpdateButton() {
     socket.on('device:status', (data) => {
       setDevices(prev => prev.map(d =>
         d.id === data.id
-          ? { ...d, status: data.status, lastHeartbeat: new Date().toISOString(), clientVersion: data.clientVersion ?? d.clientVersion }
+          ? { ...d, status: data.status, ...buildDeviceStatusPatch(data), clientVersion: data.clientVersion ?? d.clientVersion }
           : d
       ))
     })
