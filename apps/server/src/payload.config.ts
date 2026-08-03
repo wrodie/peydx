@@ -13,6 +13,7 @@ import { Schedule } from './collections/Schedule'
 import { Departments } from './collections/Departments'
 import { Folders } from './collections/Folders'
 import { Integrations } from './collections/Integrations'
+import { Slides } from './collections/Slides'
 import { Config as ConfigGlobal } from './globals/Config'
 import { deploy } from './endpoints/deploy'
 import { deployStatus } from './endpoints/deployStatus'
@@ -72,6 +73,7 @@ export default buildConfig({
     Schedule,
     Departments,
     Folders,
+    Slides,
     Users,
     Devices,
     Integrations,
