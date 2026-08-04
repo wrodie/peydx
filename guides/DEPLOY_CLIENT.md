@@ -120,6 +120,7 @@ unclutter -idle 0 &
   --disable-session-crashed-bubble \
   --disable-infobars \
   --no-first-run \
+  --autoplay-policy=no-user-gesture-required \
   http://localhost:5000
 ```
 
