@@ -23,6 +23,7 @@ import { youtubeInfo } from './endpoints/youtubeInfo'
 import { timezone } from './endpoints/timezone'
 import { mediaImportYoutube } from './endpoints/mediaImportYoutube'
 import { mediaImportPptx, mediaImportPptxChunk, mediaImportPptxChunkAbort } from './endpoints/mediaImportPptx'
+import { mediaImportPdf, mediaImportPdfChunk, mediaImportPdfChunkAbort } from './endpoints/mediaImportPdf'
 import { exportProgram } from './endpoints/exportProgram'
 import { externalApiEndpoints } from './endpoints/integrations'
 
@@ -91,7 +92,7 @@ export default buildConfig({
       hideAPIURL: true,
     },
   })),
-  endpoints: [deploy, deployStatus, heartbeat, pushUpdate, serverStatus, youtubeInfo, timezone, mediaImportYoutube, mediaImportPptx, mediaImportPptxChunk, mediaImportPptxChunkAbort, ...externalApiEndpoints, exportProgram],
+  endpoints: [deploy, deployStatus, heartbeat, pushUpdate, serverStatus, youtubeInfo, timezone, mediaImportYoutube, mediaImportPptx, mediaImportPptxChunk, mediaImportPptxChunkAbort, mediaImportPdf, mediaImportPdfChunk, mediaImportPdfChunkAbort, ...externalApiEndpoints, exportProgram],
   editor: lexicalEditor({}),
   db: postgresAdapter({
     pool: {
