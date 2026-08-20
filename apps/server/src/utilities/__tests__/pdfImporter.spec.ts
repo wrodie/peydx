@@ -97,6 +97,28 @@ describe('parsePdf', () => {
     expect(parsed.skipped).toHaveLength(0)
   })
 
+  it('renders even when Array.prototype is polluted with enumerable properties', async () => {
+    const original = Object.getOwnPropertyDescriptor(Array.prototype, 'random')
+    ;(Array.prototype as any).random = function () {
+      return this[0]
+    }
+
+    try {
+      const pdf = buildMinimalPdf(1)
+      const parsed = await parsePdf(pdf, 'test', { targetWidth: 320 })
+
+      expect(parsed.pages).toHaveLength(1)
+      expect(parsed.skipped).toHaveLength(0)
+      expect(parsed.pages[0].buffer.subarray(0, 4).equals(PNG_MAGIC)).toBe(true)
+    } finally {
+      if (original) {
+        Object.defineProperty(Array.prototype, 'random', original)
+      } else {
+        delete (Array.prototype as any).random
+      }
+    }
+  })
+
   it('skips pages that fail to render', async () => {
     const fakeDoc = {
       numPages: 2,

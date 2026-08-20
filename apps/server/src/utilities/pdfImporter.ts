@@ -22,12 +22,30 @@ export interface ParsedPdf {
 const DEFAULT_TARGET_WIDTH = 1920
 const CONCURRENCY = 4
 
+// Some dependencies (e.g. drizzle-kit, loaded by @payloadcms/db-postgres during
+// dev schema push) add enumerable properties to `Array.prototype` (e.g. `random`).
+// pdf.js runs its worker on the main thread (`worker: null`) and refuses to start
+// if `for...in` over an empty array finds any enumerable property. Make those
+// properties non-enumerable (values are preserved, so dot-access still works).
+function neutralizeArrayPrototypePollution(): void {
+  const polluted: string[] = []
+  for (const key in []) polluted.push(key)
+  for (const key of polluted) {
+    const desc = Object.getOwnPropertyDescriptor(Array.prototype, key)
+    if (desc && desc.enumerable) {
+      Object.defineProperty(Array.prototype, key, { ...desc, enumerable: false })
+    }
+  }
+}
+
 export async function parsePdf(
   fileBuffer: Buffer,
   fileName: string,
   options?: { targetWidth?: number },
 ): Promise<ParsedPdf> {
   const targetWidth = options?.targetWidth ?? DEFAULT_TARGET_WIDTH
+
+  neutralizeArrayPrototypePollution()
 
   const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
