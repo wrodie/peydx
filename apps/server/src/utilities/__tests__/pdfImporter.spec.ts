@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import sharp from 'sharp'
 
 vi.mock('pdfjs-dist/legacy/build/pdf.mjs', async (importOriginal) => {
   const actual = await importOriginal<any>()
@@ -44,6 +45,49 @@ function buildMinimalPdf(pageCount: number): Buffer {
 }
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47])
+
+async function buildPdfWithEmbeddedImage(): Promise<Buffer> {
+  const jpeg = await sharp({
+    create: { width: 8, height: 8, channels: 3, background: { r: 255, g: 0, b: 0 } },
+  }).jpeg().toBuffer()
+
+  const contentStream = 'q 320 0 0 180 0 0 cm /Im0 Do Q\n'
+  const imgHeader = `<< /Type /XObject /Subtype /Image /Width 8 /Height 8 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`
+
+  const bodies: Buffer[] = [
+    Buffer.from('<< /Type /Catalog /Pages 2 0 R >>', 'latin1'),
+    Buffer.from('<< /Type /Pages /Kids [3 0 R] /Count 1 >>', 'latin1'),
+    Buffer.from('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 180] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>', 'latin1'),
+    Buffer.from(`<< /Length ${contentStream.length} >>\nstream\n${contentStream}endstream`, 'latin1'),
+    Buffer.concat([
+      Buffer.from(imgHeader, 'latin1'),
+      jpeg,
+      Buffer.from('\nendstream', 'latin1'),
+    ]),
+  ]
+
+  const chunks: Buffer[] = [Buffer.from('%PDF-1.4\n', 'latin1')]
+  const offsets: number[] = []
+  let length = chunks[0].length
+  for (let i = 0; i < bodies.length; i++) {
+    offsets.push(length)
+    const objHeader = Buffer.from(`${i + 1} 0 obj\n`, 'latin1')
+    const objFooter = Buffer.from('\nendobj\n', 'latin1')
+    chunks.push(objHeader, bodies[i], objFooter)
+    length += objHeader.length + bodies[i].length + objFooter.length
+  }
+
+  const xrefOffset = length
+  let xref = `xref\n0 ${bodies.length + 1}\n`
+  xref += '0000000000 65535 f \n'
+  for (const off of offsets) {
+    xref += `${String(off).padStart(10, '0')} 00000 n \n`
+  }
+  xref += `trailer\n<< /Size ${bodies.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`
+  chunks.push(Buffer.from(xref, 'latin1'))
+
+  return Buffer.concat(chunks)
+}
 
 function pngSize(buf: Buffer): { width: number; height: number } {
   return {
@@ -95,6 +139,15 @@ describe('parsePdf', () => {
 
     expect(parsed.pages).toHaveLength(0)
     expect(parsed.skipped).toHaveLength(0)
+  })
+
+  it('renders pages with embedded images', async () => {
+    const pdf = await buildPdfWithEmbeddedImage()
+    const parsed = await parsePdf(pdf, 'test', { targetWidth: 320 })
+
+    expect(parsed.pages).toHaveLength(1)
+    expect(parsed.skipped).toHaveLength(0)
+    expect(parsed.pages[0].buffer.subarray(0, 4).equals(PNG_MAGIC)).toBe(true)
   })
 
   it('renders even when Array.prototype is polluted with enumerable properties', async () => {

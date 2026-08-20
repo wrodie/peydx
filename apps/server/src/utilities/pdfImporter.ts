@@ -1,4 +1,5 @@
 import { createCanvas, Path2D, ImageData, DOMMatrix } from '@napi-rs/canvas'
+import { createRequire } from 'module'
 
 // pdf.js requires browser canvas globals that are not present in Node.
 // @napi-rs/canvas provides compatible implementations — expose them globally
@@ -6,6 +7,17 @@ import { createCanvas, Path2D, ImageData, DOMMatrix } from '@napi-rs/canvas'
 ;(globalThis as any).DOMMatrix = DOMMatrix
 ;(globalThis as any).ImageData = ImageData
 ;(globalThis as any).Path2D = Path2D
+
+const nodeRequire = createRequire(import.meta.url)
+
+// pdf.js (>=4.9) loads builtins like `fs`, `module`, `url` via
+// `process.getBuiltinModule`, which only exists on Node 20.16+/22.3+. Shim it
+// for older Node 20.x so embedded-image decoding during rendering doesn't throw.
+function ensureProcessGetBuiltinModule(): void {
+  if (typeof process.getBuiltinModule !== 'function') {
+    ;(process as any).getBuiltinModule = (name: string) => nodeRequire(name)
+  }
+}
 
 export interface PdfPage {
   buffer: Buffer
@@ -46,6 +58,7 @@ export async function parsePdf(
   const targetWidth = options?.targetWidth ?? DEFAULT_TARGET_WIDTH
 
   neutralizeArrayPrototypePollution()
+  ensureProcessGetBuiltinModule()
 
   const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
