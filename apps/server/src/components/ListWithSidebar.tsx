@@ -8,6 +8,7 @@ import { FolderTree } from './FolderTree'
 import { DrawerRowInterceptor } from './DrawerRowInterceptor'
 import { ExpandCircleDownIcon } from './icons'
 import { ImportPptxButton } from './ImportPptxButton'
+import { ImportPdfButton } from './ImportPdfButton'
 
 export function ListWithSidebar(props: ListViewClientProps) {
   const { isInDrawer } = useListDrawerContext()
@@ -33,7 +34,12 @@ export function ListWithSidebar(props: ListViewClientProps) {
 
   return (
     <>
-      {portalTarget && props.collectionSlug === 'programs' && createPortal(<ImportPptxButton />, portalTarget)}
+      {portalTarget && props.collectionSlug === 'programs' && (
+        <>
+          {createPortal(<ImportPptxButton />, portalTarget)}
+          {createPortal(<ImportPdfButton />, portalTarget)}
+        </>
+      )}
       <style>{`
         .list-with-sidebar { display: flex; align-items: flex-start; }
         .list-with-sidebar__sidebar {
