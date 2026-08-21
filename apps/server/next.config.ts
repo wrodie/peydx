@@ -8,7 +8,6 @@ const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
   transpilePackages: ['signage-core'],
-  serverExternalPackages: ['@napi-rs/canvas'],
   images: {
     localPatterns: [
       {
