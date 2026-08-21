@@ -1,23 +1,7 @@
-import { createCanvas, Path2D, ImageData, DOMMatrix } from '@napi-rs/canvas'
-import { createRequire } from 'module'
-
-// pdf.js requires browser canvas globals that are not present in Node.
-// @napi-rs/canvas provides compatible implementations — expose them globally
-// before pdfjs-dist loads (it is lazily imported inside parsePdf).
-;(globalThis as any).DOMMatrix = DOMMatrix
-;(globalThis as any).ImageData = ImageData
-;(globalThis as any).Path2D = Path2D
-
-const nodeRequire = createRequire(import.meta.url)
-
-// pdf.js (>=4.9) loads builtins like `fs`, `module`, `url` via
-// `process.getBuiltinModule`, which only exists on Node 20.16+/22.3+. Shim it
-// for older Node 20.x so embedded-image decoding during rendering doesn't throw.
-function ensureProcessGetBuiltinModule(): void {
-  if (typeof process.getBuiltinModule !== 'function') {
-    ;(process as any).getBuiltinModule = (name: string) => nodeRequire(name)
-  }
-}
+import { execFile } from 'node:child_process'
+import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 
 export interface PdfPage {
   buffer: Buffer
@@ -32,22 +16,17 @@ export interface ParsedPdf {
 }
 
 const DEFAULT_TARGET_WIDTH = 1920
-const CONCURRENCY = 4
 
-// Some dependencies (e.g. drizzle-kit, loaded by @payloadcms/db-postgres during
-// dev schema push) add enumerable properties to `Array.prototype` (e.g. `random`).
-// pdf.js runs its worker on the main thread (`worker: null`) and refuses to start
-// if `for...in` over an empty array finds any enumerable property. Make those
-// properties non-enumerable (values are preserved, so dot-access still works).
-function neutralizeArrayPrototypePollution(): void {
-  const polluted: string[] = []
-  for (const key in []) polluted.push(key)
-  for (const key of polluted) {
-    const desc = Object.getOwnPropertyDescriptor(Array.prototype, key)
-    if (desc && desc.enumerable) {
-      Object.defineProperty(Array.prototype, key, { ...desc, enumerable: false })
-    }
-  }
+function run(cmd: string, args: string[]): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execFile(cmd, args, { maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) {
+        reject(new Error(`${cmd} failed: ${err.message || String(err)}`))
+      } else {
+        resolve({ stdout, stderr })
+      }
+    })
+  })
 }
 
 export async function parsePdf(
@@ -57,73 +36,60 @@ export async function parsePdf(
 ): Promise<ParsedPdf> {
   const targetWidth = options?.targetWidth ?? DEFAULT_TARGET_WIDTH
 
-  neutralizeArrayPrototypePollution()
-  ensureProcessGetBuiltinModule()
+  const dir = await mkdtemp(path.join(tmpdir(), 'peydx-pdf-'))
+  const inputPath = path.join(dir, 'input.pdf')
 
-  const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs')
-
-  let doc: any
   try {
-    doc = await getDocument({
-      data: new Uint8Array(fileBuffer),
-      worker: null as any,
-    }).promise
-  } catch (err: any) {
-    throw new Error(`Could not open PDF: ${err?.message || String(err)}`)
-  }
+    await writeFile(inputPath, fileBuffer)
 
-  const skipped: string[] = []
-  const numPages = doc.numPages
+    const info = await run('pdfinfo', [inputPath])
+    const pagesMatch = info.stdout.match(/^Pages:\s+(\d+)/m)
+    const numPages = pagesMatch ? parseInt(pagesMatch[1], 10) : 0
 
-  const results: (PdfPage | null)[] = new Array(numPages).fill(null)
-  let nextPage = 1
+    if (numPages === 0) {
+      return { pages: [], skipped: [] }
+    }
 
-  async function renderPage(pageNumber: number): Promise<PdfPage | null> {
-    try {
-      const page = await doc.getPage(pageNumber)
-      const baseViewport = page.getViewport({ scale: 1 })
-      const scale = targetWidth / baseViewport.width
-      const viewport = page.getViewport({ scale })
+    const sizeMatch = info.stdout.match(/Page size:\s*([\d.]+)\s*x\s*([\d.]+)/)
+    const widthPt = sizeMatch ? parseFloat(sizeMatch[1]) : 0
 
-      const width = Math.floor(viewport.width)
-      const height = Math.floor(viewport.height)
+    let dpi = widthPt > 0 ? Math.round((targetWidth * 72) / widthPt) : 72
+    if (!Number.isFinite(dpi) || dpi <= 0) {
+      dpi = 72
+    }
 
-      const canvas = createCanvas(width, height)
-      const context = canvas.getContext('2d')
+    const skipped: string[] = []
+    const pages: PdfPage[] = []
 
-      await page.render({ canvasContext: context, viewport }).promise
-
-      return {
-        buffer: canvas.toBuffer('image/png'),
-        displayName: `${fileName} - Page ${pageNumber}`,
-        fileName: `${fileName} - Page ${pageNumber}.png`,
-        mimeType: 'image/png',
+    for (let pageNumber = 1; pageNumber <= numPages; pageNumber++) {
+      const outRoot = path.join(dir, `page-${pageNumber}`)
+      try {
+        await run('pdftoppm', [
+          '-png',
+          '-singlefile',
+          '-r',
+          String(dpi),
+          '-f',
+          String(pageNumber),
+          '-l',
+          String(pageNumber),
+          inputPath,
+          outRoot,
+        ])
+        const buffer = await readFile(`${outRoot}.png`)
+        pages.push({
+          buffer,
+          displayName: `${fileName} - Page ${pageNumber}`,
+          fileName: `${fileName} - Page ${pageNumber}.png`,
+          mimeType: 'image/png',
+        })
+      } catch (err: any) {
+        skipped.push(`Failed to render page ${pageNumber}: ${err?.message || String(err)}`)
       }
-    } catch (err: any) {
-      skipped.push(`Failed to render page ${pageNumber}: ${err?.message || String(err)}`)
-      return null
     }
-  }
 
-  async function worker() {
-    while (true) {
-      const pageNumber = nextPage++
-      if (pageNumber > numPages) return
-      results[pageNumber - 1] = await renderPage(pageNumber)
-    }
+    return { pages, skipped }
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {})
   }
-
-  const workerCount = Math.min(CONCURRENCY, numPages)
-  const workers: Promise<void>[] = []
-  for (let i = 0; i < workerCount; i++) {
-    workers.push(worker())
-  }
-  await Promise.all(workers)
-
-  const pages: PdfPage[] = []
-  for (const r of results) {
-    if (r) pages.push(r)
-  }
-
-  return { pages, skipped }
 }
