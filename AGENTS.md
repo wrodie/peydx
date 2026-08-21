@@ -116,6 +116,17 @@ Auth modes on `Devices`:
    different-priority schedules may freely overlap. Player/sync-agent group by
    priority desc, pick from highest group; within a group pick latest startTime.
    Only admins set `override`. Any change to this field must ship a migration.
+6. **PDF import**: `POST /api/import-pdf`
+   (`apps/server/src/endpoints/mediaImportPdf.ts`) parses `.pdf` via
+   `apps/server/src/utilities/pdfImporter.ts` (shells out to `pdfinfo` +
+   `pdftoppm` from poppler-utils, installed in the server Docker image). Each
+   page is rendered to a 1920px-wide PNG and imported as `media`; one
+   `imageBlock` slide per page (`advanceMode: manual`, `transition: fade`), then
+   a `programs` record is created (title = file name). Text/shapes are flattened
+   into the page image — not editable in PeydX. Reuses the shared chunked-upload
+   endpoints via `importShared.ts` (`createChunkedEndpoints`): files >90 MB are
+   auto-split client-side (`ImportPdfButton.tsx`; 80 MB chunks) →
+   `POST /api/import-pdf-chunk`; `DELETE /api/import-pdf-chunk` aborts.
 
 (Folders, media name auto-fill, device self-read, media download URLs, and the
 schedule device-access pattern are routine behavior enforced by hooks/tests —

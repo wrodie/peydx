@@ -173,7 +173,7 @@ If your system has YouTube import enabled, you'll see an **"Import from YouTube"
 2. Paste a YouTube video URL or video ID.
 3. The video will be downloaded and added to your media library. (This may take some time - so please be patient.)
 
-> **Note:** PowerPoint import is available from the **Programs** page. See [Importing a PowerPoint File](#importing-a-powerpoint-file) in the Create & Edit Programs section.
+> **Note:** PowerPoint and PDF import are available from the **Programs** page. See [Importing a PowerPoint File](#importing-a-powerpoint-file) and [Importing a PDF File](#importing-a-pdf-file) in the Create & Edit Programs section.
 
 ---
 
@@ -289,6 +289,31 @@ The import process:
 
 > **Tips:**
 > - The new program will have `advanceMode: "manual"` for images and `"onEnd"` for video/audio — you can adjust these in the program editor.
+> - The program is placed in your department's programs root folder. You can move it later.
+> - Depending on the file size, importing may take some time — the progress bar shows you what's happening.
+> - Files over 90 MB are automatically split into chunks for upload. You'll see an "Uploading" progress step before the import begins. A **Cancel** button lets you abort the upload at any time.
+
+### Importing a PDF File
+
+You can import a `.pdf` file directly from the Programs page. This creates a new program where each PDF page becomes an image slide.
+
+1. Click **Programs** in the top navigation.
+2. Click the **Import PDF** button above the program list.
+3. Select a `.pdf` file from your computer.
+4. If you belong to multiple departments, choose which department to import into.
+5. Click **Import**.
+
+The import process:
+- Renders each page as an image and shows progress as each page is imported
+- Creates a new **program** with one image slide per page, in order
+- Creates a **media subfolder** named after your file
+
+**What gets imported:**
+- ✅ Every page becomes a full-slide image
+- ❌ **Not editable:** Text, shapes, and graphics are baked into the page image — you cannot edit them in PeydX afterward
+
+> **Tips:**
+> - Each page's slide is created with manual advance and a fade transition — you can adjust these in the program editor.
 > - The program is placed in your department's programs root folder. You can move it later.
 > - Depending on the file size, importing may take some time — the progress bar shows you what's happening.
 > - Files over 90 MB are automatically split into chunks for upload. You'll see an "Uploading" progress step before the import begins. A **Cancel** button lets you abort the upload at any time.
