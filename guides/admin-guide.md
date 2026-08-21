@@ -387,6 +387,19 @@ See the [User Guide — Importing a PowerPoint File](../guides/user-guide.md#imp
 - The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content.
 - Thumbnail generation and duration extraction run in the background after the import completes.
 
+### Importing from PDF
+
+The **Import PDF** button appears on the Programs list view (not the Media list). This is because importing a `.pdf` file creates both media items and a program.
+
+See the [User Guide — Importing a PDF File](../guides/user-guide.md#importing-a-pdf-file) for step-by-step instructions.
+
+**Technical details:**
+- Each page is rendered to a PNG image at 1920px wide using `pdftoppm` (poppler-utils, installed in the server Docker image), then imported as a media item.
+- Pages are created as Image slides with `advanceMode: "manual"` and a fade transition.
+- Files over 90 MB are automatically split into 80 MB chunks for upload (necessary when the server sits behind Cloudflare's free-tier 100 MB upload limit). Chunks are stored temporarily in the server's `/tmp` directory and reassembled on the final chunk.
+- Text, shapes, and vector graphics are flattened into the rendered page image — they cannot be edited in PeydX after import.
+- The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content.
+
 ### Organizing Media with Folders
 
 Use the folder sidebar to browse and create media folders. See [Managing Folders](#managing-folders) for details on folder organization.
@@ -417,7 +430,7 @@ The programs list has a folder sidebar (programs-type folders) on the left and a
 4. The **Folder** field is hidden on creation and auto-assigned based on your current folder selection.
 5. Click **Save** to create the program, then add slides.
 
-Alternatively, you can create a program by importing a PowerPoint file — see [Importing from PowerPoint](#importing-from-powerpoint).
+Alternatively, you can create a program by importing a PowerPoint or PDF file — see [Importing from PowerPoint](#importing-from-powerpoint) or [Importing from PDF](#importing-from-pdf).
 
 ### Program Editor Layout
 
