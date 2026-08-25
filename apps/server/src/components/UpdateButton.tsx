@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import type { ServerToClientEvents, ClientToServerEvents } from 'signage-core'
 import { buildDeviceStatusPatch } from './deviceStatusPatch'
+import { computeStatus, STATUS_COLORS } from '../utilities/ui/deviceStatus'
 import {
   FiberManualRecordIcon,
   PendingIcon,
@@ -22,14 +23,6 @@ interface DeviceRow {
   status: string
   lastHeartbeat: string | null
   clientVersion: string | null
-}
-
-function computeStatus(lastHeartbeat: string | null | undefined): 'online' | 'stale' | 'offline' {
-  if (!lastHeartbeat) return 'offline'
-  const diff = Date.now() - new Date(lastHeartbeat).getTime()
-  if (diff < 3 * 60 * 1000) return 'online'
-  if (diff < 10 * 60 * 1000) return 'stale'
-  return 'offline'
 }
 
 const sectionStyle: React.CSSProperties = {
@@ -111,23 +104,19 @@ function getStepInfo(step: string | null) {
 }
 
 function statusDot(status: string, lastHeartbeat: string | null | undefined): React.ReactNode {
-  if (status === 'updating') return <PendingIcon size={12} style={{ color: '#f59e0b' }} />
+  if (status === 'updating') return <PendingIcon size={12} style={{ color: STATUS_COLORS.stale }} />
   const s = computeStatus(lastHeartbeat)
   switch (s) {
-    case 'online': return <FiberManualRecordIcon size={12} style={{ color: '#22c55e' }} />
-    case 'stale': return <PendingIcon size={12} style={{ color: '#f59e0b' }} />
-    default: return <RadioButtonUncheckedIcon size={12} style={{ color: '#6b7280' }} />
+    case 'online': return <FiberManualRecordIcon size={12} style={{ color: STATUS_COLORS.online }} />
+    case 'stale': return <PendingIcon size={12} style={{ color: STATUS_COLORS.stale }} />
+    default: return <RadioButtonUncheckedIcon size={12} style={{ color: STATUS_COLORS.offline }} />
   }
 }
 
 function statusColor(status: string, lastHeartbeat: string | null | undefined): string {
-  if (status === 'updating') return '#f59e0b'
+  if (status === 'updating') return STATUS_COLORS.stale
   const s = computeStatus(lastHeartbeat)
-  switch (s) {
-    case 'online': return '#22c55e'
-    case 'stale': return '#f59e0b'
-    default: return '#999'
-  }
+  return STATUS_COLORS[s] ?? STATUS_COLORS.offline
 }
 
 const tableStyle: React.CSSProperties = {

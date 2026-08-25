@@ -9,42 +9,9 @@ import {
   PauseIcon,
   SkipNextIcon,
   StopIcon,
-  MovieIcon,
-  YouTubeIcon,
   CaptureIcon,
 } from './icons'
-
-function extractYouTubeId(input: string): string | null {
-  if (!input) return null
-  const m = input.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})|^([a-zA-Z0-9_-]{11})$/)
-  return m?.[1] || m?.[2] || null
-}
-
-function getThumbnailUrl(slide: any): string | null {
-  if (!slide) return null
-  if (slide.blockType === 'imageBlock' && slide.image) {
-    const img = typeof slide.image === 'object' ? slide.image : null
-    if (!img) return null
-    return img.sizes?.thumbnail?.url || img.url || null
-  }
-  if (slide.blockType === 'videoBlock' && slide.video) {
-    const vid = typeof slide.video === 'object' ? slide.video : null
-    return vid?.sizes?.thumbnail?.url || null
-  }
-  if (slide.blockType === 'youtubeBlock' && slide.youtubeId) {
-    const ytId = extractYouTubeId(slide.youtubeId)
-    if (ytId) return `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`
-  }
-  return null
-}
-
-function getBlockIcon(slide: any): React.ReactNode {
-  if (!slide) return null
-  if (slide.blockType === 'videoBlock') return <MovieIcon size={24} />
-  if (slide.blockType === 'youtubeBlock') return <YouTubeIcon size={24} />
-  if (slide.blockType === 'blackScreenBlock') return <CaptureIcon size={24} />
-  return null
-}
+import { getThumbnailUrl, getBlockIcon } from '../utilities/ui/slideMedia'
 
 export function RemoteControlView() {
   const [devices, setDevices] = useState<any[]>([])
@@ -220,7 +187,7 @@ export function RemoteControlView() {
   const currentSlide = flatSlides[currentSlideIndex] || flatSlides[0]
   const isLastSlide = flatSlides.length > 0 && currentSlideIndex >= flatSlides.length - 1
   const thumbnailUrl = getThumbnailUrl(currentSlide)
-  const blockIcon = getBlockIcon(currentSlide)
+  const blockIcon = getBlockIcon(currentSlide?.blockType)
 
   const stateColor =
     playerState === 'playing' ? '#22c55e' : playerState === 'menu' ? '#f59e0b' : '#6b7280'
@@ -484,7 +451,7 @@ export function RemoteControlView() {
             >
               {flatSlides.map((slide: any, i: number) => {
                 const url = getThumbnailUrl(slide)
-                const icon = getBlockIcon(slide)
+                const icon = getBlockIcon(slide.blockType)
                 return (
                   <div
                     key={slide.id || i}

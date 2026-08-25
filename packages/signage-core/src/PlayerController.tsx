@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { SlideEngine } from './SlideEngine'
 import { MenuEngine } from './MenuEngine'
-import type { Program, PlayerState, ScheduleEntry, AvailabilityEntry, ResolvedSchedule, KeyConfig, Slide } from './types'
+import type { Program, PlayerState, ScheduleEntry, AvailabilityEntry, ResolvedSchedule, KeyConfig, Slide, ConnectionStatus } from './types'
+import { CONNECTION_STATUS_COLORS } from './types'
 import { flattenProgram } from './flattenProgram'
 import { mergeKeyConfig, normalizeKeyCode } from './keyConfig'
 import type { SlideEngineHandle } from './SlideEngine'
@@ -24,6 +25,8 @@ interface PlayerControllerProps {
   onSlideChange?: (index: number) => void
   onStateChange?: (state: PlayerState, programId?: number, menuIndex?: number) => void
   onPauseChange?: (paused: boolean) => void
+  connectionStatus?: ConnectionStatus
+  fetchError?: string | null
 }
 
 function isValidTimezone(tz: string): boolean {
@@ -188,7 +191,7 @@ function resolveUpdatedSlideIndex(
 }
 
 export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControllerProps>(
-  ({ scheduleData, keyConfig: userKeyConfig, recoveryKey, onSlideChange, onStateChange, onPauseChange }, ref) => {
+  ({ scheduleData, keyConfig: userKeyConfig, recoveryKey, onSlideChange, onStateChange, onPauseChange, connectionStatus, fetchError }, ref) => {
     const [playerState, setPlayerState] = useState<PlayerState>('idle')
     const [activeProgram, setActiveProgram] = useState<Program | null>(null)
     const [programKey, setProgramKey] = useState(0)
@@ -199,6 +202,7 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     const [currentScheduleEntry, setCurrentScheduleEntry] = useState<ScheduleEntry | AvailabilityEntry | null>(null)
     const [showPaused, setShowPaused] = useState(false)
     const [currentTime, setCurrentTime] = useState('')
+    const [showFetchError, setShowFetchError] = useState(false)
     const pausedRef = useRef(false)
     const flattenedSlidesRef = useRef<Slide[]>([])
 
@@ -619,6 +623,13 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     }, [clearMenuTimeout])
 
     useEffect(() => {
+      if (!fetchError) return
+      setShowFetchError(true)
+      const timer = setTimeout(() => setShowFetchError(false), 5000)
+      return () => clearTimeout(timer)
+    }, [fetchError])
+
+    useEffect(() => {
       const handler = () => {
         primeAutoplay()
         window.removeEventListener('click', handler)
@@ -635,9 +646,63 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
       }
     }, [])
 
+    const statusDot = connectionStatus ? (
+      <span
+        className="player-connection-dot"
+        style={{
+          display: 'inline-block',
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: CONNECTION_STATUS_COLORS[connectionStatus],
+          marginLeft: 12,
+          flexShrink: 0,
+        }}
+        title={`Connection: ${connectionStatus}`}
+      />
+    ) : null
+
+    const fetchErrorBanner = showFetchError ? (
+      <div
+        className="player-fetch-error"
+        style={{
+          position: 'fixed',
+          top: '4vw',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 2000,
+          background: 'rgba(0, 0, 0, 0.85)',
+          color: '#fff',
+          padding: '10px 20px',
+          borderRadius: 6,
+          fontSize: '1vw',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Schedule update failed
+      </div>
+    ) : null
+
     if (playerState === 'playing' && activeProgram) {
       return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          {connectionStatus && (
+            <span
+              className="player-connection-dot"
+              style={{
+                position: 'absolute',
+                top: 20,
+                right: 20,
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: CONNECTION_STATUS_COLORS[connectionStatus],
+                zIndex: 30,
+              }}
+              title={`Connection: ${connectionStatus}`}
+            />
+          )}
+          {fetchErrorBanner}
           <SlideEngine
             ref={engineRef}
             key={programKey}
@@ -688,42 +753,50 @@ export const PlayerController = forwardRef<PlayerControllerHandle, PlayerControl
     if (playerState === 'menu') {
       const programTitles = availableEntries.map((e) => ({ id: e.programId, title: e.program.title, department: e.program.department ?? undefined }))
       return (
-        <MenuEngine
-          programs={programTitles}
-          selectedIndex={menuIndex}
-          onSelect={(idx) => {
-            if (idx >= 0 && idx < availableEntries.length) {
-              const entry = availableEntries[idx]
-              primeAutoplay()
-              userOverrideRef.current = true
-              transitionTo('playing', entry.program, entry, idx)
-            }
-          }}
-          onBack={() => {
-            if (activeProgram) {
-              return
-            }
-            setPlayerState('idle')
-            emitState('idle')
-          }}
-          keyConfig={keys}
-          title="Select a Program"
-          deviceName={scheduleData?.deviceName}
-          defaultBackground={scheduleData?.defaultBackground}
-        />
+        <>
+          {fetchErrorBanner}
+          <MenuEngine
+            programs={programTitles}
+            selectedIndex={menuIndex}
+            onSelect={(idx) => {
+              if (idx >= 0 && idx < availableEntries.length) {
+                const entry = availableEntries[idx]
+                primeAutoplay()
+                userOverrideRef.current = true
+                transitionTo('playing', entry.program, entry, idx)
+              }
+            }}
+            onBack={() => {
+              if (activeProgram) {
+                return
+              }
+              setPlayerState('idle')
+              emitState('idle')
+            }}
+            keyConfig={keys}
+            title="Select a Program"
+            deviceName={scheduleData?.deviceName}
+            defaultBackground={scheduleData?.defaultBackground}
+            connectionStatus={connectionStatus}
+          />
+        </>
       )
     }
 
     return (
       <div className="menu-overlay">
+        {fetchErrorBanner}
         {scheduleData?.defaultBackground && (
           <img src={scheduleData.defaultBackground} className="menu-background" alt="" />
         )}
         <div className="menu-overlay-bg" />
         <div className="menu-top-bar">
           <span className="menu-top-bar-left">{scheduleData?.deviceName || 'Signage'}</span>
-          <span className="menu-top-bar-right">{currentTime}</span>
+          <span className="menu-top-bar-right" style={{ display: 'inline-flex', alignItems: 'center' }}>{currentTime}{statusDot}</span>
         </div>
+        {!scheduleData?.hideProgramList && (
+          <div className="menu-idle-hint">Press M for menu</div>
+        )}
       </div>
     )
   },

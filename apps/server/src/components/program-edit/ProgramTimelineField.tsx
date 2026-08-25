@@ -76,7 +76,6 @@ const newSlideDefaults: Record<string, any> = {
 function buildRowState(blockType: string, data?: any): Record<string, any> {
   const s: Record<string, any> = {}
   s.blockType = { value: blockType, initialValue: blockType, valid: true }
-  s._moveToSegment = { value: '__none__', initialValue: '__none__', valid: true }
 
   switch (blockType) {
     case 'imageBlock':
@@ -233,7 +232,8 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   )
 
   const [mediaBrowserOpen, setMediaBrowserOpen] = useState(true)
-  const [isMobile, setIsMobile] = useState(false)
+  const [breakpoint, setBreakpoint] = useState<'phone' | 'tablet' | 'desktop'>('desktop')
+  const [mediaSheetOpen, setMediaSheetOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingSlide, setEditingSlide] = useState<any>(null)
   const [editingSlideIndex, setEditingSlideIndex] = useState(-1)
@@ -303,7 +303,10 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   }, [scheduleSubmit])
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth <= 768)
+    const check = () => {
+      const w = window.innerWidth
+      setBreakpoint(w <= 768 ? 'phone' : w <= 1024 ? 'tablet' : 'desktop')
+    }
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
@@ -503,7 +506,6 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
         const slideData = { ...slide }
         delete slideData.id
-        delete slideData._moveToSegment
         slideData.bulkMedia = null
 
         if (slideData.blockType === 'segmentBlock') {
@@ -512,7 +514,6 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             .map((s: any) => {
               const cs = { ...s }
               delete cs.id
-              delete cs._moveToSegment
               return cs
             })
           slideData.slides = []
@@ -989,41 +990,125 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: 'calc(100vh - var(--app-header-height) - var(--doc-controls-height))',
-          minHeight: 400,
-        }}
-      >
+      {breakpoint === 'phone' ? (
+        <div
+          style={{
+            padding: '24px 16px',
+            textAlign: 'center',
+            color: 'var(--theme-elevation-500, #6b7280)',
+            fontSize: '0.9rem',
+            border: '2px dashed var(--theme-elevation-200, #e5e7eb)',
+            borderRadius: 8,
+            margin: '16px',
+          }}
+        >
+          The program editor is optimized for tablets and larger screens. You can view programs but editing is limited.
+        </div>
+      ) : (
         <div
           style={{
             display: 'flex',
-            flex: 1,
-            overflow: 'hidden',
+            flexDirection: 'column',
+            height: 'calc(100vh - var(--app-header-height) - var(--doc-controls-height))',
+            minHeight: 400,
           }}
         >
-          {!isMobile && (
-            <MediaBrowser collapsed={!mediaBrowserOpen} onToggle={() => setMediaBrowserOpen(v => !v)} clearSelectionRef={mediaClearRef} />
-          )}
-          <ProgramTimeline
-            slides={slides}
-            mediaMap={mediaMap}
-            onAddSlide={handleAddSlide}
-            onImportProgram={handleImportProgram}
-            onEditSlide={handleEditSlide}
-            onEditSegment={handleEditSlide}
-            onRemoveSlide={handleRemoveSlide}
-            onEditSegmentName={handleEditSegmentName}
-            onRemoveSegment={handleRemoveSegment}
-            onModeChange={handleModeChange}
-            onDurationChange={handleDurationChange}
-            onLoopChange={handleLoopChange}
-          />
+          <div
+            style={{
+              display: 'flex',
+              flex: 1,
+              overflow: 'hidden',
+            }}
+          >
+            {breakpoint === 'desktop' && (
+              <MediaBrowser collapsed={!mediaBrowserOpen} onToggle={() => setMediaBrowserOpen(v => !v)} clearSelectionRef={mediaClearRef} />
+            )}
+            <ProgramTimeline
+              slides={slides}
+              mediaMap={mediaMap}
+              onAddSlide={handleAddSlide}
+              onImportProgram={handleImportProgram}
+              onEditSlide={handleEditSlide}
+              onEditSegment={handleEditSlide}
+              onRemoveSlide={handleRemoveSlide}
+              onEditSegmentName={handleEditSegmentName}
+              onRemoveSegment={handleRemoveSegment}
+              onModeChange={handleModeChange}
+              onDurationChange={handleDurationChange}
+              onLoopChange={handleLoopChange}
+            />
+          </div>
         </div>
+      )}
 
-      </div>
+      {breakpoint === 'tablet' && (
+        <button
+          type="button"
+          onClick={() => setMediaSheetOpen(true)}
+          style={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            zIndex: 900,
+            padding: '10px 16px',
+            background: 'var(--theme-primary-500, #2563eb)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+          }}
+        >
+          Media
+        </button>
+      )}
+
+      {breakpoint === 'tablet' && mediaSheetOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '50vh',
+            zIndex: 1000,
+            background: 'var(--theme-elevation-0)',
+            borderTop: '1px solid var(--theme-elevation-200, #e5e7eb)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 12px',
+              borderBottom: '1px solid var(--theme-elevation-200, #e5e7eb)',
+            }}
+          >
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--theme-elevation-600, #4b5563)' }}>Media</span>
+            <button
+              type="button"
+              onClick={() => setMediaSheetOpen(false)}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--theme-elevation-300, #d1d5db)',
+                borderRadius: 4,
+                cursor: 'pointer',
+                padding: '4px 10px',
+                fontSize: '0.8rem',
+              }}
+            >
+              Close
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', display: 'flex' }}>
+            <MediaBrowser collapsed={false} onToggle={() => setMediaSheetOpen(false)} clearSelectionRef={mediaClearRef} />
+          </div>
+        </div>
+      )}
 
       <SlideEditDrawer
         isOpen={drawerOpen}
@@ -1033,6 +1118,12 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         allSlides={slides}
         mediaMap={mediaMap}
         onClose={() => {
+          setDrawerOpen(false)
+          setEditingSlide(null)
+          setEditingSlideIndex(-1)
+          setEditingSegmentId(undefined)
+        }}
+        onCancel={() => {
           setDrawerOpen(false)
           setEditingSlide(null)
           setEditingSlideIndex(-1)

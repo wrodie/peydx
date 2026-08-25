@@ -3,6 +3,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { useCallback, useEffect, useRef, useState, type FC } from 'react'
 import { usePreferences } from '@payloadcms/ui'
+import { buildTree } from '../../utilities/ui/folderTree'
 import {
   ImageIcon,
   MovieIcon,
@@ -30,30 +31,6 @@ interface MediaItem {
   mimeType: string
   url?: string
   sizes?: { thumbnail?: { url: string } }
-}
-
-function buildTree(docs: any[]): Folder[] {
-  const map = new Map<number, Folder>()
-  const roots: Folder[] = []
-
-  for (const doc of docs) {
-    map.set(doc.id, { ...doc, children: [] })
-  }
-
-  for (const doc of docs) {
-    const parentId = doc.parent
-      ? typeof doc.parent === 'object'
-        ? doc.parent.id
-        : doc.parent
-      : null
-    if (parentId != null && map.has(parentId)) {
-      map.get(parentId)!.children.push(map.get(doc.id)!)
-    } else {
-      roots.push(map.get(doc.id)!)
-    }
-  }
-
-  return roots
 }
 
 const DraggableMediaItem: FC<{
@@ -192,8 +169,19 @@ export const MediaBrowser: FC<{
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [hintDismissed, setHintDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem('peydx-media-multiselect-hint-dismissed') === 'true'
+  })
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { getPreference, setPreference } = usePreferences()
+
+  const dismissHint = () => {
+    setHintDismissed(true)
+    try {
+      window.localStorage.setItem('peydx-media-multiselect-hint-dismissed', 'true')
+    } catch {}
+  }
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), [])
   const toggleSelect = useCallback((id: number) => {
@@ -510,6 +498,40 @@ export const MediaBrowser: FC<{
             boxSizing: 'border-box',
           }}
         />
+        {!hintDismissed && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              fontSize: '12px',
+              background: 'rgba(255,255,255,0.05)',
+              borderRadius: 4,
+              padding: '4px 8px',
+              marginBottom: 8,
+              color: 'var(--theme-elevation-600, #4b5563)',
+            }}
+          >
+            <span>Tip: Ctrl+click (or Cmd+click on Mac) to select multiple files</span>
+            <button
+              type="button"
+              aria-label="Dismiss hint"
+              onClick={dismissHint}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                fontSize: '14px',
+                lineHeight: 1,
+                color: 'var(--theme-elevation-500, #6b7280)',
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
         {mediaLoading ? (
           <div style={{ fontSize: '0.75rem', color: 'var(--theme-elevation-400, #9ca3af)' }}>
             Loading...

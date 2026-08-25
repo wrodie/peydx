@@ -55,7 +55,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: 45%;
+  width: min(45%, 600px);
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -122,5 +122,36 @@
 }
 
 .menu-hint {
-  opacity: 0;
+  position: absolute;
+  bottom: 1.5vw;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.1vw;
+  white-space: nowrap;
+}
+
+.menu-idle-hint {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.4vw;
+  text-align: center;
+}
+
+@media (orientation: portrait) {
+  .menu-panel {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    height: 50%;
+    padding: 2vw 4vw;
+    justify-content: flex-start;
+  }
 }

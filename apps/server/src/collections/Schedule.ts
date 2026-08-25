@@ -6,7 +6,14 @@ export const Schedule: CollectionConfig = {
   slug: 'schedule',
   admin: {
     useAsTitle: 'program',
-    defaultColumns: ['program', 'devices', 'startTime', 'endTime'],
+    defaultColumns: ['program', 'devices', 'priority', 'startTime', 'endTime'],
+    components: {
+      views: {
+        list: {
+          Component: '/components/ScheduleCalendarView#ScheduleCalendarView',
+        },
+      },
+    },
   },
   timestamps: true,
   access: {

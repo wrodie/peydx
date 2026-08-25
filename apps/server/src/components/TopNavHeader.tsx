@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth, useConfig } from '@payloadcms/ui'
 import { useEffect, useRef, useState } from 'react'
@@ -45,26 +46,18 @@ export function TopNavHeader() {
   }, [drawerOpen])
 
   useEffect(() => {
-    if (!adminOpen) return
+    if (!adminOpen && !accountOpen) return
     function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (adminOpen && dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setAdminOpen(false)
       }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [adminOpen])
-
-  useEffect(() => {
-    if (!accountOpen) return
-    function handleClick(e: MouseEvent) {
-      if (accountDropdownRef.current && !accountDropdownRef.current.contains(e.target as Node)) {
+      if (accountOpen && accountDropdownRef.current && !accountDropdownRef.current.contains(e.target as Node)) {
         setAccountOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [accountOpen])
+  }, [adminOpen, accountOpen])
 
   const isActive = (href: string) => {
     if (pathname === href) return true
@@ -86,7 +79,7 @@ export function TopNavHeader() {
     { label: 'Devices', href: `${adminRoute}/collections/devices` },
     { label: 'Integrations', href: `${adminRoute}/collections/integrations` },
     { label: 'Updates', href: `${adminRoute}/globals/settings` },
-    { label: 'Device Health Dashboard', href: '/admin/health' },
+    { label: 'Device Health Dashboard', href: `${adminRoute}/health` },
   ]
 
   const closeDrawer = () => setDrawerOpen(false)
@@ -112,7 +105,7 @@ export function TopNavHeader() {
         </div>
         <nav className="top-nav-header__drawer-nav">
           {mainLinks.map((link) => (
-            <a
+            <Link
               key={link.slug}
               href={link.href}
               className={`top-nav-header__drawer-link${isActive(link.href) ? ' top-nav-header__drawer-link--active' : ''}`}
@@ -120,61 +113,61 @@ export function TopNavHeader() {
             >
               <link.icon size={20} />
               {link.label}
-            </a>
+            </Link>
           ))}
-          <a
-            href="/admin/remote"
-            className={`top-nav-header__drawer-link${isActive('/admin/remote') ? ' top-nav-header__drawer-link--active' : ''}`}
+          <Link
+            href={`${adminRoute}/remote`}
+            className={`top-nav-header__drawer-link${isActive(`${adminRoute}/remote`) ? ' top-nav-header__drawer-link--active' : ''}`}
             onClick={closeDrawer}
           >
             <RemoteGenIcon size={20} />
             Remote Control
-          </a>
+          </Link>
           {isAdmin && (
             <div className="top-nav-header__drawer-section">
               <div className="top-nav-header__drawer-section-title">Admin</div>
               {adminLinks.map((link) => (
-                <a
+                <Link
                   key={link.label}
                   href={link.href}
                   className={`top-nav-header__drawer-link${isActive(link.href) ? ' top-nav-header__drawer-link--active' : ''}`}
                   onClick={closeDrawer}
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </div>
           )}
           {isManager && (
             <div className="top-nav-header__drawer-section">
               <div className="top-nav-header__drawer-section-title">Management</div>
-              <a
+              <Link
                 href={`${adminRoute}/collections/users`}
                 className={`top-nav-header__drawer-link${isActive(`${adminRoute}/collections/users`) ? ' top-nav-header__drawer-link--active' : ''}`}
                 onClick={closeDrawer}
               >
                 <GroupIcon size={20} />
                 Users
-              </a>
+              </Link>
             </div>
           )}
           <div className="top-nav-header__drawer-section">
             <div className="top-nav-header__drawer-section-title">Account</div>
-            <a
+            <Link
               href={`${adminRoute}/account`}
               className="top-nav-header__drawer-link"
               onClick={closeDrawer}
             >
               <PersonIcon size={20} />
               Account
-            </a>
-            <a
+            </Link>
+            <Link
               href={`${adminRoute}/logout`}
               className="top-nav-header__drawer-link"
               onClick={closeDrawer}
             >
               Logout
-            </a>
+            </Link>
           </div>
         </nav>
       </div>
@@ -190,22 +183,22 @@ export function TopNavHeader() {
               <MenuIcon size={20} />
             </button>
             {mainLinks.map((link) => (
-              <a
+              <Link
                 key={link.slug}
                 href={link.href}
                 className={`top-nav-header__link ${isActive(link.href) ? 'top-nav-header__link--active' : ''}`}
               >
                 <link.icon />
                 <span>{link.label}</span>
-              </a>
+              </Link>
             ))}
-            <a
-              href="/admin/remote"
-              className={`top-nav-header__link ${isActive('/admin/remote') ? 'top-nav-header__link--active' : ''}`}
+            <Link
+              href={`${adminRoute}/remote`}
+              className={`top-nav-header__link ${isActive(`${adminRoute}/remote`) ? 'top-nav-header__link--active' : ''}`}
             >
               <RemoteGenIcon />
               <span>Remote Control</span>
-            </a>
+            </Link>
             {isAdmin && (
               <div className="top-nav-header__dropdown" ref={dropdownRef}>
                 <button
@@ -220,27 +213,27 @@ export function TopNavHeader() {
                 {adminOpen && (
                   <div className="top-nav-header__dropdown-menu">
                     {adminLinks.map((link) => (
-                      <a
+                      <Link
                         key={link.label}
                         href={link.href}
                         className={`top-nav-header__dropdown-item ${isActive(link.href) ? 'top-nav-header__dropdown-item--active' : ''}`}
                         onClick={() => setAdminOpen(false)}
                       >
                         {link.label}
-                      </a>
+                      </Link>
                     ))}
                   </div>
                 )}
               </div>
             )}
             {isManager && (
-              <a
+              <Link
                 href={`${adminRoute}/collections/users`}
                 className={`top-nav-header__link ${isActive(`${adminRoute}/collections/users`) ? 'top-nav-header__link--active' : ''}`}
               >
                 <GroupIcon />
                 <span>Users</span>
-              </a>
+              </Link>
             )}
             <div className="top-nav-header__dropdown top-nav-header__account" ref={accountDropdownRef}>
               <button
@@ -252,20 +245,20 @@ export function TopNavHeader() {
               </button>
               {accountOpen && (
                 <div className="top-nav-header__dropdown-menu top-nav-header__dropdown-menu--right">
-                  <a
+                  <Link
                     href={adminRoute + '/account'}
                     className="top-nav-header__dropdown-item"
                     onClick={() => setAccountOpen(false)}
                   >
                     Account
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href={`${adminRoute}/logout`}
                     className="top-nav-header__dropdown-item"
                     onClick={() => setAccountOpen(false)}
                   >
                     Logout
-                  </a>
+                  </Link>
                 </div>
               )}
             </div>

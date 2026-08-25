@@ -199,13 +199,13 @@ Folders provide hierarchical organization for Media and Programs, scoped per dep
 - **"Unfiled"** — shows items not assigned to any folder (admins only — not visible to managers or standard users)
 - Expand/collapse arrows on folders with children
 - The selected folder filters the list
-- **Add, rename, and delete** buttons (+, pencil, and trash icons) appear on hover next to each folder name
+- Each folder has a **"⋯" (actions)** button that opens a context menu with **Add subfolder**, **Rename**, and **Delete** (the "⋯" button and menu are fully keyboard and touch accessible — `Tab` to focus, `Enter`/`Space` to activate, `Escape` to close)
 
 ### Managing Folders
 
 #### Creating Folders
 
-1. In the folder sidebar, hover over a folder to reveal the **+** button, then click it to create a sub-folder.
+1. In the folder sidebar, click the **"⋯"** button next to a folder and choose **Add subfolder** (or double-click a folder name to rename it inline).
 2. Enter the folder name.
 3. Select the folder type (media or programs).
 4. Choose a parent folder (required).
@@ -213,21 +213,21 @@ Folders provide hierarchical organization for Media and Programs, scoped per dep
 
 **Rules:**
 - Folders can be nested up to **3 levels deep** (root > level 1 > level 2).
+- At the maximum depth, **Add subfolder** is disabled and shows the tooltip "Maximum folder depth reached (3 levels)".
 - A folder's department is automatically inherited from its parent. Root folders are auto-created per department — non-admin users cannot create root-level folders.
 - You cannot delete a folder that contains items or sub-folders.
 
 #### Renaming Folders
 
-1. Hover over the folder name in the sidebar.
-2. Click the **pencil (edit)** icon that appears.
-3. Type the new name.
-4. Press **Enter** to save, or **Escape** to cancel.
+1. Click the **"⋯"** button next to the folder and choose **Rename** (or double-click the folder name).
+2. Type the new name.
+3. Press **Enter** to save, or **Escape** to cancel.
 
 #### Deleting Folders
 
-1. Hover over the folder name in the sidebar.
-2. If the folder is **empty** (no sub-folders, media, or programs inside it), a **trash (delete)** icon appears.
-3. Click the trash icon and confirm deletion.
+1. Click the **"⋯"** button next to the folder.
+2. If the folder is **empty** (no sub-folders, media, or programs inside it), the **Delete** option is available.
+3. Click **Delete** and confirm.
 4. The folder and its contents cannot be recovered.
 
 > **Note:** Folders with contents do not show the delete button. You must move or delete the contents first before the folder can be deleted.
@@ -459,6 +459,10 @@ Click **"+ Add Slide"** in the timeline header to choose a slide type:
 
 For all slide types except Black Screen, the Slide Edit Drawer opens automatically so you can configure the slide. Black Screen slides are added with default settings (Fade transition, Manual advance) and don't require further configuration.
 
+The drawer footer has two buttons:
+- **Done** — saves your changes.
+- **Cancel** — discards any changes and closes the drawer. Pressing `Escape` or clicking the dimmed backdrop also discards changes (if you've made any). This prevents accidentally saving an empty/default slide when you open the drawer by mistake.
+
 ### Slide Properties
 
 Each slide has the following properties, configurable in the Edit Drawer:
@@ -533,13 +537,14 @@ Segments cannot be nested — you cannot put a segment inside another segment.
 3. Drag a media item onto the timeline — it automatically creates the correct slide type (image, video, or audio).
 4. Drop onto a position to insert, or onto a segment to add inside it.
 
+> **Tip:** Ctrl+click (or Cmd+click on Mac) on multiple files in the Media Browser to multi-select them, then drag them all onto the timeline at once.
+
 **Reordering slides:**
 - Drag slides by the ≡ handle on the left side of each slide card.
 - Drop them at the new position.
 
 **Moving slides between segments:**
-- Use the "Move to segment" dropdown on each slide to move it to a different segment or to the top level.
-- Alternatively, drag a slide from one segment into another.
+- Drag a slide from one segment into another using the ≡ handle.
 
 ### Bulk Media Upload
 
@@ -598,6 +603,21 @@ Schedules determine when and on which devices programs play. There are two ways 
 
 When you create a schedule, the program will **automatically begin playing** on the selected devices at the scheduled time.
 
+### Schedule Calendar View
+
+The Schedules page shows a **week-grid calendar** instead of a plain list:
+
+- **Grid** — 7 columns (Mon–Sun) × time rows. The default time range is 6:00–22:00; use the dropdown to switch to 0:00–24:00 or 8:00–18:00.
+- **Schedule blocks** — Each scheduled block is positioned on its day and time, color-coded by priority:
+  - **Normal** — blue
+  - **High** — amber
+  - **Override** — red
+- **Recurring indicator** — a "↻" prefix marks weekly recurring schedules.
+- **One-time events** — one-off schedules within the current week appear on their date; one-off schedules outside the current week are listed in a "One-time events" section below the grid.
+- **Overlap indication** — if two schedules at the same priority overlap on the same device+day, both blocks are shown with a red dashed/striped border (the backend normally prevents saving same-priority overlaps, but this visualizes any that predate the constraint).
+- **Device filter** — use the multi-select dropdown to narrow the calendar to specific devices (Ctrl/Cmd+click to select multiple).
+- **Click a block** to open that schedule's edit form. The **+ Create** button opens the create form.
+
 ### Creating a Schedule
 
 1. Navigate to **Schedules** in the top navigation.
@@ -605,7 +625,7 @@ When you create a schedule, the program will **automatically begin playing** on 
 3. Fill in the fields:
    - **Program** — Select from programs in your departments.
    - **Devices** — Select one or more devices in your departments.
-   - **Priority** — Choose **Normal**, **High**, or **Override** (admin only). Higher priority schedules take precedence when multiple schedules overlap on the same device. See [Schedule Priority](#schedule-priority) below.
+   - **Priority** — Choose **Normal**, **High**, or **Override** (admin only). Higher priority schedules take precedence when multiple schedules overlap on the same device. See [Schedule Priority](#schedule-priority) below. Priority is also shown as a column in the schedule list.
    - **Start Time** — Date and time the program starts (15-minute intervals).
    - **End Time** — Date and time the program stops (defaults to 1 hour after start).
    - **Days of Week** — Select days for weekly recurrence, or leave empty for a one-off event.

@@ -5,8 +5,8 @@ import { FormattedFilesizeCell as FormattedFilesizeCell_c7cd3958b74f4dc0249df3b0
 import { ImportYoutubeButton as ImportYoutubeButton_d8bde3dec6525ed660b086bce6806aed } from '../../../src/components/ImportYoutubeButton'
 import { ListWithSidebar as ListWithSidebar_327dcbf0e0ac59d2715531a201bf0d0e } from '../../../src/components/ListWithSidebar'
 import { PreviewLink as PreviewLink_67606df83359e7f8b6b18048103c8d46 } from '../../../src/components/PreviewLink'
-import { SlideMoveSelect as SlideMoveSelect_8baa4b9e7496e22bb4860e63ba10750f } from '../../../src/components/SlideMoveSelect'
 import { ProgramTimelineField as ProgramTimelineField_ed72df1cc39618f1d109f0b7d1cbbae2 } from '../../../src/components/program-edit/ProgramTimelineField'
+import { ScheduleCalendarView as ScheduleCalendarView_1bafd4089c80d46c421e600dac5c61df } from '../../../src/components/ScheduleCalendarView'
 import { CopyDeviceUrl as CopyDeviceUrl_c3fb7ae53bbbaf2333d03000968f1b88 } from '../../../src/components/CopyDeviceUrl'
 import { DeviceSlideStatus as DeviceSlideStatus_da2be90833f097f2a59789c8f68ee673 } from '../../../src/components/DeviceSlideStatus'
 import { UpdateButton as UpdateButton_bf545bd6f6a998f40765b0b03577982b } from '../../../src/components/UpdateButton'
@@ -25,8 +25,8 @@ export const importMap = {
   "/components/ImportYoutubeButton#ImportYoutubeButton": ImportYoutubeButton_d8bde3dec6525ed660b086bce6806aed,
   "/components/ListWithSidebar#ListWithSidebar": ListWithSidebar_327dcbf0e0ac59d2715531a201bf0d0e,
   "/components/PreviewLink#PreviewLink": PreviewLink_67606df83359e7f8b6b18048103c8d46,
-  "/components/SlideMoveSelect#SlideMoveSelect": SlideMoveSelect_8baa4b9e7496e22bb4860e63ba10750f,
   "/components/program-edit/ProgramTimelineField#ProgramTimelineField": ProgramTimelineField_ed72df1cc39618f1d109f0b7d1cbbae2,
+  "/components/ScheduleCalendarView#ScheduleCalendarView": ScheduleCalendarView_1bafd4089c80d46c421e600dac5c61df,
   "/components/CopyDeviceUrl#CopyDeviceUrl": CopyDeviceUrl_c3fb7ae53bbbaf2333d03000968f1b88,
   "/components/DeviceSlideStatus#DeviceSlideStatus": DeviceSlideStatus_da2be90833f097f2a59789c8f68ee673,
   "/components/UpdateButton#UpdateButton": UpdateButton_bf545bd6f6a998f40765b0b03577982b,

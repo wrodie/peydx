@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { PlayerController, useRemoteControl } from 'signage-core'
-import type { PlayerControllerHandle, PlayerState, DeviceProvider, KeyConfig } from 'signage-core'
+import type { PlayerControllerHandle, PlayerState, DeviceProvider, KeyConfig, ConnectionStatus } from 'signage-core'
 import type { Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
 import { createCmsProvider } from './providers/CmsProvider'
@@ -36,6 +36,8 @@ export function App() {
   const socketRef = useRef<TypedSocket | null>(null)
   const [provider] = useState(() => createProvider())
   const lastStateRef = useRef<{ state: PlayerState; programId?: number; menuIndex?: number } | null>(null)
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const loadSchedule = useCallback(async () => {
     if (!provider) return
@@ -48,8 +50,10 @@ export function App() {
         if (JSON.stringify(prevRest) === JSON.stringify(dataRest)) return prev
         return data
       })
+      setFetchError(null)
     } catch (err) {
       console.error('Failed to load schedule:', err)
+      setFetchError('Failed to load schedule')
     }
   }, [provider])
 
@@ -80,6 +84,20 @@ export function App() {
     socketRef.current = socket as TypedSocket
 
     socket.on('connect', () => {
+      setConnectionStatus('connected')
+      loadSchedule()
+    })
+
+    socket.on('disconnect', () => {
+      setConnectionStatus('disconnected')
+    })
+
+    socket.on('reconnect_attempt', () => {
+      setConnectionStatus('reconnecting')
+    })
+
+    socket.on('reconnect', () => {
+      setConnectionStatus('connected')
       loadSchedule()
     })
 
@@ -166,6 +184,8 @@ export function App() {
       onSlideChange={handleSlideChange}
       onStateChange={handleStateChange}
       onPauseChange={handlePauseChange}
+      connectionStatus={connectionStatus}
+      fetchError={fetchError}
     />
   )
 }

@@ -4,7 +4,6 @@ export function stripInternal(slides: any[]): any[] {
     .map((s: any) => {
       const cleaned: any = { ...s }
       delete cleaned.id
-      delete cleaned._moveToSegment
       cleaned.bulkMedia = null
 
       if (cleaned.blockType === 'segmentBlock' && cleaned.slides) {
