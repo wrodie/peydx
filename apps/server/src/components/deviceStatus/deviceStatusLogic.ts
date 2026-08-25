@@ -64,3 +64,22 @@ export function slideCount(program: any): number {
     return 0
   }
 }
+
+export function attachProgram(
+  devices: DeviceStatus[],
+  deviceId: number,
+  program: any,
+): DeviceStatus[] {
+  if (!program) return devices
+  const programId =
+    typeof program.id === 'object' && program.id != null ? program.id.id : program.id
+  return devices.map((d) =>
+    d.id === deviceId
+      ? {
+          ...d,
+          currentProgramId: programId ?? null,
+          currentProgram: program,
+        }
+      : d,
+  )
+}

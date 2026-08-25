@@ -4,6 +4,7 @@ import {
   applyStatusPatch,
   applyStateChangePatch,
   slideCount,
+  attachProgram,
 } from '../../../components/deviceStatus/deviceStatusLogic'
 
 describe('normalizeDevice', () => {
@@ -85,5 +86,36 @@ describe('slideCount', () => {
   it('returns 0 for empty or missing program', () => {
     expect(slideCount(null)).toBe(0)
     expect(slideCount({ id: 1, title: 'P', slides: [] })).toBe(0)
+  })
+})
+
+describe('attachProgram', () => {
+  const base = (id: number) => ({
+    id,
+    name: `D${id}`,
+    deviceType: 'hardware',
+    departments: [],
+    status: null,
+    lastHeartbeat: null,
+    currentProgramId: null,
+    currentProgram: null,
+    currentSlideIndex: null,
+    clientVersion: null,
+  })
+
+  it('attaches a program doc and its id to the matching device', () => {
+    const devices = [base(1), base(2)]
+    const program = { id: 10, title: 'Worship', slides: [] }
+    const result = attachProgram(devices as any, 1, program)
+    expect(result[0].currentProgram).toBe(program)
+    expect(result[0].currentProgramId).toBe(10)
+    expect(result[1].currentProgram).toBeNull()
+  })
+
+  it('leaves devices unchanged when program is null', () => {
+    const devices = [base(1)]
+    const result = attachProgram(devices as any, 1, null)
+    expect(result).toEqual(devices)
+    expect(result[0].currentProgram).toBeNull()
   })
 })

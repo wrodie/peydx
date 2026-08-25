@@ -2,28 +2,16 @@
 
 import { useAuth } from '@payloadcms/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { io, type Socket } from 'socket.io-client'
-import type { ServerToClientEvents, ClientToServerEvents } from 'signage-core'
-import { buildDeviceStatusPatch } from './deviceStatusPatch'
-import { computeStatus, STATUS_COLORS } from '../utilities/ui/deviceStatus'
 import {
-  FiberManualRecordIcon,
   PendingIcon,
   RadioButtonUncheckedIcon,
   CheckIcon,
   ArrowForwardIcon,
 } from './icons'
-
-type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>
-
-interface DeviceRow {
-  id: number
-  name: string
-  deviceType: string
-  status: string
-  lastHeartbeat: string | null
-  clientVersion: string | null
-}
+import { DeviceStatusProvider } from './deviceStatus/DeviceStatusProvider'
+import { useDeviceStatus } from './deviceStatus/useDeviceStatus'
+import type { DeviceStatus } from './deviceStatus/useDeviceStatus'
+import { DeviceStatusBadge } from './deviceStatus/DeviceStatusBadge'
 
 const sectionStyle: React.CSSProperties = {
   padding: '12px 0',
@@ -103,22 +91,6 @@ function getStepInfo(step: string | null) {
   return { idx, current: step }
 }
 
-function statusDot(status: string, lastHeartbeat: string | null | undefined): React.ReactNode {
-  if (status === 'updating') return <PendingIcon size={12} style={{ color: STATUS_COLORS.stale }} />
-  const s = computeStatus(lastHeartbeat)
-  switch (s) {
-    case 'online': return <FiberManualRecordIcon size={12} style={{ color: STATUS_COLORS.online }} />
-    case 'stale': return <PendingIcon size={12} style={{ color: STATUS_COLORS.stale }} />
-    default: return <RadioButtonUncheckedIcon size={12} style={{ color: STATUS_COLORS.offline }} />
-  }
-}
-
-function statusColor(status: string, lastHeartbeat: string | null | undefined): string {
-  if (status === 'updating') return STATUS_COLORS.stale
-  const s = computeStatus(lastHeartbeat)
-  return STATUS_COLORS[s] ?? STATUS_COLORS.offline
-}
-
 const tableStyle: React.CSSProperties = {
   width: '100%',
   borderCollapse: 'collapse',
@@ -154,6 +126,16 @@ const smallButtonStyle: React.CSSProperties = {
 export function UpdateButton() {
   const { user } = useAuth()
 
+  if (user?.role !== 'admin') return null
+
+  return (
+    <DeviceStatusProvider>
+      <UpdateButtonInner />
+    </DeviceStatusProvider>
+  )
+}
+
+function UpdateButtonInner() {
   const [pushStatus, setPushStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [pushLoading, setPushLoading] = useState(false)
   const [pushDeviceStatus, setPushDeviceStatus] = useState<Record<number, { type: 'loading' | 'success' | 'error'; message: string } | null>>({})
@@ -172,47 +154,7 @@ export function UpdateButton() {
   const reconnectingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const deployPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const [devices, setDevices] = useState<DeviceRow[]>([])
-  const [devicesLoading, setDevicesLoading] = useState(true)
-
-  const fetchDevices = useCallback(async () => {
-    try {
-      const res = await fetch('/api/devices?depth=0&limit=100')
-      if (!res.ok) return
-      const data = await res.json()
-      setDevices((data.docs || []).map((d: any) => ({
-        id: d.id,
-        name: d.name || '(unnamed)',
-        deviceType: d.deviceType || 'hardware',
-        status: d.status || 'offline',
-        lastHeartbeat: d.lastHeartbeat || null,
-        clientVersion: d.clientVersion || null,
-      })))
-    } catch {
-      // ignore
-    } finally {
-      setDevicesLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchDevices()
-
-    const socket: TypedSocket = io(window.location.origin, {
-      path: '/api/ws',
-      transports: ['websocket', 'polling'],
-    }) as TypedSocket
-
-    socket.on('device:status', (data) => {
-      setDevices(prev => prev.map(d =>
-        d.id === data.id
-          ? { ...d, status: data.status, ...buildDeviceStatusPatch(data), clientVersion: data.clientVersion ?? d.clientVersion }
-          : d
-      ))
-    })
-
-    return () => { socket.disconnect() }
-  }, [fetchDevices])
+  const { devices, loading: devicesLoading } = useDeviceStatus()
 
   const handlePushUpdate = useCallback(async (deviceId?: number) => {
     if (deviceId) {
@@ -359,8 +301,6 @@ export function UpdateButton() {
     }
   }, [serverInfo, startReconnecting, startDeployPolling])
 
-  if (user?.role !== 'admin') return null
-
   const currentServerVersion = serverInfo?.currentVersion || '...'
   const latestVersion = serverInfo?.latestVersion || '...'
   const hasUpdate = serverInfo?.updateAvailable || false
@@ -459,8 +399,14 @@ export function UpdateButton() {
                 <tr key={d.id}>
                   <td style={tdStyle}>{d.name}</td>
                   <td style={tdStyle}>{d.deviceType}</td>
-                  <td style={{ ...tdStyle, color: statusColor(d.status, d.lastHeartbeat) }}>
-                    {statusDot(d.status, d.lastHeartbeat)} {d.status === 'updating' ? 'updating' : computeStatus(d.lastHeartbeat)}
+                  <td style={tdStyle}>
+                    {d.status === 'updating' ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--theme-warning-500, #f59e0b)' }}>
+                        <PendingIcon size={12} /> updating
+                      </span>
+                    ) : (
+                      <DeviceStatusBadge lastHeartbeat={d.lastHeartbeat} showLabel />
+                    )}
                   </td>
                   <td style={tdStyle}>{d.clientVersion || '\u2014'}</td>
                   <td style={tdStyle}>

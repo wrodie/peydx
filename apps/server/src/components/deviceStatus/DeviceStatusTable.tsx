@@ -1,8 +1,10 @@
 'use client'
 
+import { flattenProgram } from 'signage-core'
 import { DeviceStatusBadge } from './DeviceStatusBadge'
 import { slideCount } from './deviceStatusLogic'
 import type { DeviceStatus } from './useDeviceStatus'
+import { getThumbnailUrl } from '../../utilities/ui/slideMedia'
 
 function formatTime(dateStr: string | null | undefined): string {
   if (!dateStr) return 'Never'
@@ -15,6 +17,24 @@ function formatTime(dateStr: string | null | undefined): string {
   if (hours === 1) return '1 hour ago'
   if (hours < 24) return `${hours} hours ago`
   return d.toLocaleString()
+}
+
+function currentSlide(program: any, index: number): any {
+  if (!program) return null
+  try {
+    const slides = flattenProgram(program).slides
+    return slides.length > 0 ? slides[index] || slides[slides.length - 1] || null : null
+  } catch {
+    return null
+  }
+}
+
+const thumbStyle: React.CSSProperties = {
+  width: 60,
+  height: 45,
+  objectFit: 'cover',
+  borderRadius: 4,
+  flexShrink: 0,
 }
 
 export function DeviceStatusTable({ devices }: { devices: DeviceStatus[] }) {
@@ -42,6 +62,8 @@ export function DeviceStatusTable({ devices }: { devices: DeviceStatus[] }) {
         {devices.map((device) => {
           const total = slideCount(device.currentProgram)
           const slideIndex = device.currentSlideIndex ?? 0
+          const slide = currentSlide(device.currentProgram, slideIndex)
+          const thumbUrl = getThumbnailUrl(slide)
           return (
             <tr
               key={device.id}
@@ -66,7 +88,33 @@ export function DeviceStatusTable({ devices }: { devices: DeviceStatus[] }) {
                 {device.currentProgram ? device.currentProgram.title || `Program ${device.currentProgram.id}` : '—'}
               </td>
               <td style={{ padding: '10px 12px' }}>
-                {device.currentProgram && total > 0 ? `Slide ${slideIndex + 1} of ${total}` : '—'}
+                {device.currentProgram && total > 0 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {thumbUrl ? (
+                      <img src={thumbUrl} style={thumbStyle} alt="" />
+                    ) : slide?.blockType === 'blackScreenBlock' ? (
+                      <div
+                        style={{
+                          width: 60,
+                          height: 45,
+                          background: '#111',
+                          borderRadius: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#666',
+                          fontSize: '0.65rem',
+                          flexShrink: 0,
+                        }}
+                      >
+                        ◼
+                      </div>
+                    ) : null}
+                    <span style={{ whiteSpace: 'nowrap' }}>Slide {slideIndex + 1} of {total}</span>
+                  </div>
+                ) : (
+                  '—'
+                )}
               </td>
               <td style={{ padding: '10px 12px', color: '#888' }}>{formatTime(device.lastHeartbeat)}</td>
             </tr>
