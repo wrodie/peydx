@@ -1,42 +1,40 @@
 'use client'
 
-import { useAuth } from '@payloadcms/ui'
+import { Select, useAuth, useLocale } from '@payloadcms/ui'
 import { useEffect, useMemo, useState } from 'react'
 import {
   buildBlocks,
   detectOverlaps,
-  dayColumnLabel,
   priorityColor,
+  dayColumnLabel,
   positionFor,
   heightFor,
-  dateStrInTz,
-  weekdayMonIndex,
+  weekRangeAround,
+  addDays,
+  formatWeekLabel,
+  formatTimeHHMM,
+  formatDayHeader,
+  weekDates,
+  computeLanes,
 } from '../utilities/ui/scheduleCalendar'
 
 const TIME_RANGES = [
-  { label: '6:00 – 22:00', startHour: 6, endHour: 22 },
-  { label: '0:00 – 24:00', startHour: 0, endHour: 24 },
-  { label: '8:00 – 18:00', startHour: 8, endHour: 18 },
+  { label: '06:00 – 22:00', startHour: 6, endHour: 22 },
+  { label: '00:00 – 24:00', startHour: 0, endHour: 24 },
+  { label: '08:00 – 18:00', startHour: 8, endHour: 18 },
 ]
-
-function weekRange(tz: string): { start: string; end: string } {
-  const now = new Date()
-  const monIdx = weekdayMonIndex(now, tz)
-  const monday = new Date(now)
-  monday.setDate(monday.getDate() - monIdx)
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  return { start: dateStrInTz(monday, tz), end: dateStrInTz(sunday, tz) }
-}
 
 export function ScheduleCalendarView() {
   const { user } = useAuth<any>()
+  const adminLocale = useLocale()?.code
+  const locale = adminLocale || (typeof navigator !== 'undefined' ? navigator.language : 'en') || 'en'
   const [schedules, setSchedules] = useState<any[]>([])
   const [devices, setDevices] = useState<any[]>([])
   const [selectedDeviceIds, setSelectedDeviceIds] = useState<Set<number> | null>(null)
   const [timeRange, setTimeRange] = useState(TIME_RANGES[0])
   const [loading, setLoading] = useState(true)
   const [tz, setTz] = useState('UTC')
+  const [weekStart, setWeekStart] = useState('')
 
   const deptIds = (user?.departments || []).map((d: any) => (typeof d === 'object' ? d.id : d))
   const isAdmin = user?.role === 'admin'
@@ -51,7 +49,9 @@ export function ScheduleCalendarView() {
           fetch('/api/devices?depth=0&limit=100').then((r) => r.json()),
         ])
         if (cancelled) return
-        setTz(tzRes.timezone || 'UTC')
+        const resolvedTz = tzRes.timezone || 'UTC'
+        setTz(resolvedTz)
+        setWeekStart((prev) => prev || weekRangeAround(new Date(), resolvedTz).start)
         setSchedules(schedRes.docs || [])
         const allDevices = devRes.docs || []
         setDevices(
@@ -73,14 +73,25 @@ export function ScheduleCalendarView() {
     }
   }, [user])
 
-  const week = useMemo(() => weekRange(tz), [tz])
+  useEffect(() => {
+    if (!weekStart && tz) setWeekStart(weekRangeAround(new Date(), tz).start)
+  }, [tz, weekStart])
+
+  const week = useMemo(
+    () => (weekStart ? { start: weekStart, end: addDays(weekStart, 6, tz) } : null),
+    [weekStart, tz],
+  )
+
+  const weeklyDates = useMemo(() => (week ? weekDates(week.start, tz) : []), [week, tz])
 
   const { blocks, oneOffs } = useMemo(
-    () => buildBlocks(schedules, selectedDeviceIds, tz, week.start, week.end),
+    () => buildBlocks(schedules, selectedDeviceIds, tz, week?.start || '', week?.end || ''),
     [schedules, selectedDeviceIds, tz, week],
   )
 
   const overlappingIds = useMemo(() => detectOverlaps(blocks), [blocks])
+
+  const lanes = useMemo(() => computeLanes(blocks), [blocks])
 
   const hours: number[] = []
   for (let h = timeRange.startHour; h <= timeRange.endHour; h++) hours.push(h)
@@ -89,6 +100,23 @@ export function ScheduleCalendarView() {
   const totalMinutes = (timeRange.endHour - timeRange.startHour) * 60
 
   const adminRoute = '/admin'
+
+  const deviceOptions = useMemo(
+    () =>
+      devices.map((d: any) => ({
+        label: d.name || `Device ${d.id}`,
+        value: String(d.id),
+      })),
+    [devices],
+  )
+
+  const selectedDeviceOptions = useMemo(
+    () =>
+      selectedDeviceIds
+        ? deviceOptions.filter((o) => selectedDeviceIds.has(Number(o.value)))
+        : [],
+    [deviceOptions, selectedDeviceIds],
+  )
 
   return (
     <div style={{ fontFamily: 'system-ui', padding: '24px 32px', color: 'var(--theme-text)' }}>
@@ -103,30 +131,22 @@ export function ScheduleCalendarView() {
       >
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>Schedule Calendar</h2>
         <div style={{ flex: 1 }} />
-        <select
-          multiple
-          size={Math.min(devices.length || 1, 4)}
-          value={selectedDeviceIds ? [...selectedDeviceIds].map(String) : []}
-          onChange={(e) => {
-            const selected = Array.from(e.target.selectedOptions, (o) => Number(o.value))
-            setSelectedDeviceIds(selected.length > 0 ? new Set(selected) : null)
+        <Select
+          isMulti
+          isSearchable
+          isClearable
+          placeholder="All devices"
+          noOptionsMessage={() => 'No devices'}
+          options={deviceOptions}
+          value={selectedDeviceOptions}
+          onChange={(val: any) => {
+            const arr = Array.isArray(val) ? val : []
+            setSelectedDeviceIds(arr.length > 0 ? new Set(arr.map((o: any) => Number(o.value))) : null)
           }}
-          style={{
-            minWidth: 160,
-            padding: '6px 8px',
-            fontSize: '0.8rem',
-            border: '1px solid var(--theme-elevation-200, #ccc)',
-            borderRadius: 4,
-            background: 'var(--theme-input-bg, #fff)',
+          styles={{
+            container: (base: any) => ({ ...base, minWidth: 200, maxWidth: 320 }),
           }}
-          title="Filter by device (Ctrl+click to select multiple)"
-        >
-          {devices.map((d: any) => (
-            <option key={d.id} value={d.id}>
-              {d.name || `Device ${d.id}`}
-            </option>
-          ))}
-        </select>
+        />
         <select
           value={`${timeRange.startHour}-${timeRange.endHour}`}
           onChange={(e) => {
@@ -163,6 +183,54 @@ export function ScheduleCalendarView() {
         </a>
       </div>
 
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={() => setWeekStart(addDays(weekStart, -7, tz))}
+          disabled={!weekStart}
+          style={navButtonStyle}
+          aria-label="Previous week"
+        >
+          ‹ Prev
+        </button>
+        <button
+          type="button"
+          onClick={() => setWeekStart(addDays(weekStart, 7, tz))}
+          disabled={!weekStart}
+          style={navButtonStyle}
+          aria-label="Next week"
+        >
+          Next ›
+        </button>
+        <button
+          type="button"
+          onClick={() => setWeekStart(weekRangeAround(new Date(), tz).start)}
+          style={navButtonStyle}
+        >
+          Today
+        </button>
+        <input
+          type="date"
+          value={weekStart || ''}
+          onChange={(e) => {
+            if (e.target.value) setWeekStart(weekRangeAround(e.target.value, tz).start)
+          }}
+          style={{
+            padding: '6px 8px',
+            fontSize: '0.8rem',
+            border: '1px solid var(--theme-elevation-200, #ccc)',
+            borderRadius: 4,
+            background: 'var(--theme-input-bg, #fff)',
+            color: 'var(--theme-text, #000)',
+          }}
+        />
+        {week && (
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--theme-text)' }}>
+            {formatWeekLabel(week.start, week.end)}
+          </span>
+        )}
+      </div>
+
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16, fontSize: '0.75rem', color: 'var(--theme-elevation-600, #666)' }}>
         <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: priorityColor('normal'), marginRight: 4 }} /> Normal</span>
         <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: priorityColor('high'), marginRight: 4 }} /> High</span>
@@ -177,7 +245,7 @@ export function ScheduleCalendarView() {
           <div />
           {Array.from({ length: 7 }, (_, i) => (
             <div key={i} style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 600, fontSize: '0.8rem', borderBottom: '1px solid var(--theme-elevation-200, #e5e7eb)', borderLeft: '1px solid var(--theme-elevation-100, #f3f4f6)' }}>
-              {dayColumnLabel(i)}
+              {weeklyDates[i] ? formatDayHeader(weeklyDates[i], tz, locale) : dayColumnLabel(i)}
             </div>
           ))}
 
@@ -198,15 +266,23 @@ export function ScheduleCalendarView() {
                 .filter((b) => b.dayIndex === dayIndex)
                 .map((b) => {
                   const overlapping = overlappingIds.has(b.id)
+                  const lane = lanes.get(b.id)
+                  const laneCount = lane?.laneCount || 1
+                  const laneIndex = lane?.lane || 0
+                  const placed = laneCount > 1
+                    ? {
+                        left: `calc(${(laneIndex / laneCount) * 100}% + 1px)`,
+                        width: `calc(${100 / laneCount}% - 2px)`,
+                      }
+                    : { left: 2, right: 2 }
                   return (
                     <a
                       key={b.id}
                       href={`${adminRoute}/collections/schedule/${b.scheduleId}`}
-                      title={`${b.title} — ${b.deviceName}`}
+                      title={`${b.title} — ${b.deviceName} — ${formatTimeHHMM(b.startMin)} – ${formatTimeHHMM(b.endMin)}`}
                       style={{
                         position: 'absolute',
-                        left: 2,
-                        right: 2,
+                        ...placed,
                         top: positionFor(b.startMin, startHour),
                         height: heightFor(b.startMin, b.endMin),
                         background: priorityColor(b.priority),
@@ -226,6 +302,9 @@ export function ScheduleCalendarView() {
                         {b.isRecurring ? '↻ ' : ''}{b.title}
                       </div>
                       <div style={{ opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.deviceName}</div>
+                      <div style={{ opacity: 0.75, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {formatTimeHHMM(b.startMin)} – {formatTimeHHMM(b.endMin)}
+                      </div>
                     </a>
                   )
                 })}
@@ -236,7 +315,7 @@ export function ScheduleCalendarView() {
 
       {!loading && oneOffs.length > 0 && (
         <div style={{ marginTop: 24 }}>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 8, color: 'var(--theme-text)' }}>One-time events (outside current week)</h3>
+          <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 8, color: 'var(--theme-text)' }}>One-time events (outside this week)</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {oneOffs.map((b) => (
               <a
@@ -257,7 +336,9 @@ export function ScheduleCalendarView() {
                 <span style={{ width: 10, height: 10, borderRadius: 2, background: priorityColor(b.priority), flexShrink: 0 }} />
                 <span style={{ fontWeight: 600 }}>{b.title}</span>
                 <span style={{ color: 'var(--theme-elevation-500, #888)' }}>{b.deviceName}</span>
-                <span style={{ color: 'var(--theme-elevation-400, #9ca3af)', marginLeft: 'auto' }}>{b.oneOffDate}</span>
+                <span style={{ color: 'var(--theme-elevation-400, #9ca3af)', marginLeft: 'auto' }}>
+                  {b.oneOffDate} · {formatTimeHHMM(b.startMin)} – {formatTimeHHMM(b.endMin)}
+                </span>
               </a>
             ))}
           </div>
@@ -265,4 +346,14 @@ export function ScheduleCalendarView() {
       )}
     </div>
   )
+}
+
+const navButtonStyle: React.CSSProperties = {
+  padding: '6px 10px',
+  fontSize: '0.8rem',
+  border: '1px solid var(--theme-elevation-200, #ccc)',
+  borderRadius: 4,
+  background: 'var(--theme-input-bg, #fff)',
+  color: 'var(--theme-text, #000)',
+  cursor: 'pointer',
 }
