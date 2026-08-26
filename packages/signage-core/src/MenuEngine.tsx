@@ -141,7 +141,7 @@ export function MenuEngine({
         </div>
       </div>
       <div className="menu-hint">
-        {isExitOverlay ? 'Use ↑↓ to navigate, Enter to select' : 'Use ↑↓ to navigate, Enter to select, M/Esc to exit'}
+        Use ↑↓ to navigate, Enter to select
       </div>
     </div>
   )
