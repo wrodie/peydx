@@ -71,16 +71,14 @@ Auth modes on `Devices`:
 - **Client (manual/dev fallback)**: `pm2 start ecosystem.config.js`
 
 ## Current state
-- Player app is complete (React + Vite; builds to `apps/player/dist/`). Shows an
-  idle "Press M for menu" hint, menu key hints, and a connection-status dot
-  (green/amber/red) in the top bar; a "Schedule update failed" banner appears on
-  fetch failure. Viewport is responsive (`width=device-width`).
+- Player app is complete (React + Vite; builds to `apps/player/dist/`). Idle and
+  menu states show on-screen key hints; the top bar shows a connection-status dot
+  with a transient "schedule update failed" banner on fetch errors.
 - Sync agent is functional: resolves device ID, fetches device-assigned
   schedules filtered by time window + day-of-week, downloads media, writes
   `schedule.json` atomically (`tmp` + `renameSync`), serves player on port 5000.
-- Admin UI has a schedule calendar view, unified device status components,
-  keyboard/touch-accessible folder actions, a slide drawer Cancel button, and a
-  tablet-friendly media bottom sheet (phones show a read-only editor message).
+- Admin UI has a calendar-based schedule list, unified device-status components,
+  and keyboard/touch-accessible folder actions.
 - `package-lock.json` is committed; sub-workspace deps use caret ranges.
 
 ## Known decisions & trade-offs
@@ -131,22 +129,16 @@ Auth modes on `Devices`:
    a `programs` record is created (title = file name). Text/shapes are flattened
    into the page image — not editable in PeydX. Reuses the shared chunked-upload
    endpoints via `importShared.ts` (`createChunkedEndpoints`): files >90 MB are
-    auto-split client-side (`ImportPdfButton.tsx`; 80 MB chunks) →
-    `POST /api/import-pdf-chunk`; `DELETE /api/import-pdf-chunk` aborts.
-7. **Admin UI (Aug 2026 UX pass)**: Schedule list is a **custom calendar view**
-   (`ScheduleCalendarView.tsx`, registered in `Schedule.ts` `admin.components.
-   views.list.Component`) — the default Payload list is replaced. Calendar
-   positioning/overlap/grouping logic lives in
-   `apps/server/src/utilities/ui/scheduleCalendar.ts` (pure, tested). Device
-   status is unified behind a React context provider
-   (`apps/server/src/components/deviceStatus/DeviceStatusProvider.tsx`) consumed
-   by `DeviceStatusBadge/Grid/Table`; the Health page is fully migrated, the
-   Dashboard uses the shared `DeviceStatusBadge`. Shared UI helpers live in
-   `apps/server/src/utilities/ui/` (`slideMedia`, `deviceStatus`, `folderTree`)
-   — `STATUS_COLORS` there is the canonical status-color source. The vestigial
-   `_moveToSegment` field + `moveSlides` hook + `SlideMoveSelect` were removed
-   (DnD in the timeline is the only move path); no migration was needed since
-   the block field lives inside the `slides` JSONB column.
+   auto-split client-side (`ImportPdfButton.tsx`; 80 MB chunks) →
+   `POST /api/import-pdf-chunk`; `DELETE /api/import-pdf-chunk` aborts.
+7. **Admin UI (Aug 2026 UX pass)**: The Schedule list view is **replaced** by a
+   custom calendar (`ScheduleCalendarView.tsx`, via `Schedule.ts`
+   `admin.components.views.list.Component`) — the default Payload list is gone.
+   Device status is centralized: all surfaces use shared components and the
+   `STATUS_COLORS` map in `apps/server/src/utilities/ui/` (previously three
+   independent implementations). The vestigial `_moveToSegment` field +
+   `moveSlides` hook + `SlideMoveSelect` were removed; timeline DnD is the only
+   move path (no migration needed — the field lived in the `slides` JSONB).
 
 (Folders, media name auto-fill, device self-read, media download URLs, and the
 schedule device-access pattern are routine behavior enforced by hooks/tests —
