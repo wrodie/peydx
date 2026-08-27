@@ -131,22 +131,21 @@ export function ScheduleCalendarView() {
       >
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>Schedule Calendar</h2>
         <div style={{ flex: 1 }} />
-        <Select
-          isMulti
-          isSearchable
-          isClearable
-          placeholder="All devices"
-          noOptionsMessage={() => 'No devices'}
-          options={deviceOptions}
-          value={selectedDeviceOptions}
-          onChange={(val: any) => {
-            const arr = Array.isArray(val) ? val : []
-            setSelectedDeviceIds(arr.length > 0 ? new Set(arr.map((o: any) => Number(o.value))) : null)
-          }}
-          styles={{
-            container: (base: any) => ({ ...base, minWidth: 200, maxWidth: 320 }),
-          }}
-        />
+        <div style={{ minWidth: 200, maxWidth: 320 }}>
+          <Select
+            isMulti
+            isSearchable
+            isClearable
+            placeholder="All devices"
+            noOptionsMessage={() => 'No devices'}
+            options={deviceOptions}
+            value={selectedDeviceOptions}
+            onChange={(val: any) => {
+              const arr = Array.isArray(val) ? val : []
+              setSelectedDeviceIds(arr.length > 0 ? new Set(arr.map((o: any) => Number(o.value))) : null)
+            }}
+          />
+        </div>
         <select
           value={`${timeRange.startHour}-${timeRange.endHour}`}
           onChange={(e) => {

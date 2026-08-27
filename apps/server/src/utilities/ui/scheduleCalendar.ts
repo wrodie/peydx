@@ -170,13 +170,15 @@ export function formatDayHeader(dateStr: string, tz: string, locale: string): st
   const [y, m, d] = raw.split('-').map(Number)
   if (!y || !m || !d) return ''
   try {
+    // dateStr is already a calendar date resolved in `tz` (see weekDates/addDays);
+    // format it deterministically in UTC so the day never shifts with host timezone.
     return new Intl.DateTimeFormat(locale || 'en', {
-      timeZone: tz || 'UTC',
+      timeZone: 'UTC',
       weekday: 'short',
       day: '2-digit',
       month: 'short',
       year: 'numeric',
-    }).format(new Date(y, m - 1, d, 12))
+    }).format(new Date(Date.UTC(y, m - 1, d, 12)))
   } catch {
     return raw
   }
