@@ -100,7 +100,8 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       : false
 
     const isLastSlide = slides.length > 0 && currentIndex >= slides.length - 1
-    const effectiveProgramEnd = isLastSlide && (!segCtx || (!segCtx.loop && segCtx.advanceMode === 'slides'))
+    const isLoopingProgram = program.loop === true
+    const effectiveProgramEnd = !isLoopingProgram && isLastSlide && (!segCtx || (!segCtx.loop && segCtx.advanceMode === 'slides'))
 
     const setIndex = useCallback((newIndex: number) => {
       const oldSlide = slides[currentIndex]
@@ -154,13 +155,13 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
 
       if (currentIndex < slides.length - 1) {
         setIndex(currentIndex + 1)
-      } else if (onProgramEnd) {
+      } else if (onProgramEnd && !isLoopingProgram) {
         onProgramEnd()
       } else {
         setIndex(0)
       }
       setVideoError(null)
-    }, [slides, onProgramEnd, isEnded, currentIndex, isLastSlideInSegment, setIndex])
+    }, [slides, onProgramEnd, isEnded, currentIndex, isLastSlideInSegment, setIndex, isLoopingProgram])
 
     const doPrevSlide = useCallback(() => {
       if (isEnded || !slides?.length) return
@@ -332,7 +333,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
           const endIdx = getSegmentEndIndex(slides, currentIndex, segCtx)
           if (endIdx < slides.length - 1) {
             setIndex(endIdx + 1)
-          } else if (onProgramEnd) {
+          } else if (onProgramEnd && !isLoopingProgram) {
             onProgramEnd()
           } else {
             setIndex(0)
@@ -343,7 +344,7 @@ export const SlideEngine = forwardRef<SlideEngineHandle, SlideEngineProps>(
       return () => {
         if (segmentTimerRef.current) clearTimeout(segmentTimerRef.current)
       }
-    }, [currentIndex, slides, segCtx, onProgramEnd, segmentLoopKey, setIndex])
+    }, [currentIndex, slides, segCtx, onProgramEnd, segmentLoopKey, setIndex, isLoopingProgram])
 
     useEffect(() => {
       const nextCodes = normalizeKeyCode(keys.next)
