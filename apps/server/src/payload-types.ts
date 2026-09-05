@@ -272,10 +272,6 @@ export interface Program {
              * Scales the media to fill as much of the screen as possible while preserving aspect ratio.
              */
             scaleToFill?: boolean | null;
-            /**
-             * Move this slide to another segment or the top level on save.
-             */
-            _moveToSegment?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'imageBlock';
@@ -296,10 +292,6 @@ export interface Program {
              * Scales the media to fill as much of the screen as possible while preserving aspect ratio.
              */
             scaleToFill?: boolean | null;
-            /**
-             * Move this slide to another segment or the top level on save.
-             */
-            _moveToSegment?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'videoBlock';
@@ -320,10 +312,6 @@ export interface Program {
              * Repeats the video until the slide transitions.
              */
             loop?: boolean | null;
-            /**
-             * Move this slide to another segment or the top level on save.
-             */
-            _moveToSegment?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'youtubeBlock';
@@ -340,10 +328,6 @@ export interface Program {
              * Repeats the video until the slide transitions.
              */
             loop?: boolean | null;
-            /**
-             * Move this slide to another segment or the top level on save.
-             */
-            _moveToSegment?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'audioBlock';
@@ -355,10 +339,6 @@ export interface Program {
              */
             advanceMode: 'timed' | 'manual';
             duration?: number | null;
-            /**
-             * Move this slide to another segment or the top level on save.
-             */
-            _moveToSegment?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'blackScreenBlock';
@@ -401,10 +381,6 @@ export interface Program {
                        * Scales the media to fill as much of the screen as possible while preserving aspect ratio.
                        */
                       scaleToFill?: boolean | null;
-                      /**
-                       * Move this slide to another segment or the top level on save.
-                       */
-                      _moveToSegment?: string | null;
                       id?: string | null;
                       blockName?: string | null;
                       blockType: 'imageBlock';
@@ -425,10 +401,6 @@ export interface Program {
                        * Scales the media to fill as much of the screen as possible while preserving aspect ratio.
                        */
                       scaleToFill?: boolean | null;
-                      /**
-                       * Move this slide to another segment or the top level on save.
-                       */
-                      _moveToSegment?: string | null;
                       id?: string | null;
                       blockName?: string | null;
                       blockType: 'videoBlock';
@@ -449,10 +421,6 @@ export interface Program {
                        * Repeats the video until the slide transitions.
                        */
                       loop?: boolean | null;
-                      /**
-                       * Move this slide to another segment or the top level on save.
-                       */
-                      _moveToSegment?: string | null;
                       id?: string | null;
                       blockName?: string | null;
                       blockType: 'youtubeBlock';
@@ -469,10 +437,6 @@ export interface Program {
                        * Repeats the video until the slide transitions.
                        */
                       loop?: boolean | null;
-                      /**
-                       * Move this slide to another segment or the top level on save.
-                       */
-                      _moveToSegment?: string | null;
                       id?: string | null;
                       blockName?: string | null;
                       blockType: 'audioBlock';
@@ -484,10 +448,6 @@ export interface Program {
                        */
                       advanceMode: 'timed' | 'manual';
                       duration?: number | null;
-                      /**
-                       * Move this slide to another segment or the top level on save.
-                       */
-                      _moveToSegment?: string | null;
                       id?: string | null;
                       blockName?: string | null;
                       blockType: 'blackScreenBlock';
@@ -840,7 +800,6 @@ export interface ProgramsSelect<T extends boolean = true> {
               advanceMode?: T;
               duration?: T;
               scaleToFill?: T;
-              _moveToSegment?: T;
               id?: T;
               blockName?: T;
             };
@@ -853,7 +812,6 @@ export interface ProgramsSelect<T extends boolean = true> {
               duration?: T;
               loop?: T;
               scaleToFill?: T;
-              _moveToSegment?: T;
               id?: T;
               blockName?: T;
             };
@@ -866,7 +824,6 @@ export interface ProgramsSelect<T extends boolean = true> {
               advanceMode?: T;
               duration?: T;
               loop?: T;
-              _moveToSegment?: T;
               id?: T;
               blockName?: T;
             };
@@ -878,7 +835,6 @@ export interface ProgramsSelect<T extends boolean = true> {
               advanceMode?: T;
               duration?: T;
               loop?: T;
-              _moveToSegment?: T;
               id?: T;
               blockName?: T;
             };
@@ -888,7 +844,6 @@ export interface ProgramsSelect<T extends boolean = true> {
               transition?: T;
               advanceMode?: T;
               duration?: T;
-              _moveToSegment?: T;
               id?: T;
               blockName?: T;
             };
@@ -911,7 +866,6 @@ export interface ProgramsSelect<T extends boolean = true> {
                           advanceMode?: T;
                           duration?: T;
                           scaleToFill?: T;
-                          _moveToSegment?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -924,7 +878,6 @@ export interface ProgramsSelect<T extends boolean = true> {
                           duration?: T;
                           loop?: T;
                           scaleToFill?: T;
-                          _moveToSegment?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -937,7 +890,6 @@ export interface ProgramsSelect<T extends boolean = true> {
                           advanceMode?: T;
                           duration?: T;
                           loop?: T;
-                          _moveToSegment?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -949,7 +901,6 @@ export interface ProgramsSelect<T extends boolean = true> {
                           advanceMode?: T;
                           duration?: T;
                           loop?: T;
-                          _moveToSegment?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -959,7 +910,6 @@ export interface ProgramsSelect<T extends boolean = true> {
                           transition?: T;
                           advanceMode?: T;
                           duration?: T;
-                          _moveToSegment?: T;
                           id?: T;
                           blockName?: T;
                         };

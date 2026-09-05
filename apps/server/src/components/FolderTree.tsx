@@ -2,13 +2,11 @@
 
 import { useAuth, useListQuery, usePreferences } from '@payloadcms/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { buildTree, canNestAtDepth } from '../utilities/ui/folderTree'
 import {
   ExpandCircleDownIcon,
   ExpandCircleRightIcon,
   CloseIcon,
-  AddIcon,
-  EditIcon,
-  DeleteIcon,
 } from './icons'
 
 interface Folder {
@@ -16,30 +14,6 @@ interface Folder {
   name: string
   parent: number | { id: number } | null
   children: Folder[]
-}
-
-function buildTree(docs: any[]): Folder[] {
-  const map = new Map<number, Folder>()
-  const roots: Folder[] = []
-
-  for (const doc of docs) {
-    map.set(doc.id, { ...doc, children: [] })
-  }
-
-  for (const doc of docs) {
-    const parentId = doc.parent
-      ? typeof doc.parent === 'object'
-        ? doc.parent.id
-        : doc.parent
-      : null
-    if (parentId != null && map.has(parentId)) {
-      map.get(parentId)!.children.push(map.get(doc.id)!)
-    } else {
-      roots.push(map.get(doc.id)!)
-    }
-  }
-
-  return roots
 }
 
 const s = {
@@ -62,6 +36,7 @@ const s = {
     background: active ? 'var(--theme-elevation-200, #e5e7eb)' : 'transparent',
     fontSize: '1rem',
     lineHeight: '24px',
+    position: 'relative',
   }),
   guideCol: {
     width: 12,
@@ -85,18 +60,52 @@ const s = {
     color: active ? 'var(--theme-primary-500, #3b82f6)' : 'inherit',
     lineHeight: '24px',
   }),
-  addBtn: {
-    fontSize: '0.7rem',
-    padding: '2px 6px',
-    lineHeight: 1,
-    margin: '3px 0',
-    opacity: 0.6,
-    cursor: 'pointer',
+  moreBtn: {
+    background: 'transparent',
     border: 'none',
-    borderRadius: 3,
-    background: 'var(--theme-elevation-300, #d1d5db)',
-    color: 'var(--theme-elevation-800, #1f2937)',
+    cursor: 'pointer',
+    padding: '2px 4px',
+    fontSize: '1rem',
+    lineHeight: 1,
+    opacity: 0.5,
+    borderRadius: 4,
     flexShrink: 0,
+    minWidth: 24,
+    minHeight: 24,
+  } as React.CSSProperties,
+  menu: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    zIndex: 10,
+    minWidth: 140,
+    background: 'var(--theme-elevation-0)',
+    border: '1px solid var(--theme-elevation-200, #e5e7eb)',
+    borderRadius: 6,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    padding: '4px 0',
+  } as React.CSSProperties,
+  menuItem: {
+    display: 'block',
+    width: '100%',
+    textAlign: 'left',
+    background: 'transparent',
+    border: 'none',
+    padding: '6px 12px',
+    fontSize: '0.8rem',
+    cursor: 'pointer',
+    color: 'var(--theme-text)',
+  } as React.CSSProperties,
+  menuItemDisabled: {
+    display: 'block',
+    width: '100%',
+    textAlign: 'left',
+    background: 'transparent',
+    border: 'none',
+    padding: '6px 12px',
+    fontSize: '0.8rem',
+    color: 'var(--theme-elevation-400, #9ca3af)',
+    cursor: 'not-allowed',
   } as React.CSSProperties,
   inlineForm: {
     display: 'flex',
@@ -137,7 +146,7 @@ export function FolderTree() {
   const [newName, setNewName] = useState('')
   const [editingFolder, setEditingFolder] = useState<number | null>(null)
   const [editName, setEditName] = useState('')
-  const [hoveredFolder, setHoveredFolder] = useState<number | null>(null)
+  const [menuFolder, setMenuFolder] = useState<number | null>(null)
   const [folderContentCounts, setFolderContentCounts] = useState<Record<number, number>>({})
   const [loading, setLoading] = useState(true)
 
@@ -263,7 +272,23 @@ export function FolderTree() {
     setActiveFolder(null)
   }, [query?.where])
 
-  const canNest = (depth: number) => depth < 2
+  const canNest = (depth: number) => canNestAtDepth(depth)
+
+  useEffect(() => {
+    if (menuFolder == null) return
+    const close = () => setMenuFolder(null)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    document.addEventListener('click', close)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', close)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuFolder])
+
+  const closeMenu = () => setMenuFolder(null)
 
   const saveFolderPref = async (value: number | null) => {
     await setPreference(prefKey, { value })
@@ -443,8 +468,6 @@ export function FolderTree() {
       <div key={folder.id}>
         <div
           style={s.row(isActive)}
-          onMouseEnter={() => setHoveredFolder(folder.id)}
-          onMouseLeave={() => setHoveredFolder(null)}
         >
           {ancestors.map((a, i) => (
             <span key={i} style={s.guideCol}>
@@ -482,41 +505,95 @@ export function FolderTree() {
               {folder.name}
             </span>
           )}
-          {editingFolder !== folder.id && hoveredFolder === folder.id && (
-            <span style={{ display: 'inline-flex', gap: '1px', alignItems: 'center' }}>
-              {canNest(depth) && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    startNewFolder(folder.id)
-                  }}
-                  style={s.addBtn}
-                  title="Add subfolder"
-                >
-                  <AddIcon size={14} />
-                </button>
-              )}
+          {editingFolder !== folder.id && (
+            <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
               <button
+                type="button"
+                tabIndex={0}
+                aria-label={`Actions for ${folder.name}`}
                 onClick={(e) => {
                   e.stopPropagation()
-                  startRename(folder)
+                  setMenuFolder((cur) => (cur === folder.id ? null : folder.id))
                 }}
-                style={s.addBtn}
-                title="Rename folder"
-              >
-                <EditIcon size={14} />
-              </button>
-              {!hasContents(folder) && (
-                <button
-                  onClick={(e) => {
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
                     e.stopPropagation()
-                    handleDeleteFolder(folder)
-                  }}
-                  style={s.addBtn}
-                  title="Delete folder"
-                >
-                  <DeleteIcon size={14} />
-                </button>
+                    setMenuFolder((cur) => (cur === folder.id ? null : folder.id))
+                  }
+                }}
+                style={s.moreBtn}
+                title="Folder actions"
+              >
+                ⋯
+              </button>
+              {menuFolder === folder.id && (
+                <div style={s.menu} onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    tabIndex={0}
+                    disabled={!canNest(depth)}
+                    title={canNest(depth) ? 'Add subfolder' : 'Maximum folder depth reached (3 levels)'}
+                    aria-label={canNest(depth) ? 'Add subfolder' : 'Add subfolder (maximum folder depth reached)'}
+                    style={canNest(depth) ? s.menuItem : s.menuItemDisabled}
+                    onClick={() => {
+                      if (!canNest(depth)) return
+                      startNewFolder(folder.id)
+                      closeMenu()
+                    }}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && canNest(depth)) {
+                        e.preventDefault()
+                        startNewFolder(folder.id)
+                        closeMenu()
+                      }
+                    }}
+                  >
+                    Add subfolder
+                  </button>
+                  <button
+                    type="button"
+                    tabIndex={0}
+                    title="Rename folder"
+                    aria-label="Rename folder"
+                    style={s.menuItem}
+                    onClick={() => {
+                      startRename(folder)
+                      closeMenu()
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        startRename(folder)
+                        closeMenu()
+                      }
+                    }}
+                  >
+                    Rename
+                  </button>
+                  {!hasContents(folder) && (
+                    <button
+                      type="button"
+                      tabIndex={0}
+                      title="Delete folder"
+                      aria-label="Delete folder"
+                      style={s.menuItem}
+                      onClick={() => {
+                        handleDeleteFolder(folder)
+                        closeMenu()
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          handleDeleteFolder(folder)
+                          closeMenu()
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
               )}
             </span>
           )}

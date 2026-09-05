@@ -19,6 +19,7 @@ type SlideEditDrawerProps = {
   mediaMap: Record<number, { url: string; thumbnailUrl: string | null; name: string; filename: string }>
   onClose: () => void
   onSave: (updatedSlide: any, index: number, segmentId?: string) => void
+  onCancel: () => void
 }
 
 export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
@@ -30,11 +31,13 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
   mediaMap,
   onClose,
   onSave,
+  onCancel,
 }) => {
   const [localSlide, setLocalSlide] = useState<any>(null)
   const [browseField, setBrowseField] = useState<string | null>(null)
   const [videoTitle, setVideoTitle] = useState<string | null>(null)
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const initialSnapshotRef = useRef<string | null>(null)
 
   const filterOptions = useMemo(
     () =>
@@ -60,9 +63,15 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
 
   useEffect(() => {
     if (slide) {
-      setLocalSlide({ ...slide, duration: slide.duration ?? 5 })
+      const snapshot = { ...slide, duration: slide.duration ?? 5 }
+      setLocalSlide(snapshot)
+      initialSnapshotRef.current = JSON.stringify(snapshot)
     }
   }, [slide, isOpen])
+
+  const isDirty = localSlide
+    ? initialSnapshotRef.current !== null && JSON.stringify(localSlide) !== initialSnapshotRef.current
+    : false
 
   useEffect(() => {
     if (browseField) openDrawer()
@@ -119,10 +128,22 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
     })
   }
 
-  const handleClose = () => {
+  const handleSave = () => {
     if (!localSlide) { onClose(); return }
     onSave(localSlide, slideIndex, segmentId)
     onClose()
+  }
+
+  const handleCancel = () => {
+    onCancel()
+  }
+
+  const handleClose = () => {
+    if (isDirty) {
+      handleCancel()
+    } else {
+      onClose()
+    }
   }
 
   const renderMediaField = (fieldName: string, mimeFilter: string) => {
@@ -568,7 +589,23 @@ export const SlideEditDrawer: FC<SlideEditDrawerProps> = ({
           }}
         >
           <button
-            onClick={handleClose}
+            onClick={handleCancel}
+            style={{
+              flex: 1,
+              padding: '8px 16px',
+              background: 'transparent',
+              color: 'var(--theme-elevation-600, #4b5563)',
+              border: '1px solid var(--theme-elevation-300, #d1d5db)',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
             style={{
               flex: 1,
               padding: '8px 16px',

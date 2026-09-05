@@ -1,5 +1,5 @@
 import type { Block } from 'payload'
-import { getAdvanceSettings, getSlideMoveControl } from './SlideBlocks'
+import { getAdvanceSettings } from './SlideBlocks'
 
 export const BlackScreenBlock: Block = {
   slug: 'blackScreenBlock',
@@ -13,6 +13,5 @@ export const BlackScreenBlock: Block = {
   },
   fields: [
     ...getAdvanceSettings(false),
-    getSlideMoveControl(),
   ],
 }

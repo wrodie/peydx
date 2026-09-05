@@ -1,40 +1,11 @@
 'use client'
 
 import { useDocumentInfo, useField } from '@payloadcms/ui'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import type { ClientToServerEvents, ServerToClientEvents } from 'signage-core'
-import {
-  MovieIcon,
-  YouTubeIcon,
-  CaptureIcon,
-  ImageIcon,
-} from './icons'
-
-function getMediaUrl(slide: any): string | null {
-  if (!slide) return null
-  if (slide.blockType === 'imageBlock' && slide.image) {
-    const img = typeof slide.image === 'object' ? slide.image : null
-    if (!img) return null
-    return img.sizes?.thumbnail?.url || img.url || null
-  }
-  if (slide.blockType === 'videoBlock' && slide.video) {
-    const vid = typeof slide.video === 'object' ? slide.video : null
-    return vid?.sizes?.thumbnail?.url || null
-  }
-  if (slide.blockType === 'youtubeBlock' && slide.youtubeId) {
-    return `https://img.youtube.com/vi/${slide.youtubeId}/mqdefault.jpg`
-  }
-  return null
-}
-
-function getBlockIcon(slide: any): React.ReactNode {
-  if (!slide) return null
-  if (slide.blockType === 'videoBlock') return <MovieIcon size={24} />
-  if (slide.blockType === 'youtubeBlock') return <YouTubeIcon size={24} />
-  if (slide.blockType === 'blackScreenBlock') return <CaptureIcon size={24} />
-  return null
-}
+import { flattenProgram } from 'signage-core'
+import { getMediaUrl, getBlockIcon } from '../utilities/ui/slideMedia'
 
 export function DeviceSlideStatus() {
   const { id } = useDocumentInfo()
@@ -84,7 +55,9 @@ export function DeviceSlideStatus() {
     }
   }, [id])
 
-  if (!slideData || !slideData.slides?.length) {
+  const flatSlides = slideData ? flattenProgram(slideData).slides : []
+
+  if (!slideData || flatSlides.length === 0) {
     return (
       <div style={{ padding: '12px 0' }}>
         <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--theme-elevation-500, #666)', marginBottom: 4, display: 'block' }}>
@@ -96,16 +69,16 @@ export function DeviceSlideStatus() {
   }
 
   const idx = displaySlideIndex
-  const currentSlide = slideData.slides[idx] || slideData.slides[0]
+  const currentSlide = flatSlides[idx] || flatSlides[0]
   const thumbnailUrl = getMediaUrl(currentSlide)
-  const blockIcon = getBlockIcon(currentSlide)
+  const blockIcon = getBlockIcon(currentSlide?.blockType)
 
   return (
     <div style={{ padding: '12px 0' }}>
       <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--theme-elevation-500, #666)', marginBottom: 4, display: 'block' }}>
         Current Slide
       </label>
-      <div style={{ fontSize: '0.85rem', marginBottom: 4 }}>Slide {idx + 1} of {slideData.slides.length}{(currentSlide?.blockType === 'videoBlock' ? ' (video)' : currentSlide?.blockType === 'youtubeBlock' ? ' (YouTube)' : '')}</div>
+      <div style={{ fontSize: '0.85rem', marginBottom: 4 }}>Slide {idx + 1} of {flatSlides.length}{(currentSlide?.blockType === 'videoBlock' ? ' (video)' : currentSlide?.blockType === 'youtubeBlock' ? ' (YouTube)' : '')}</div>
       {thumbnailUrl ? (
         <img src={thumbnailUrl} alt={`Slide ${idx + 1}`} style={{ maxWidth: '100%', borderRadius: 4 }} />
       ) : blockIcon ? (

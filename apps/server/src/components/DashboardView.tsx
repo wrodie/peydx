@@ -6,50 +6,9 @@ import { usePathname } from 'next/navigation'
 import { io, type Socket } from 'socket.io-client'
 import type { ServerToClientEvents, ClientToServerEvents } from 'signage-core'
 import { buildDeviceStatusPatch } from './deviceStatusPatch'
-import {
-  MusicNote2Icon,
-  CaptureIcon,
-  RepeatIcon,
-} from './icons'
-
-function extractYouTubeId(input: string): string | null {
-  if (!input) return null
-  const m = input.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})|^([a-zA-Z0-9_-]{11})$/)
-  return m?.[1] || m?.[2] || null
-}
-
-function getThumbnailUrl(slide: any): string | null {
-  if (!slide) return null
-  if (slide.blockType === 'imageBlock' && slide.image) {
-    const img = typeof slide.image === 'object' ? slide.image : null
-    if (!img) return null
-    return img.sizes?.thumbnail?.url || img.url || null
-  }
-  if (slide.blockType === 'videoBlock' && slide.video) {
-    const vid = typeof slide.video === 'object' ? slide.video : null
-    return vid?.sizes?.thumbnail?.url || null
-  }
-  if (slide.blockType === 'youtubeBlock' && slide.youtubeId) {
-    const ytId = extractYouTubeId(slide.youtubeId)
-    if (ytId) return `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`
-  }
-  return null
-}
-
-function getBlockIcon(slide: any): React.ReactNode {
-  if (!slide) return null
-  if (slide.blockType === 'audioBlock') return <MusicNote2Icon size={32} />
-  if (slide.blockType === 'blackScreenBlock') return <CaptureIcon size={32} />
-  return null
-}
-
-function computeStatus(lastHeartbeat: string | null | undefined): 'online' | 'stale' | 'offline' {
-  if (!lastHeartbeat) return 'offline'
-  const diff = Date.now() - new Date(lastHeartbeat).getTime()
-  if (diff < 3 * 60 * 1000) return 'online'
-  if (diff < 10 * 60 * 1000) return 'stale'
-  return 'offline'
-}
+import { RepeatIcon } from './icons'
+import { getThumbnailUrl, getBlockIcon } from '../utilities/ui/slideMedia'
+import { DeviceStatusBadge } from './deviceStatus/DeviceStatusBadge'
 
 function getDayLabel(dayBits: number): string[] {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -80,6 +39,45 @@ export function DashboardView() {
   const [devices, setDevices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [serverTz, setServerTz] = useState('UTC')
+  const [devicesError, setDevicesError] = useState<string | null>(null)
+  const [programsError, setProgramsError] = useState<string | null>(null)
+  const [schedulesError, setSchedulesError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
+
+  const retry = () => setReloadToken((t) => t + 1)
+
+  const renderErrorBanner = (message: string) => (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 12,
+        padding: '8px 12px',
+        borderRadius: 6,
+        background: 'rgba(239,68,68,0.1)',
+        color: '#ef4444',
+        fontSize: '0.8rem',
+      }}
+    >
+      <span>{message}</span>
+      <button
+        type="button"
+        onClick={retry}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: '#ef4444',
+          textDecoration: 'underline',
+          fontSize: '0.8rem',
+          padding: 0,
+        }}
+      >
+        Retry
+      </button>
+    </div>
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -105,14 +103,38 @@ export function DashboardView() {
 
     ;(async () => {
       try {
-        const [tzRes, progData, schedData, devData] = await Promise.all([
+        const [tzRes, progResult, schedResult, devResult] = await Promise.allSettled([
           tzPromise,
           fetch(programQuery).then((r) => r.json()),
           fetch(scheduleQuery).then((r) => r.json()),
           fetch(deviceQuery).then((r) => r.json()),
         ])
-        const serverTz = tzRes.timezone || 'UTC'
+        const serverTz = tzRes.status === 'fulfilled' ? tzRes.value.timezone || 'UTC' : 'UTC'
         setServerTz(serverTz)
+
+        let progData: any = { docs: [] }
+        let schedData: any = { docs: [] }
+        let devData: any = { docs: [] }
+
+        if (progResult.status === 'fulfilled') {
+          progData = progResult.value
+          setProgramsError(null)
+        } else {
+          setProgramsError('Failed to load programs')
+        }
+        if (schedResult.status === 'fulfilled') {
+          schedData = schedResult.value
+          setSchedulesError(null)
+        } else {
+          setSchedulesError('Failed to load schedules')
+        }
+        if (devResult.status === 'fulfilled') {
+          devData = devResult.value
+          setDevicesError(null)
+        } else {
+          setDevicesError('Failed to load devices')
+        }
+
         if (cancelled) return
 
         const now = new Date()
@@ -207,7 +229,7 @@ export function DashboardView() {
       }
     })()
     return () => { cancelled = true }
-  }, [user, pathname])
+  }, [user, pathname, reloadToken])
 
   useEffect(() => {
     const deptIds = (user?.departments || []).map((d: any) => typeof d === 'object' ? d.id : d)
@@ -252,14 +274,12 @@ export function DashboardView() {
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: '0 0 16px 0', color: 'var(--theme-text)' }}>
           Devices ({devices.length})
         </h2>
+        {devicesError && renderErrorBanner(devicesError)}
         {devices.length === 0 ? (
           <p style={{ color: 'var(--theme-elevation-500)', padding: '20px 0' }}>No devices in your departments</p>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
             {devices.map((d) => {
-              const computedStatus = computeStatus(d.lastHeartbeat)
-              const statusColor = computedStatus === 'online' ? '#22c55e' : computedStatus === 'stale' ? '#f59e0b' : '#6b7280'
-              const statusLabel = computedStatus === 'online' ? 'Online' : computedStatus === 'stale' ? 'Stale' : 'Offline'
               const programName = d.currentProgramTitle || null
               return (
                 <div
@@ -276,19 +296,7 @@ export function DashboardView() {
                     gap: '8px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '50%',
-                        background: statusColor,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span style={{ fontSize: '0.8rem', color: 'var(--theme-elevation-600)' }}>{statusLabel}</span>
-                  </div>
+                  <DeviceStatusBadge lastHeartbeat={d.lastHeartbeat} showLabel />
                   <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--theme-text)' }}>
                     {d.name}
                   </div>
@@ -324,6 +332,7 @@ export function DashboardView() {
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: '0 0 16px 0', color: 'var(--theme-text)' }}>
           Available Programs ({programs.length})
         </h2>
+        {programsError && renderErrorBanner(programsError)}
         {programs.length === 0 ? (
           <p style={{ color: 'var(--theme-elevation-500)', padding: '20px 0' }}>No programs currently available</p>
         ) : (
@@ -335,7 +344,7 @@ export function DashboardView() {
                 firstSlide = firstSlide.slides[0]
               }
               const thumbnailUrl = getThumbnailUrl(firstSlide)
-              const blockIcon = getBlockIcon(firstSlide)
+              const blockIcon = getBlockIcon(firstSlide?.blockType, 32)
               return (
                 <a
                   key={p.id}
@@ -425,7 +434,7 @@ export function DashboardView() {
                 firstSlide = firstSlide.slides[0]
               }
               const thumbnailUrl = getThumbnailUrl(firstSlide)
-              const blockIcon = getBlockIcon(firstSlide)
+              const blockIcon = getBlockIcon(firstSlide?.blockType, 32)
               return (
                 <a
                   key={p.id}
@@ -502,11 +511,12 @@ export function DashboardView() {
       )}
 
       {/* Upcoming Automated Schedules */}
-      {schedules.length > 0 && (
+      {(schedules.length > 0 || schedulesError) && (
       <section style={{ marginBottom: '40px' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: '0 0 16px 0', color: 'var(--theme-text)' }}>
           Upcoming Automated Schedules ({schedules.length})
         </h2>
+        {schedulesError && renderErrorBanner(schedulesError)}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {schedules.map((s) => {
               const deviceNames = (s.devices || []).map((d: any) => d.name || `Device ${d.id}`).join(', ')

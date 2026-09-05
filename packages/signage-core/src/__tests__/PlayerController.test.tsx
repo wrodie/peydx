@@ -40,6 +40,38 @@ describe('PlayerController', () => {
     expect(screen.getByText('Signage')).toBeTruthy()
   })
 
+  it('renders "Press M for menu" hint in idle state', () => {
+    render(<PlayerController scheduleData={null} />)
+    expect(screen.getByText('Press M for menu')).toBeTruthy()
+  })
+
+  it('does not render menu hint in idle state when hideProgramList is true', () => {
+    const data: ResolvedSchedule = {
+      lastUpdated: '2020-01-01T00:00:00.000Z',
+      schedule: [],
+      availability: [],
+      deviceName: 'Test Device',
+      hideProgramList: true,
+    }
+    render(<PlayerController scheduleData={data} />)
+    expect(screen.queryByText('Press M for menu')).toBeNull()
+  })
+
+  it('renders a connection dot with the connected title', () => {
+    render(<PlayerController scheduleData={null} connectionStatus="connected" />)
+    expect(screen.getByTitle('Connection: connected')).toBeTruthy()
+  })
+
+  it('renders a connection dot with the disconnected title', () => {
+    render(<PlayerController scheduleData={null} connectionStatus="disconnected" />)
+    expect(screen.getByTitle('Connection: disconnected')).toBeTruthy()
+  })
+
+  it('renders the schedule update failed banner when fetchError is set', () => {
+    render(<PlayerController scheduleData={null} fetchError="Failed to load schedule" />)
+    expect(screen.getByText('Schedule update failed')).toBeTruthy()
+  })
+
   it('renders menu state when availability exists but no active autoplay', () => {
     render(<PlayerController scheduleData={makeScheduleData(makeSlides(1))} />)
     // Menu should show the available program title

@@ -51,19 +51,6 @@ export const getAdvanceSettings = (isVideoButton: boolean): Field[] => {
   ]
 }
 
-export const getSlideMoveControl = (): Field => ({
-  name: '_moveToSegment',
-  type: 'text',
-  label: 'Move to segment',
-  defaultValue: '__none__',
-  admin: {
-    components: {
-      Field: '/components/SlideMoveSelect#SlideMoveSelect',
-    },
-    description: 'Move this slide to another segment or the top level on save.',
-  },
-})
-
 export const ImageBlock: Block = {
   slug: 'imageBlock',
   labels: {
@@ -94,7 +81,6 @@ export const ImageBlock: Block = {
         description: 'Scales the media to fill as much of the screen as possible while preserving aspect ratio.',
       },
     },
-    getSlideMoveControl(),
   ],
 }
 
@@ -137,7 +123,6 @@ export const VideoBlock: Block = {
         description: 'Scales the media to fill as much of the screen as possible while preserving aspect ratio.',
       },
     },
-    getSlideMoveControl(),
   ],
 }
 
@@ -179,7 +164,6 @@ export const YoutubeBlock: Block = {
         description: 'Repeats the video until the slide transitions.',
       },
     },
-    getSlideMoveControl(),
   ],
 }
 
@@ -213,6 +197,5 @@ export const AudioBlock: Block = {
         description: 'Repeats the video until the slide transitions.',
       },
     },
-    getSlideMoveControl(),
   ],
 }

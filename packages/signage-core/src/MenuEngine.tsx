@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState } from 'react'
-import type { KeyConfig } from './types'
+import type { KeyConfig, ConnectionStatus } from './types'
+import { CONNECTION_STATUS_COLORS } from './types'
 import { normalizeKeyCode } from './keyConfig'
 import './menu.css'
 
@@ -15,6 +16,7 @@ export interface MenuEngineProps {
   continueLabel?: string
   deviceName?: string | null
   defaultBackground?: string | null
+  connectionStatus?: ConnectionStatus
 }
 
 function formatTime(d: Date): string {
@@ -33,6 +35,7 @@ export function MenuEngine({
   continueLabel,
   deviceName,
   defaultBackground,
+  connectionStatus,
 }: MenuEngineProps) {
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, initialIndex))
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()))
@@ -96,7 +99,24 @@ export function MenuEngine({
       <div className="menu-overlay-bg" />
       <div className="menu-top-bar">
         <span className="menu-top-bar-left">{deviceName || 'Signage'}</span>
-        <span className="menu-top-bar-right">{currentTime}</span>
+        <span className="menu-top-bar-right" style={{ display: 'inline-flex', alignItems: 'center' }}>
+          {currentTime}
+          {connectionStatus && (
+            <span
+              className="player-connection-dot"
+              style={{
+                display: 'inline-block',
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: CONNECTION_STATUS_COLORS[connectionStatus],
+                marginLeft: 12,
+                flexShrink: 0,
+              }}
+              title={`Connection: ${connectionStatus}`}
+            />
+          )}
+        </span>
       </div>
       <div className="menu-panel">
         <div className="menu-list-label">{title}</div>
@@ -121,7 +141,7 @@ export function MenuEngine({
         </div>
       </div>
       <div className="menu-hint">
-        {isExitOverlay ? 'Use ↑↓ to navigate, Enter to select' : 'Use ↑↓ to navigate, Enter to select, M/Esc to exit'}
+        Use ↑↓ to navigate, Enter to select
       </div>
     </div>
   )

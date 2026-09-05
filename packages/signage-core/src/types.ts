@@ -78,6 +78,14 @@ export interface Program {
 
 export type PlayerState = 'idle' | 'menu' | 'playing'
 
+export type ConnectionStatus = 'connected' | 'reconnecting' | 'disconnected'
+
+export const CONNECTION_STATUS_COLORS: Record<ConnectionStatus, string> = {
+  connected: '#22c55e',
+  reconnecting: '#f59e0b',
+  disconnected: '#ef4444',
+}
+
 export interface ScheduleEntry {
   programId: number
   scheduleType: 'autoplay'

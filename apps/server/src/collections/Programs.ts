@@ -3,7 +3,6 @@ import { ImageBlock, VideoBlock, YoutubeBlock, AudioBlock } from '../blocks/Slid
 import { BlackScreenBlock } from '../blocks/BlackScreenBlock'
 import { SegmentBlock } from '../blocks/SegmentBlock'
 import { autoCreateSlides } from '../hooks/autoCreateSlides'
-import { moveSlides } from '../hooks/moveSlides'
 import { programBeforeValidate } from '../hooks/programBeforeValidate'
 import { programAutoEndSlide } from '../hooks/programAutoEndSlide'
 import { getIO } from '../websocket/io'
@@ -136,7 +135,6 @@ export const Programs: CollectionConfig = {
           }
         }
         await autoCreateSlides(args)
-        await moveSlides(args)
         if (user && !data.createdBy) {
           data.createdBy = user.id
         }

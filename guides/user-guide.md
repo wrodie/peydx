@@ -601,3 +601,9 @@ Add a new schedule with **High** priority for the specific date and time. High p
 
 **What does "Stale" device status mean?**
 A stale device has connected to the server recently but may not be fully up-to-date. It usually resolves on its own. "Offline" means the device hasn't checked in for a while.
+
+**How do I use the on-screen menu on a device?**
+When no program is playing, the device shows a "Press M for menu" hint. Press **M** on the device keyboard (or remote) to open the program menu, use **Arrow Up/Down** to navigate, **Enter** to select, and **M** or **Esc** to exit. The menu shows its own key hints at the bottom.
+
+**What does the colored dot in the device's top bar mean?**
+A small dot in the top-right corner shows the device's connection status: **green** = connected, **amber** = reconnecting, **red** = disconnected. If a schedule update fails to load, a "Schedule update failed" banner appears briefly on screen.
