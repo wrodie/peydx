@@ -212,4 +212,53 @@ describe('SlideEngine', () => {
 
     vi.useRealTimers()
   })
+
+  it('looping program wraps to first slide and never calls onProgramEnd', () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'))
+    const onEnd = vi.fn()
+    const prog: Program = {
+      ...baseProgram,
+      loop: true,
+      slides: [
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 3, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 3, image: { id: 2, url: '/img2.jpg', alt: 'Slide 2' } },
+      ],
+    }
+    render(<SlideEngine program={prog} onProgramEnd={onEnd} />)
+
+    // First slide -> second slide
+    act(() => { vi.advanceTimersByTime(3 * 1000 + 500) })
+    expect(screen.getByAltText('Slide 2')).toBeTruthy()
+    expect(onEnd).not.toHaveBeenCalled()
+
+    // Second slide (last) wraps back to first slide instead of ending
+    act(() => { vi.advanceTimersByTime(3 * 1000 + 500) })
+    expect(screen.getByAltText('Slide 1')).toBeTruthy()
+    expect(onEnd).not.toHaveBeenCalled()
+
+    vi.useRealTimers()
+  })
+
+  it('looping program does not show the End-of-program overlay on the last slide', () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'))
+    const onEnd = vi.fn()
+    const prog: Program = {
+      ...baseProgram,
+      loop: true,
+      slides: [
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 5, image: { id: 1, url: '/img1.jpg', alt: 'Slide 1' } },
+        { blockType: 'imageBlock', advanceMode: 'timed', duration: 5, image: { id: 2, url: '/img2.jpg', alt: 'Slide 2' } },
+      ],
+    }
+    render(<SlideEngine program={prog} onProgramEnd={onEnd} />)
+
+    // Move to the last slide
+    act(() => { vi.advanceTimersByTime(5 * 1000 + 500) })
+    expect(screen.getByAltText('Slide 2')).toBeTruthy()
+    expect(screen.queryByText('End of program')).toBeNull()
+
+    vi.useRealTimers()
+  })
 })
