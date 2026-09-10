@@ -34,10 +34,10 @@ export function ListWithSidebar(props: ListViewClientProps) {
 
   return (
     <>
-      {portalTarget && props.collectionSlug === 'programs' && (
+      {portalTarget && (props.collectionSlug === 'programs' || props.collectionSlug === 'media') && (
         <>
-          {createPortal(<ImportPptxButton />, portalTarget)}
-          {createPortal(<ImportPdfButton />, portalTarget)}
+          {createPortal(<ImportPdfButton collectionSlug={props.collectionSlug as 'media' | 'programs'} />, portalTarget)}
+          {createPortal(<ImportPptxButton collectionSlug={props.collectionSlug as 'media' | 'programs'} />, portalTarget)}
         </>
       )}
       <style>{`
