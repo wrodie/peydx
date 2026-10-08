@@ -7,13 +7,13 @@ import {
   buildVideoSlideBlock,
   buildAudioSlideBlock,
 } from '../utilities/importShared'
-import type { MediaItem } from '../utilities/importShared'
+import type { MediaItem, StreamImportOpts } from '../utilities/importShared'
 
 async function processPptxImport(
   req: any,
   fileBuffer: Buffer,
   fileName: string,
-  departmentId?: number,
+  opts: StreamImportOpts,
 ): Promise<Response> {
   let parsed
   try {
@@ -195,9 +195,12 @@ async function processPptxImport(
   return streamImport({
     req,
     fileName,
-    departmentId,
+    mode: opts.mode,
+    mediaDepartmentId: opts.mediaDepartmentId,
+    programDepartmentId: opts.programDepartmentId,
+    targetFolderId: opts.targetFolderId,
     mediaItems,
-    buildSlides,
+    buildSlides: opts.mode === 'media-and-program' ? buildSlides : undefined,
     skipped,
   })
 }
@@ -211,13 +214,34 @@ export const mediaImportPptx = {
     }
 
     let pptxFile: any
-    let departmentId: number | undefined
+    let mode: 'media' | 'media-and-program' = 'media-and-program'
+    let mediaDepartmentId: number | undefined
+    let programDepartmentId: number | undefined
+    let targetFolderId: number | undefined
 
     try {
       const formData = await req.formData()
       pptxFile = formData.get('file')
+
+      const modeVal = formData.get('mode')
+      if (modeVal === 'media') mode = 'media'
+
+      const mediaDeptVal = formData.get('mediaDepartment')
+      if (mediaDeptVal) mediaDepartmentId = parseInt(String(mediaDeptVal), 10) || undefined
+
+      const programDeptVal = formData.get('programDepartment')
+      if (programDeptVal) programDepartmentId = parseInt(String(programDeptVal), 10) || undefined
+
+      const targetFolderVal = formData.get('targetFolderId')
+      if (targetFolderVal) targetFolderId = parseInt(String(targetFolderVal), 10) || undefined
+
+      // Backwards compat: old `department` field maps to both IDs when new fields absent
       const deptVal = formData.get('department')
-      if (deptVal) departmentId = parseInt(String(deptVal), 10) || undefined
+      if (deptVal && mediaDepartmentId === undefined && programDepartmentId === undefined) {
+        const legacyDeptId = parseInt(String(deptVal), 10) || undefined
+        mediaDepartmentId = legacyDeptId
+        programDepartmentId = legacyDeptId
+      }
     } catch {
       return Response.json({ error: 'Invalid multipart form data' }, { status: 400 })
     }
@@ -240,7 +264,12 @@ export const mediaImportPptx = {
       return Response.json({ error: 'Failed to read uploaded file' }, { status: 400 })
     }
 
-    return processPptxImport(req, fileBuffer, fileName, departmentId)
+    return processPptxImport(req, fileBuffer, fileName, {
+      mode,
+      mediaDepartmentId,
+      programDepartmentId,
+      targetFolderId,
+    })
   },
 }
 

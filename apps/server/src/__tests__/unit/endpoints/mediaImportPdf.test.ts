@@ -22,7 +22,7 @@ function makePdfPage(i: number) {
   }
 }
 
-function makeReq(options: { user?: any; fileName?: string } = {}) {
+function makeReq(options: { user?: any; fileName?: string; formFields?: Record<string, any> } = {}) {
   let mediaId = 100
   const payload = {
     create: vi.fn(async (args: any) => {
@@ -54,6 +54,15 @@ function makeReq(options: { user?: any; fileName?: string } = {}) {
   const formData = new FormData()
   formData.append('file', new File(['fake-pdf-bytes'], fileName, { type: 'application/pdf' }))
 
+  const fields: Record<string, any> = options.formFields ?? {
+    mode: 'media-and-program',
+    mediaDepartment: '1',
+    programDepartment: '1',
+  }
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined) formData.append(key, String(value))
+  }
+
   const user = options.user === null
     ? null
     : (options.user ?? { id: 1, departments: [{ id: 1, name: 'Test Dept' }] })
@@ -74,6 +83,9 @@ function makeChunkFormData(overrides: Record<string, any> = {}) {
     chunkIndex: '0',
     totalChunks: '2',
     fileName: 'test.pdf',
+    mode: 'media-and-program',
+    mediaDepartment: '1',
+    programDepartment: '1',
   }
   const merged = { ...defaults, ...overrides }
   for (const [key, value] of Object.entries(merged)) {
@@ -193,6 +205,89 @@ describe('POST /api/import-pdf', () => {
     const error = lines.find((l) => l.type === 'error')
     expect(error.message).toBe('No media could be imported from this file')
   })
+
+  it('media-only mode skips program creation', async () => {
+    vi.mocked(parsePdf).mockResolvedValue({
+      pages: [makePdfPage(0), makePdfPage(1)],
+      skipped: [],
+    })
+
+    const req = makeReq({ formFields: { mode: 'media', mediaDepartment: '1' } })
+    const res = await mediaImportPdf.handler(req)
+    const lines = await readNdjson(res)
+
+    expect(collectionCalls(req.payload.create, 'media')).toHaveLength(2)
+    expect(collectionCalls(req.payload.create, 'programs')).toHaveLength(0)
+
+    const updateCalls = req.payload.update.mock.calls.map((c: any[]) => c[0])
+    expect(updateCalls).toHaveLength(2)
+    expect(updateCalls[0]).toMatchObject({ collection: 'media', id: 100, data: { folder: 11 } })
+    expect(updateCalls[1]).toMatchObject({ collection: 'media', id: 101, data: { folder: 11 } })
+
+    const result = lines[lines.length - 1]
+    expect(result.type).toBe('result')
+    expect(result.program).toBeUndefined()
+    expect(result.mediaCreated).toHaveLength(2)
+  })
+
+  it('uses separate departments for media and program', async () => {
+    vi.mocked(parsePdf).mockResolvedValue({ pages: [makePdfPage(0)], skipped: [] })
+
+    const req = makeReq({
+      formFields: { mode: 'media-and-program', mediaDepartment: '1', programDepartment: '2' },
+    })
+    const res = await mediaImportPdf.handler(req)
+    await readNdjson(res)
+
+    const findCalls = req.payload.find.mock.calls.map((c: any[]) => c[0])
+    const mediaRootCall = findCalls.find(
+      (c) => c?.where?.type?.equals === 'media' && c?.where?.parent?.exists === false,
+    )
+    const programsRootCall = findCalls.find(
+      (c) => c?.where?.type?.equals === 'programs' && c?.where?.parent?.exists === false,
+    )
+    expect(mediaRootCall.where.department.equals).toBe(1)
+    expect(programsRootCall.where.department.equals).toBe(2)
+
+    const programData = collectionCalls(req.payload.create, 'programs')[0].data
+    expect(programData.folder).toBe(20)
+    const updateCalls = req.payload.update.mock.calls.map((c: any[]) => c[0])
+    expect(updateCalls[0]).toMatchObject({ collection: 'media', id: 100, data: { folder: 11 } })
+  })
+
+  it('targetFolderId uses provided folder directly', async () => {
+    vi.mocked(parsePdf).mockResolvedValue({ pages: [makePdfPage(0)], skipped: [] })
+
+    const req = makeReq({ formFields: { mode: 'media', targetFolderId: '99' } })
+    const res = await mediaImportPdf.handler(req)
+    const lines = await readNdjson(res)
+
+    expect(req.payload.find).not.toHaveBeenCalled()
+    expect(collectionCalls(req.payload.create, 'folders')).toHaveLength(0)
+    expect(collectionCalls(req.payload.create, 'programs')).toHaveLength(0)
+
+    const updateCalls = req.payload.update.mock.calls.map((c: any[]) => c[0])
+    expect(updateCalls).toHaveLength(1)
+    expect(updateCalls[0]).toMatchObject({ collection: 'media', id: 100, data: { folder: 99 } })
+
+    const result = lines[lines.length - 1]
+    expect(result.mediaCreated).toHaveLength(1)
+  })
+
+  it('backwards compat: old department field still works', async () => {
+    vi.mocked(parsePdf).mockResolvedValue({ pages: [makePdfPage(0)], skipped: [] })
+
+    const req = makeReq({ formFields: { department: '1' } })
+    const res = await mediaImportPdf.handler(req)
+    const lines = await readNdjson(res)
+
+    expect(collectionCalls(req.payload.create, 'media')).toHaveLength(1)
+    const programData = collectionCalls(req.payload.create, 'programs')[0].data
+    expect(programData.folder).toBe(20)
+    const updateCalls = req.payload.update.mock.calls.map((c: any[]) => c[0])
+    expect(updateCalls[0]).toMatchObject({ collection: 'media', id: 100, data: { folder: 11 } })
+    expect(lines[lines.length - 1].type).toBe('result')
+  })
 })
 
 describe('POST /api/import-pdf-chunk', () => {
@@ -245,6 +340,29 @@ describe('POST /api/import-pdf-chunk', () => {
       path.join(PDF_UPLOADS_DIR, '550e8400-e29b-41d4-a716-446655440000'),
       { recursive: true, force: true },
     )
+  })
+
+  it('passes media-only mode through to the import on final chunk', async () => {
+    vi.mocked(parsePdf).mockResolvedValue({ pages: [makePdfPage(0)], skipped: [] })
+
+    const req = makeChunkReq({
+      formFields: { mode: 'media', mediaDepartment: '1', chunkIndex: '1', totalChunks: '2' },
+    })
+    let mediaId = 100
+    req.payload.create.mockImplementation(async (args: any) => {
+      if (args?.collection === 'media') return { id: mediaId++, name: args?.data?.name }
+      if (args?.collection === 'folders') return { id: 11 }
+      return { id: 999 }
+    })
+    req.payload.find.mockResolvedValue({ docs: [] })
+    req.payload.update.mockResolvedValue({})
+
+    const res = asResponse(await mediaImportPdfChunk.handler(req))
+    expect(res.status).toBe(200)
+
+    expect(vi.mocked(readFile)).toHaveBeenCalledTimes(2)
+    expect(collectionCalls(req.payload.create, 'programs')).toHaveLength(0)
+    expect(collectionCalls(req.payload.create, 'media')).toHaveLength(1)
   })
 })
 

@@ -70,7 +70,7 @@ export function ImportYoutubeButton() {
       type="button"
       className="btn btn--style-pill btn--size-small"
       onClick={() => setModal({ status: 'input' })}
-      style={{ whiteSpace: 'nowrap' }}
+      style={{ whiteSpace: 'nowrap', order: 3 }}
     >
       Import from YouTube
     </button>

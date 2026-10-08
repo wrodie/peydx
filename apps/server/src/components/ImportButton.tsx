@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { usePreferences } from '@payloadcms/ui'
 import { CloseIcon } from './icons'
 
 type ModalState =
   | { status: 'idle' }
   | { status: 'fileSelected'; fileName: string; file: File }
   | { status: 'progress'; phase: string; current?: number; total?: number; name?: string }
-  | { status: 'success'; programTitle: string; mediaCreated: number; skipped: string[] }
+  | { status: 'success'; programTitle?: string; mediaCreated: number; skipped: string[]; mode: 'media' | 'media-and-program' }
   | { status: 'error'; message: string; skipped?: string[] }
 
 interface Department {
@@ -21,6 +22,9 @@ interface ImportButtonProps {
   endpoint: string
   chunkEndpoint: string
   infoText: string
+  collectionSlug: 'media' | 'programs'
+  icon?: React.ReactNode
+  order?: number
   phaseLabels: {
     parsing: string
     media: string
@@ -64,9 +68,10 @@ async function readNdjsonStream(
           } else if (msg.type === 'result') {
             setModal({
               status: 'success',
-              programTitle: msg.program?.title || 'Program',
+              programTitle: msg.program?.title,
               mediaCreated: msg.mediaCreated?.length || 0,
               skipped: msg.skipped || [],
+              mode: msg.program ? 'media-and-program' : 'media',
             })
           } else if (msg.type === 'error') {
             setModal({
@@ -89,11 +94,21 @@ export function ImportButton({
   endpoint,
   chunkEndpoint,
   infoText,
+  collectionSlug,
+  icon,
+  order,
   phaseLabels,
 }: ImportButtonProps) {
+  const { getPreference } = usePreferences()
   const [modal, setModal] = useState<ModalState>({ status: 'idle' })
   const [departments, setDepartments] = useState<Department[]>([])
-  const [selectedDeptId, setSelectedDeptId] = useState<number | undefined>()
+  const [importMode, setImportMode] = useState<'media' | 'media-and-program'>(
+    collectionSlug === 'media' ? 'media' : 'media-and-program',
+  )
+  const [mediaDeptId, setMediaDeptId] = useState<number | undefined>()
+  const [programDeptId, setProgramDeptId] = useState<number | undefined>()
+  const [currentFolderId, setCurrentFolderId] = useState<number | undefined>()
+  const [currentFolderDeptId, setCurrentFolderDeptId] = useState<number | undefined>()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const currentUploadIdRef = useRef<string | null>(null)
@@ -104,10 +119,49 @@ export function ImportButton({
       .then((data) => {
         const list: Department[] = data.docs || []
         setDepartments(list)
-        if (list.length === 1) setSelectedDeptId(list[0].id)
+        if (list.length >= 1) {
+          setMediaDeptId(list[0].id)
+          setProgramDeptId(list[0].id)
+        }
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (collectionSlug !== 'media') return
+    let cancelled = false
+    const restore = async () => {
+      const pref = await getPreference('current-folder-media')
+      const folderId = pref?.value as number | undefined
+      if (cancelled || !folderId) return
+      setCurrentFolderId(folderId)
+      try {
+        const res = await fetch(`/api/folders?depth=0&where[id][equals]=${folderId}&limit=1`)
+        const data = await res.json()
+        const folder = data.docs?.[0]
+        if (folder?.department) {
+          const deptId = typeof folder.department === 'object'
+            ? folder.department.id : folder.department
+          if (!cancelled) {
+            setCurrentFolderDeptId(deptId)
+            setMediaDeptId(deptId)
+          }
+        }
+      } catch {}
+    }
+    restore()
+    return () => { cancelled = true }
+  }, [collectionSlug, getPreference])
+
+  const showMediaDeptSelector = importMode === 'media-and-program'
+    || collectionSlug === 'programs'
+    || !currentFolderId
+
+  const showProgramDeptSelector = importMode === 'media-and-program'
+
+  const useTargetFolder = importMode === 'media'
+    && collectionSlug === 'media'
+    && !!currentFolderId
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -148,8 +202,14 @@ export function ImportButton({
       try {
         const formData = new FormData()
         formData.append('file', file)
-        if (selectedDeptId) {
-          formData.append('department', String(selectedDeptId))
+        formData.append('mode', importMode)
+        if (useTargetFolder && currentFolderId) {
+          formData.append('targetFolderId', String(currentFolderId))
+        } else if (mediaDeptId) {
+          formData.append('mediaDepartment', String(mediaDeptId))
+        }
+        if (importMode === 'media-and-program' && programDeptId) {
+          formData.append('programDepartment', String(programDeptId))
         }
 
         const res = await fetch(endpoint, {
@@ -174,9 +234,10 @@ export function ImportButton({
           }
           setModal({
             status: 'success',
-            programTitle: data.program?.title || 'Program',
+            programTitle: data.program?.title,
             mediaCreated: data.mediaCreated?.length || 0,
             skipped: data.skipped || [],
+            mode: data.program ? 'media-and-program' : 'media',
           })
         }
       } catch (err: any) {
@@ -207,8 +268,14 @@ export function ImportButton({
         formData.append('chunkIndex', String(i))
         formData.append('totalChunks', String(totalChunks))
         formData.append('fileName', file.name)
-        if (selectedDeptId) {
-          formData.append('department', String(selectedDeptId))
+        formData.append('mode', importMode)
+        if (useTargetFolder && currentFolderId) {
+          formData.append('targetFolderId', String(currentFolderId))
+        } else if (mediaDeptId) {
+          formData.append('mediaDepartment', String(mediaDeptId))
+        }
+        if (importMode === 'media-and-program' && programDeptId) {
+          formData.append('programDepartment', String(programDeptId))
         }
 
         const res = await fetch(chunkEndpoint, {
@@ -241,9 +308,10 @@ export function ImportButton({
             }
             setModal({
               status: 'success',
-              programTitle: data.program?.title || 'Program',
+              programTitle: data.program?.title,
               mediaCreated: data.mediaCreated?.length || 0,
               skipped: data.skipped || [],
+              mode: data.program ? 'media-and-program' : 'media',
             })
           }
         }
@@ -301,9 +369,9 @@ export function ImportButton({
           type="button"
           className="btn btn--style-pill btn--size-small"
           onClick={triggerFile}
-          style={{ whiteSpace: 'nowrap' }}
+          style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6, ...(order != null ? { order } : {}) }}
         >
-          {label}
+          {icon ? <>Import {icon}</> : label}
         </button>
       )}
 
@@ -361,10 +429,47 @@ export function ImportButton({
                   </button>
                 </div>
 
-                {departments.length > 1 && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  <button
+                    type="button"
+                    onClick={() => setImportMode('media')}
+                    style={{
+                      flex: 1, padding: '8px 12px', fontSize: 13, borderRadius: 4,
+                      border: '1px solid var(--theme-elevation-250)',
+                      background: importMode === 'media'
+                        ? 'var(--theme-elevation-800)'
+                        : 'var(--theme-elevation-50)',
+                      color: importMode === 'media'
+                        ? 'var(--theme-elevation-0)'
+                        : 'var(--theme-text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Import media only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportMode('media-and-program')}
+                    style={{
+                      flex: 1, padding: '8px 12px', fontSize: 13, borderRadius: 4,
+                      border: '1px solid var(--theme-elevation-250)',
+                      background: importMode === 'media-and-program'
+                        ? 'var(--theme-elevation-800)'
+                        : 'var(--theme-elevation-50)',
+                      color: importMode === 'media-and-program'
+                        ? 'var(--theme-elevation-0)'
+                        : 'var(--theme-text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Import media and create a program
+                  </button>
+                </div>
+
+                {showMediaDeptSelector && departments.length > 1 && (
                   <div style={{ marginBottom: 16 }}>
                     <label
-                      htmlFor="import-dept"
+                      htmlFor="import-media-dept"
                       style={{
                         display: 'block',
                         marginBottom: 6,
@@ -373,12 +478,47 @@ export function ImportButton({
                         color: 'var(--theme-elevation-600)',
                       }}
                     >
-                      Department to import into
+                      Department for media
                     </label>
                     <select
-                      id="import-dept"
-                      value={selectedDeptId ?? ''}
-                      onChange={(e) => setSelectedDeptId(e.target.value ? Number(e.target.value) : undefined)}
+                      id="import-media-dept"
+                      value={mediaDeptId ?? ''}
+                      onChange={(e) => setMediaDeptId(e.target.value ? Number(e.target.value) : undefined)}
+                      style={{
+                        width: '100%', boxSizing: 'border-box',
+                        padding: '10px 12px', fontSize: 14,
+                        border: '1px solid var(--theme-elevation-250)',
+                        borderRadius: 4,
+                        background: 'var(--theme-input-bg)',
+                        color: 'var(--theme-text)',
+                        outline: 'none',
+                      }}
+                    >
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {showProgramDeptSelector && departments.length > 1 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <label
+                      htmlFor="import-program-dept"
+                      style={{
+                        display: 'block',
+                        marginBottom: 6,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: 'var(--theme-elevation-600)',
+                      }}
+                    >
+                      Department for program
+                    </label>
+                    <select
+                      id="import-program-dept"
+                      value={programDeptId ?? ''}
+                      onChange={(e) => setProgramDeptId(e.target.value ? Number(e.target.value) : undefined)}
                       style={{
                         width: '100%', boxSizing: 'border-box',
                         padding: '10px 12px', fontSize: 14,
@@ -513,9 +653,11 @@ export function ImportButton({
                     <CloseIcon size={20} />
                   </button>
                 </div>
-                <p style={{ fontSize: 14, margin: '0 0 8px' }}>
-                  Created program: <strong>{modal.programTitle}</strong>
-                </p>
+                {modal.mode === 'media-and-program' && (
+                  <p style={{ fontSize: 14, margin: '0 0 8px' }}>
+                    Created program: <strong>{modal.programTitle}</strong>
+                  </p>
+                )}
                 <p style={{ fontSize: 14, margin: '0 0 16px' }}>
                   {modal.mediaCreated} media {modal.mediaCreated === 1 ? 'item' : 'items'} imported.
                 </p>
@@ -541,6 +683,19 @@ export function ImportButton({
                   >
                     Import Another
                   </button>
+                  {modal.mode === 'media-and-program' && (
+                    <button
+                      onClick={handleViewProgram}
+                      style={{
+                        padding: '8px 16px', fontSize: 13, borderRadius: 4,
+                        border: 'none', cursor: 'pointer',
+                        background: 'var(--theme-elevation-800)',
+                        color: 'var(--theme-elevation-0)',
+                      }}
+                    >
+                      View Programs
+                    </button>
+                  )}
                   <button
                     onClick={handleViewProgram}
                     style={{
@@ -550,7 +705,7 @@ export function ImportButton({
                       color: 'var(--theme-elevation-0)',
                     }}
                   >
-                    View Programs
+                    Close
                   </button>
                 </div>
               </>
