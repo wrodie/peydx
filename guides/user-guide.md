@@ -122,13 +122,19 @@ Before you can add images or videos to a program, you need to upload them to the
 6. The folder is automatically assigned based on your current folder selection in the sidebar — this is why selecting the folder first matters.
 7. Click **Save**.
 
+**What happens after you upload:**
+- Images are converted to an efficient **WebP** format — stored at full HD (1920×1080) with a smaller thumbnail version.
+- Videos get a thumbnail image generated automatically, and the duration of videos and audio is detected for you.
+- If you save changes to media later, devices playing programs that use it are notified to update automatically.
+
 ### Organizing Media into Folders
 
 Use the folder sidebar to keep your media organized:
 
 - Your department has a **root media folder** created automatically.
-- Click on any folder in the tree to filter the media list to that folder.
-- The folder tree shows all your department's folders. Click any folder to view its contents.
+- Each folder is either a **media** folder or a **programs** folder — media folders appear in the Media page sidebar, programs folders in the Programs page sidebar.
+- Click on any folder in the tree to filter the list to that folder. Expand and collapse folders using the arrow next to each folder name.
+- Each folder has a **"⋯" (actions)** button that opens a menu with **Add subfolder**, **Rename**, and **Delete**. If you're an admin, you'll also see **All Media** and **Unfiled** views at the top of the tree — **All** shows every item across all departments, and **Unfiled** shows items not assigned to any folder.
 
 > **Best practice: organize with folders.** We strongly recommend creating folders for your content rather than uploading everything into the root folder. A well-organized media library makes it much easier to find content when building programs. Good folder structures might include:
 > - **Weekly lessons**: "Summer 2026" with sub-folders for each week — "Week 1 — Creation", "Week 2 — Noah's Ark", "Week 3 — Moses", etc.
@@ -136,27 +142,25 @@ Use the folder sidebar to keep your media organized:
 > - **Events**: "VBS 2026", "Christmas Program 2026"
 
 **To create a new folder:**
-1. Hover over an existing folder (such as your department root folder) to reveal the **+** button, then click it.
-2. Enter the folder name.
-3. The folder's department is automatically inherited from its parent.
-4. Click **Save**.
+1. Click the **"⋯"** button next to the folder you want the new folder to live inside.
+2. Choose **Add subfolder**. A small inline field appears.
+3. Type the folder name and press **Enter** (or click **OK**). Press **Escape** to cancel.
+4. The folder's department is automatically inherited from its parent.
 
-For example, hover over your department's root media folder, click the **+** button to create a folder called "Summer 2026", then add sub-folders inside it for each week's lesson. This keeps all your weekly visuals, videos, and activity sheets neatly organized.
+For example, click the **"⋯"** button on your department's root media folder, choose **Add subfolder**, and create a folder called "Summer 2026" — then repeat to add sub-folders inside it for each week's lesson. This keeps all your weekly visuals, videos, and activity sheets neatly organized.
 
-Folders can be nested up to 3 levels deep.
+Folders can be nested up to **3 levels deep** (root > level 1 > level 2). At the maximum depth, **Add subfolder** is disabled.
 
 **To rename a folder:**
-1. Hover over the folder name in the sidebar.
-2. Click the **pencil (edit)** icon.
-3. Type the new name and press **Enter** (or **Escape** to cancel).
+1. Click the **"⋯"** button next to the folder and choose **Rename**.
+2. A small inline field appears with the current name selected. Type the new name and press **Enter** (or click away) to save, or press **Escape** to cancel.
 
 **To delete a folder:**
 1. Make sure the folder is **empty** (no media, programs, or sub-folders inside it).
-2. Hover over the folder name in the sidebar.
-3. Click the **trash (delete)** icon.
-4. Click **OK** to confirm deletion.
+2. Click the **"⋯"** button next to the folder and choose **Delete**.
+3. Confirm the deletion.
 
-> **Note:** The delete button is hidden for folders that still contain media files, programs, or sub-folders. Move or delete those contents first, then the folder can be deleted.
+> **Note:** The **Delete** option is hidden for folders that still contain media files, programs, or sub-folders. Move or delete those contents first, then the folder can be deleted.
 
 **To move media to a different folder:**
 1. Click on a media item to edit it.
@@ -173,14 +177,14 @@ If your system has YouTube import enabled, you'll see an **"Import from YouTube"
 2. Paste a YouTube video URL or video ID.
 3. The video will be downloaded and added to your media library. (This may take some time - so please be patient.)
 
-> **Note:** PowerPoint and PDF import are available from both the **Media** and **Programs** pages. Importing from the Media page lets you bring the file's images, videos, and audio into your library — optionally creating a program at the same time. See [Importing PowerPoint and PDF Media](#importing-powerpoint-and-pdf-media) below, and [Importing a PowerPoint File](#importing-a-powerpoint-file) / [Importing a PDF File](#importing-a-pdf-file) in Create & Edit Programs.
-
 ### Importing PowerPoint and PDF Media
 
-You can import a PowerPoint (`.pptx`) or PDF (`.pdf`) file straight into your media library without creating a program. The **Import PPT** and **Import PDF** buttons appear in the header of the Media page.
+> **Note:** PowerPoint and PDF import are available from both the **Media** and **Programs** pages. Importing from the Media page lets you bring the file's images, videos, and audio into your library — optionally creating a program at the same time. See [Importing PowerPoint and PDF Media](#importing-powerpoint-and-pdf-media) below, and [Importing a PowerPoint File](#importing-a-powerpoint-file) / [Importing a PDF File](#importing-a-pdf-file) in Create & Edit Programs.
+
+You can import a PowerPoint (`.pptx`) or PDF (`.pdf`) file straight into your media library without creating a program. The **Import PPTX** and **Import PDF** buttons appear in the header of the Media page.
 
 1. Click **Media** in the top navigation.
-2. Click **Import PPT** or **Import PDF** above the media list.
+2. Click **Import PPTX** or **Import PDF** above the media list.
 3. Select the file from your computer.
 4. Choose what you want to do:
    - **Import media only** (the default on the Media page) — extracts the file's full-screen images, videos, and audio and adds them to your media library. No program is created.
@@ -271,8 +275,20 @@ When you click on a slide in the timeline, the Edit Drawer opens on the right. H
 | Manual (Wait for Click) | All types | Stays until someone advances it via Remote Control or keyboard |
 | On End (Play to Finish) | Video, Audio, YouTube | Advances when the media finishes playing |
 
+**Duration** — The number of seconds to display the slide. Only used in **Timed** advance mode (defaults to 5 seconds).
+
 **Loop Media** (Video, Audio, YouTube only):
 - Check this to loop the media content continuously. The slide won't advance until the advance mode triggers.
+
+**Default advance mode by slide type:**
+
+| Slide Type | Default Advance |
+|---|---|
+| Image | Manual (5 seconds) |
+| Video | On End |
+| YouTube | On End |
+| Audio | On End |
+| Black Screen | Manual |
 
 ### Drag-and-Drop from the Media Browser
 
@@ -288,6 +304,8 @@ You can quickly add slides by dragging media from the browser directly onto the 
    - Video files become **Video Slides**
    - Audio files become **Audio Slides**
 5. Drop the item at a specific position, or onto a segment to add it inside.
+
+> **Tip:** **Ctrl+click** (or **Cmd+click** on Mac) on multiple files in the Media Browser to select them all, then drag them onto the timeline together.
 
 ### Importing a PowerPoint File
 
@@ -354,6 +372,9 @@ If you have multiple files to add at once, use bulk upload:
    - Images: Manual, Fade transition
    - Videos: On End, Fade transition, no loop
    - Audio: On End, Fade transition, no loop
+5. **Press Save** on the program to apply the new slides.
+
+You can also drop files into a segment's **Bulk Media** zone to create the slides inside that segment.
 
 ### Reordering Slides
 
@@ -379,14 +400,15 @@ A Segment is a group of slides that plays together with shared settings.
 | **Loop segment** | When on, the segment's slides repeat continuously |
 | **How to exit this segment** | Follow slides (normal), Timer (auto-exit after N minutes), or Manual (wait for operator) |
 
+Segments cannot be nested — you cannot put a segment inside another segment.
+
 **Adding slides to a segment:**
 - Drag slides from the top level into the segment.
 - Click the **+ Add Slide** button inside the segment.
 - Drop media from the Media Browser directly onto the segment.
 
 **Moving slides between segments:**
-1. Open the slide's Edit Drawer.
-2. Use the **"Move to segment"** dropdown to select a target segment or "Top level."
+- Drag a slide by its **≡** handle from one segment into another (or back to the top level).
 
 **Collapsing/expanding:**
 - Click ![Expand](icons/expand-circle-down.svg) to collapse or ![Expand](icons/expand-circle-right.svg) to expand the segment in the timeline.
@@ -438,7 +460,21 @@ There are two ways a program gets on a device:
 
 When you create a schedule, the program will **automatically begin playing** on the selected devices at the scheduled time — no action needed at the device.
 
-![Schedule](images/schedule_create.png)
+![Schedule Calendar](images/schedule_grid.png)
+
+### Calendar View
+
+The Schedules page shows a **week calendar** instead of a plain list:
+
+- **Grid** — 7 columns (Mon–Sun) × time rows. Use the time-range dropdown to switch between **06:00–22:00** (default), **00:00–24:00**, and **08:00–18:00**.
+- **Schedule blocks** — each scheduled program is a colored block positioned on its day and time. The color shows its priority: **blue** = Normal, **amber** = High, **red** = Override. A **↻** prefix marks weekly recurring schedules.
+- **Week navigation** — use the **‹ Prev / Next ›** arrows or the date picker to change the week shown; **Today** jumps back to the current week.
+- **Device filter** — use the multi-select dropdown to narrow the calendar to specific devices (Ctrl/Cmd+click to select more than one).
+- **One-time events** — one-off schedules in the displayed week appear on their date in the grid; one-offs outside the week are listed below the grid under "One-time events (outside this week)".
+- **Overlaps** — if two same-priority schedules overlap on the same device and day, both blocks get a dashed white border with a red outline. The system normally blocks saving same-priority overlaps, so this mainly visualizes any that predate the rule.
+- **Click a block** to open that schedule's edit form. The **+ Create** button opens the create form.
+
+![Create Schedule](images/schedule_create.png)
 
 ### Creating a Schedule
 
@@ -540,7 +576,7 @@ Use the device dropdown to select which device you want to control. If you came 
 
 When a program is actively playing on the selected device, you'll see:
 
-- **Status badge**: PLAYING (green dot)
+- **Status badge** — PLAYING (green). When the device is showing its menu or idle, the badge shows **MENU** (amber) or **IDLE/OFFLINE** (gray).
 - **Slide preview**: A thumbnail of the current slide
 - **Slide position**: "Slide N of Total"
 
