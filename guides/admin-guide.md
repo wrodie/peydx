@@ -4,18 +4,14 @@
 
 1. [System Overview](#system-overview)
 2. [Navigation](#navigation)
-3. [Dashboard](#dashboard)
+3. [User Workflows](#user-workflows)
 4. [Managing Departments](#managing-departments)
 5. [Managing Users](#managing-users)
 6. [Managing Folders](#managing-folders)
 7. [Managing Devices](#managing-devices)
-8. [Media Management](#media-management)
-9. [Programs](#programs)
-10. [Schedules](#schedules)
-11. [Integrations](#integrations)
-12. [Settings](#settings)
-13. [Remote Control](#remote-control)
-14. [Health Dashboard](#health-dashboard)
+8. [Integrations](#integrations)
+9. [Updates](#updates)
+10. [Health Dashboard](#health-dashboard)
 
 ---
 
@@ -52,7 +48,7 @@ Everything in the system is scoped by **departments**. A department represents a
 | Delete programs | Yes | Within their departments | Within their departments |
 | Create and edit schedules | Yes | Within their departments | Within their departments |
 | Delete schedules | Yes | Within their departments | Within their departments |
-| Access Settings and Integrations | Yes | No | No |
+| Access Integrations and Updates | Yes | No | No |
 | Push software updates | Yes | No | No |
 | Use Remote Control | Yes | Yes (devices in their departments) | Yes (devices in their departments) |
 
@@ -62,59 +58,34 @@ Everything in the system is scoped by **departments**. A department represents a
 
 ![Navigation](images/menu_bar.png)
 
-The top navigation bar provides quick access to all major sections:
+Day-to-day navigation is shared by all users and is documented in the [User Guide](../guides/user-guide.md#navigation). As an admin you additionally see an **Admin** dropdown in the top-right, with these text-only items (no icons):
 
-| Icon | Label | Description |
-|---|---|---|
-| ![Home](icons/home.svg) | Home | All users | Dashboard with device status, programs, and schedules |
-| ![Media](icons/photo-library.svg) | Media | All users | Upload and manage media files |
-| ![Programs](icons/slideshow.svg) | Programs | All users | Create and edit slide programs |
-| ![Schedules](icons/calendar-month.svg) | Schedules | All users | Schedule programs on devices |
-| ![Remote Control](icons/remote-gen.svg) | Remote Control | All users | Control what's playing on devices |
-| ![Admin](icons/settings.svg) | Admin | Admins only | Dropdown with Departments, Folders, Users, Devices, Integrations, and Settings (text items, no icons) |
-| ![Users](icons/group.svg) | Users | Managers only | Create and manage Standard users in your departments |
-| ![Account](icons/person.svg) | Account | All users | Change your name, email, or password |
+| Item | Description |
+|---|---|
+| **Departments** | Create, edit, and delete departments (each gets root media and programs folders) |
+| **Folders** | Browse and manage all folders across departments |
+| **Users** | Create, edit, and delete user accounts |
+| **Devices** | Create, edit, and delete devices |
+| **Integrations** | Manage API keys for external systems |
+| **Updates** | Deploy server versions and push software updates to devices |
+| **Device Health Dashboard** | Live status of all devices |
+
+The **Account** menu (person icon) lets any user change their name, email, or password.
 
 ---
 
-## Dashboard
+## User Workflows
 
-![Dashboard](images/dashboard.png)
+Most day-to-day tasks are the same for every role and are documented in the [User Guide](../guides/user-guide.md). Use those as the primary references and share them with your users:
 
-The Dashboard is your home page. It shows three or four sections, all filtered by your departments.
-
-### Devices Section
-
-Displays cards for each device in your departments. Each card shows:
-
-- **Status indicator**: Green dot = Online, Amber dot = Stale, Gray dot = Offline
-- **Device name**
-- **Current program** (or "--" if none)
-- **Remote Control** button — links directly to the Remote Control page for that device
-
-Status updates in real-time via WebSocket.
-
-### Available Programs Section
-
-Shows programs that have an active availability window (availableFrom is past or absent, and availableUntil is future or absent). Programs with no availability dates set at all are excluded.
-
-Each card shows:
-- Thumbnail (first slide's image, video thumbnail, or icon)
-- Title
-- Slide count (with loop badge if looping)
-- Links to the program edit page
-
-### Upcoming Programs Section
-
-Only shown when there are programs becoming available within the next 2 days.
-
-### Upcoming Automated Schedules Section
-
-Shows upcoming schedules with:
-- Program title
-- Device names
-- Day-of-week pills (Mon, Tue, etc.)
-- Time range (start time — end time)
+| Topic | Where to find it |
+|---|---|
+| Dashboard | [User Guide — Dashboard](../guides/user-guide.md#dashboard) |
+| Uploading & organizing media (folders, YouTube import, PowerPoint/PDF import) | [User Guide — Upload & Organize Media](../guides/user-guide.md#upload--organize-media) |
+| Creating and editing programs | [User Guide — Create & Edit Programs](../guides/user-guide.md#create--edit-programs) |
+| Scheduling programs on devices (calendar view, priorities, recurring) | [User Guide — Schedule Programs to Devices](../guides/user-guide.md#schedule-programs-to-devices) |
+| Remote Control | [User Guide — Remote Control](../guides/user-guide.md#remote-control) |
+| Changing your password | [User Guide — Changing Your Password](../guides/user-guide.md#changing-your-password) |
 
 ---
 
@@ -190,55 +161,11 @@ A user can be assigned to multiple departments. They will see and manage content
 
 ![Media Browser](images/folder-tree.png)
 
-Folders provide hierarchical organization for Media and Programs, scoped per department. Each folder is either a **media** folder or a **programs** folder.
+Folder management — creating, renaming, deleting folders, and the folder sidebar — is a shared capability documented in the [User Guide](../guides/user-guide.md#upload--organize-media) (see "Organizing Media into Folders"). This section covers the admin-specific notes.
 
-### Folder Tree
-
-- The folder tree appears as a sidebar on the **Media** and **Programs** list views.
-- **"All Media"** / **"All Programs"** — shows all items across your departments (admins only — not visible to managers or standard users)
-- **"Unfiled"** — shows items not assigned to any folder (admins only — not visible to managers or standard users)
-- Expand/collapse arrows on folders with children
-- The selected folder filters the list
-- Each folder has a **"⋯" (actions)** button that opens a context menu with **Add subfolder**, **Rename**, and **Delete** (the "⋯" button and menu are fully keyboard and touch accessible — `Tab` to focus, `Enter`/`Space` to activate, `Escape` to close)
-
-### Managing Folders
-
-#### Creating Folders
-
-1. In the folder sidebar, click the **"⋯"** button next to a folder and choose **Add subfolder** (or double-click a folder name to rename it inline).
-2. Enter the folder name.
-3. Select the folder type (media or programs).
-4. Choose a parent folder (required).
-5. Click **Save**.
-
-**Rules:**
-- Folders can be nested up to **3 levels deep** (root > level 1 > level 2).
-- At the maximum depth, **Add subfolder** is disabled and shows the tooltip "Maximum folder depth reached (3 levels)".
-- A folder's department is automatically inherited from its parent. Root folders are auto-created per department — non-admin users cannot create root-level folders.
-- You cannot delete a folder that contains items or sub-folders.
-
-#### Renaming Folders
-
-1. Click the **"⋯"** button next to the folder and choose **Rename** (or double-click the folder name).
-2. Type the new name.
-3. Press **Enter** to save, or **Escape** to cancel.
-
-#### Deleting Folders
-
-1. Click the **"⋯"** button next to the folder.
-2. If the folder is **empty** (no sub-folders, media, or programs inside it), the **Delete** option is available.
-3. Click **Delete** and confirm.
-4. The folder and its contents cannot be recovered.
-
-> **Note:** Folders with contents do not show the delete button. You must move or delete the contents first before the folder can be deleted.
-
-### Moving Items Between Folders
-
-1. Edit a media item or program.
-2. In the sidebar, change the **Folder** field.
-3. Click **Save**.
-
-Note: The Folder field is hidden during creation (auto-assigned from your current folder selection) and visible during editing.
+- Root **media** and **programs** folders are created automatically when a department is created. Non-admin users cannot create root-level folders — they create sub-folders only.
+- The **All Media** / **All Programs** and **Unfiled** entries at the top of the folder tree are admin-only views: **All** shows every item across all departments, and **Unfiled** shows items not assigned to any folder.
+- Folders nest up to **3 levels deep**. Deleting a folder requires it to be empty (no sub-folders, media, or programs inside).
 
 ---
 
@@ -299,399 +226,17 @@ A device can be set to mirror another device. When configured:
 - Only one level of mirroring is supported — you cannot chain mirrors (Device A controls Device B which controls Device C).
 - When the controlling device's program or slide changes, the mirror updates in real-time via WebSocket.
 
-> [!NOTE]   
-> This works by essentially sending the same command to both devices, so timing on each device may not be exact. - Don't expect the video to be synced to the frame.
+> [!NOTE]
+> This works by essentially sending the same command to both devices, so timing on each device may not be exact. Don't expect the video to be synced to the frame.
 
 ### Pushing Updates
 
 Admins can push software updates to devices:
 
-- **Single device**: On the **Settings** page, find the device in the "Update Client Devices" table and click its **Update** button. The device will download and install the latest player version.
-- **All devices**: On the **Settings** page, click **Push Latest to All Devices** to update every connected device at once.
+- **Single device**: On the **Updates** page, find the device in the "Update Client Devices" table and click its **Update** button. The device will download and install the latest player version.
+- **All devices**: On the **Updates** page, click **Push Latest to All Devices** to update every connected device at once.
 
 Devices with type "Hardware (sync agent)" receive the update; browser devices update automatically via version polling.
-
----
-
-## Media Management
-
-![Media](images/media-list.png)
-
-The Media collection stores all uploaded images, videos, and audio files used in slide programs.
-
-### Media List View
-
-The media list has a folder sidebar on the left and a table on the right. The table shows:
-
-| Column | Description |
-|---|---|
-| Thumbnail + Name | A thumbnail preview and display name |
-| Filesize | Human-readable file size (KB, MB, etc.) |
-| Duration | Length in m:ss or h:mm:ss format (videos and audio) |
-| Updated At | Last modification timestamp |
-
-### Uploading Media
-
-1. Navigate to **Media** in the top navigation.
-2. Click **Create** (or drag files onto the list view).
-3. Select a file from your computer. Supported types:
-   - **Images** — Automatically converted to WebP format for efficiency
-   - **Videos** — Duration is auto-extracted; thumbnails auto-generated
-   - **Audio** — Duration is auto-extracted
-4. Optional: Enter a **Display Name**. If left blank, the filename (without extension) is used automatically.
-5. The **Folder** field is hidden on creation and auto-assigned based on your current folder selection in the sidebar.
-6. Click **Save**.
-
-After uploading:
-- Images are converted to WebP (quality 80) and sized to fullHD (1920x1080, cropped) and thumbnail (400x300, contained).
-- Videos get a thumbnail image auto-generated via ffmpeg.
-- Video and audio duration is extracted via ffprobe.
-
-### Editing Media
-
-After saving, you can edit a media item to:
-- Change the display name
-- Change the folder assignment (the Folder field becomes visible on edit)
-- Replace the file
-
-When you save changes to media, the system automatically notifies all devices playing programs that use this media via WebSocket, so they can update their content.
-
-### Deleting Media
-
-When you delete a media item:
-- The system scans all programs and removes references to the deleted media from slide blocks and bulk media arrays.
-- All devices that were playing affected programs are notified to update their schedules.
-
-This means you can safely delete media — the system cleans up program references automatically. However, programs that had this media in slides will have those slides become empty.
-
-### Importing from YouTube
-
-If the system is configured with `YOUTUBE_DOWNLOAD_ENABLED=true`, you'll see an **"Import from YouTube"** button above the media table:
-
-1. Click **Import from YouTube**.
-2. Paste a YouTube video URL or ID.
-3. The video is downloaded, converted to MP4, and added as a new media item.
-
-If YouTube import is not enabled, YouTube content can still be used via the YouTube slide type in programs (which embeds the video via iframe).
-
-### Importing from PowerPoint
-
-The **Import PPTX** button appears on both the **Programs** and **Media** list views. Importing a `.pptx` file extracts the full-screen images, videos, and audio into the media library and can optionally create a program. On the Programs list the default is to create a program; on the Media list the default is to import media only — and when a folder is selected, the media is placed directly into that folder (otherwise into a subfolder named after the file).
-
-When a user belongs to multiple departments, they choose a **Department for media** and a **Department for program** separately.
-
-See the [User Guide — Importing a PowerPoint File](../guides/user-guide.md#importing-a-powerpoint-file) for step-by-step instructions.
-
-**Technical details:**
-- Header button order on the Media list: **Create New → Bulk Upload → Import PDF → Import PPT → Import from YouTube**. On the Programs list: **Create New → Import PDF → Import PPT**.
-- Files over 90 MB are automatically split into 80 MB chunks for upload (necessary when the server sits behind Cloudflare's free-tier 100 MB upload limit). Chunks are stored temporarily in the server's `/tmp` directory and reassembled on the final chunk.
-- Incompatible codecs (EMF, WMF, WMV) are automatically skipped with logged warnings.
-- Audio tracks set to "play across slides" (`numSld > 1` in the PPTX timing tree) are wrapped in a Segment block with background audio (media-and-program mode only).
-- The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content (media-only import into a selected folder on the Media page goes directly into that folder instead).
-- Thumbnail generation and duration extraction run in the background after the import completes.
-- Media-only import skips program creation entirely.
-
-### Importing from PDF
-
-The **Import PDF** button appears on both the **Programs** and **Media** list views. Importing a `.pdf` file renders each page as an image in the media library and can optionally create a program. On the Programs list the default is to create a program; on the Media list the default is to import media only — and when a folder is selected, the media is placed directly into that folder (otherwise into a subfolder named after the file).
-
-When a user belongs to multiple departments, they choose a **Department for media** and a **Department for program** separately.
-
-See the [User Guide — Importing a PDF File](../guides/user-guide.md#importing-a-pdf-file) for step-by-step instructions.
-
-**Technical details:**
-- Header button order on the Media list: **Create New → Bulk Upload → Import PDF → Import PPT → Import from YouTube**. On the Programs list: **Create New → Import PDF → Import PPT**.
-- Each page is rendered to a PNG image at 1920px wide using `pdftoppm` (poppler-utils, installed in the server Docker image), then imported as a media item.
-- Pages are created as Image slides with `advanceMode: "manual"` and a fade transition (media-and-program mode only).
-- Files over 90 MB are automatically split into 80 MB chunks for upload (necessary when the server sits behind Cloudflare's free-tier 100 MB upload limit). Chunks are stored temporarily in the server's `/tmp` directory and reassembled on the final chunk.
-- Text, shapes, and vector graphics are flattened into the rendered page image — they cannot be edited in PeydX after import.
-- The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content (media-only import into a selected folder on the Media page goes directly into that folder instead).
-- Media-only import skips program creation entirely.
-
-### Organizing Media with Folders
-
-Use the folder sidebar to browse and create media folders. See [Managing Folders](#managing-folders) for details on folder organization.
-
----
-
-## Programs
-
-Programs are the core content entity — a sequence of slides that plays on devices. Think of a program as a presentation or playlist.
-
-### Program List View
-
-![Program List](images/program-list.png)
-
-The programs list has a folder sidebar (programs-type folders) on the left and a table on the right. The table shows:
-
-| Column | Description |
-|---|---|
-| Title | Program title |
-| Updated At | Last modification timestamp |
-| Created By | The user who created the program |
-
-### Creating a Program
-
-1. Navigate to **Programs** in the top navigation.
-2. Click **Create**.
-3. Enter a **Title** (required) — this appears in schedules, the dashboard, and on devices.
-4. The **Folder** field is hidden on creation and auto-assigned based on your current folder selection.
-5. Click **Save** to create the program, then add slides.
-
-Alternatively, you can create a program by importing a PowerPoint or PDF file — see [Importing from PowerPoint](#importing-from-powerpoint) or [Importing from PDF](#importing-from-pdf).
-
-### Program Editor Layout
-
-![Program Edit](images/program-edit.png)
-
-The program editor has three panels:
-
-| Panel | Position | Purpose |
-|---|---|---|
-| **Media Browser** | Left (360px, collapsible) | Browse and drag media onto the timeline |
-| **Program Timeline** | Center | View and reorder slides |
-| **Sidebar** | Right  | Edit Program properties |
-
-### Adding Slides
-
-Click **"+ Add Slide"** in the timeline header to choose a slide type:
-
-| Slide Type | Icon | Description |
-|---|---|---|
-| Image Slide | ![Image](icons/image.svg) | Displays an image |
-| Video Slide | ![Video](icons/movie.svg) | Plays a video file |
-| YouTube Slide | ![YouTube](icons/youtube.svg) | Embeds a YouTube video |
-| Audio Slide | ![Audio](icons/music-note.svg) | Plays audio with a speaker icon on screen |
-| Black Screen Slide | ![Black Screen](icons/capture.svg) | Displays a solid black screen |
-| Segment | ![Segment](icons/folder.svg) | A container that groups slides with its own settings |
-
-For all slide types except Black Screen, the Slide Edit Drawer opens automatically so you can configure the slide. Black Screen slides are added with default settings (Fade transition, Manual advance) and don't require further configuration.
-
-The drawer footer has two buttons:
-- **Done** — saves your changes.
-- **Cancel** — discards any changes and closes the drawer. Pressing `Escape` or clicking the dimmed backdrop also discards changes (if you've made any). This prevents accidentally saving an empty/default slide when you open the drawer by mistake.
-
-### Slide Properties
-
-Each slide has the following properties, configurable in the Edit Drawer:
-
-| Property | Options | Description |
-|---|---|---|
-| **Transition** | Fade In, Instant Cut, Slide Left | How the slide appears on screen |
-| **Advance Mode** | Timed, Manual, On End | When to move to the next slide |
-| **Duration** | Number (seconds) | How long to display the slide (only for Timed mode, defaults to 5 seconds) |
-| **Loop Media** | Checkbox | Whether to loop the video/audio/YouTube content |
-
-**Advance Mode details:**
-- **Timed (Automatic)** — The slide advances after the specified number of seconds.
-- **Manual (Wait for Click)** — The slide stays until the operator advances it via Remote Control or the device keyboard.
-- **On End (Play to Finish)** — Available for video, audio, and YouTube slides only. The slide advances when the media finishes playing.
-
-### Slide Types in Detail
-
-**Image Slide:**
-- Select an image from the media library.
-- Default advance: Manual, 5 seconds.
-- Advance modes: Timed, Manual.
-
-**Video Slide:**
-- Select a video from the media library.
-- Default advance: On End.
-- Advance modes: Timed, Manual, On End.
-- Optional loop toggle.
-
-**YouTube Slide:**
-- Enter a YouTube URL or video ID. Supported formats: full YouTube URLs (`youtube.com/watch?v=`, `youtu.be/`, `youtube.com/embed/`), or an 11-character video ID.
-- The video title is auto-fetched and displayed.
-- A thumbnail preview is shown.
-- Default advance: On End.
-- Advance modes: Timed, Manual, On End.
-- Optional loop toggle.
-
-**Audio Slide:**
-- Select an audio file from the media library.
-- Shows a speaker icon on the display screen.
-- Default advance: On End.
-- Advance modes: Timed, Manual, On End.
-- Optional loop toggle.
-
-**Black Screen:**
-- No media selection needed.
-- Default advance: Manual.
-- Advance modes: Timed, Manual.
-- Useful as a transition or end slide.
-
-### Segments
-
-![Segment](images/segment-edit.png)
-
-A Segment is a container that groups slides together with shared settings:
-
-| Property | Description |
-|---|---|
-| **Segment Name** | Display name (editable inline by double-clicking) |
-| **Background Audio** | Optional audio file that plays while the segment is active |
-| **Loop segment** | When enabled, the segment's slides loop within the segment |
-| **How to exit this segment** | How the segment ends: "Follow slides" (normal sequencing), "Timer" (auto-exit after N minutes), or "Manual" (wait for operator) |
-| **Duration** | Minutes until auto-exit (only shown when Exit Mode is "Timer") |
-
-Segments cannot be nested — you cannot put a segment inside another segment.
-
-### Drag-and-Drop
-
-**From the Media Browser:**
-1. Open the Media Browser panel (click the expand button if collapsed).
-2. Browse folders and search for media.
-3. Drag a media item onto the timeline — it automatically creates the correct slide type (image, video, or audio).
-4. Drop onto a position to insert, or onto a segment to add inside it.
-
-> **Tip:** Ctrl+click (or Cmd+click on Mac) on multiple files in the Media Browser to multi-select them, then drag them all onto the timeline at once.
-
-**Reordering slides:**
-- Drag slides by the ≡ handle on the left side of each slide card.
-- Drop them at the new position.
-
-**Moving slides between segments:**
-- Drag a slide from one segment into another using the ≡ handle.
-
-### Bulk Media Upload
-
-In the program sidebar, you'll find a **Bulk Media** upload zone:
-1. Drop or select multiple files.
-2. Each file is automatically converted to the appropriate slide type (image, video, or audio) and appended to the timeline.
-3. The Save button must be pressed to import the media.
-4. The bulk media field is cleared after processing.
-
-Bulk media can also be added inside segments, creating slides within that segment.
-
-### Import Program
-
-1. Click **"Import Program"** in the timeline header.
-2. A modal opens showing other programs you can import from.
-3. Search for a program by title.
-4. Click on a program to import all its slides into your current program.
-5. Slides are appended to the end of the timeline.
-
-### Export PPTX
-
-Click **"Export PPTX"** in the timeline header to download the program as a PowerPoint file. Only visible on saved programs.
-
-### Program Sidebar Settings
-
-![Program Sidebar](images/program-sidebar.png)
-
-When editing a program, the sidebar contains important settings:
-
-| Field | Description |
-|---|---|
-| **Title** | Program name (required) |
-| **Preview Link** | Opens a full-screen preview of the program |
-| **Folder** | Which programs folder this belongs to (visible on edit only) |
-| **Bulk Media** | Drop zone for auto-generating slides |
-| **Loop** | When enabled, the program repeats from the beginning after the last slide |
-| **Auto-black end slide** | Automatically adds a black screen (manual advance) at the end. Default: on. Only applies when Loop is off. |
-| **Available From** | Date when the program becomes available for manual device selection |
-| **Available Until** | Date when the program stops being available. Leave blank for indefinite. |
-| **Available Devices** | Which devices can manually select this program from their menu |
-
-**About the auto-black end slide:** When enabled and the program is not set to loop, the system automatically adds a black screen at the end with "Manual" advance mode. This prevents the program from unexpectedly cycling. The end slide is not persisted — it's generated on read and stripped on save.
-
-### Deleting Programs
-
-Admins and users in the program's department can delete programs. When a program is deleted, all devices that were using it (via schedules or manual selection) are notified via WebSocket.
-
----
-
-## Schedules
-
-Schedules determine when and on which devices programs play. There are two ways a program ends up on a device:
-
-- **Scheduled (automatic)** — A schedule tells the device to start playing a program at a specific time. The program begins automatically — no one needs to be at the device.
-- **Available (manual)** — By adding a device to a program's "Available Devices" list, the program appears in the device's on-screen menu. An operator can then select it using Remote Control or the device's keyboard.
-
-When you create a schedule, the program will **automatically begin playing** on the selected devices at the scheduled time.
-
-### Schedule Calendar View
-
-The Schedules page shows a **week-grid calendar** instead of a plain list:
-
-- **Grid** — 7 columns (Mon–Sun) × time rows. The default time range is 6:00–22:00; use the dropdown to switch to 0:00–24:00 or 8:00–18:00.
-- **Schedule blocks** — Each scheduled block is positioned on its day and time, color-coded by priority:
-  - **Normal** — blue
-  - **High** — amber
-  - **Override** — red
-- **Recurring indicator** — a "↻" prefix marks weekly recurring schedules.
-- **One-time events** — one-off schedules within the current week appear on their date; one-off schedules outside the current week are listed in a "One-time events" section below the grid.
-- **Overlap indication** — if two schedules at the same priority overlap on the same device+day, both blocks are shown with a red dashed/striped border (the backend normally prevents saving same-priority overlaps, but this visualizes any that predate the constraint).
-- **Device filter** — use the multi-select dropdown to narrow the calendar to specific devices (Ctrl/Cmd+click to select multiple).
-- **Click a block** to open that schedule's edit form. The **+ Create** button opens the create form.
-
-### Creating a Schedule
-
-1. Navigate to **Schedules** in the top navigation.
-2. Click **Create**.
-3. Fill in the fields:
-   - **Program** — Select from programs in your departments.
-   - **Devices** — Select one or more devices in your departments.
-   - **Priority** — Choose **Normal**, **High**, or **Override** (admin only). Higher priority schedules take precedence when multiple schedules overlap on the same device. See [Schedule Priority](#schedule-priority) below. Priority is also shown as a column in the schedule list.
-   - **Start Time** — Date and time the program starts (15-minute intervals).
-   - **End Time** — Date and time the program stops (defaults to 1 hour after start).
-   - **Days of Week** — Select days for weekly recurrence, or leave empty for a one-off event.
-   - **Until Date** — Optional end date for recurring schedules.
-4. The **Department** field is hidden and auto-inferred from the selected program's folder.
-5. Click **Save**.
-
-### One-Off vs Recurring Schedules
-
-**One-off event:**
-- Leave the "Days of Week" field empty.
-- The program plays once on the specified start date and time.
-
-**Weekly recurring:**
-- Select one or more days of the week (Monday through Sunday).
-- The program plays every week on those days at the specified time.
-- The date portion of "Start Time" is ignored — only the time-of-day matters.
-- Optionally set an "Until Date" to end the recurrence on a specific date (e.g., for seasonal content).
-
-### Schedule Priority
-
-Every schedule has a **priority level** that determines which program plays when multiple schedules overlap on the same device:
-
-| Priority | Value | Who can set | When to use |
-|---|---|---|---|
-| **Normal** | Default | All users | Everyday recurring schedules (e.g., Mon–Fri 9–5 signage) |
-| **High** | Overrides Normal | All users | Temporary exceptions — one-off events that should play instead of the Normal schedule within their time window |
-| **Override** | Overrides Normal & High | Admins only | Full takeovers — holidays, emergencies, system-wide announcements |
-
-**How the device resolves schedules:**
-1. All active schedules for the device are gathered (matching day-of-week, date, time window).
-2. Schedules are grouped by priority level. The highest priority group is tried first.
-3. If any schedule in that group is currently active, it plays. If not, the next priority level is checked.
-4. Within the same priority level, the schedule with the latest start time wins.
-
-**Slot replacement in practice:**
-- A High or Override schedule runs only during its own time window. Once it ends, lower-priority schedules resume automatically.
-- Example: A Normal schedule runs Mon–Fri 9:00–17:00. An admin creates an Override schedule for Thursday 12:00–13:00. The Override plays at noon Thursday; the Normal schedule resumes at 1 PM.
-
-### Overlap Detection
-
-Overlap detection only applies **within the same priority level**. Schedules of different priorities can freely overlap — this is by design so that High and Override schedules can coexist with Normal ones.
-
-If you save a schedule that overlaps with an existing one **at the same priority** on the same device, you'll see:
-
-> "This entry overlaps with an existing schedule on one of the selected devices."
-
-To resolve this:
-- Raise the new schedule's priority to allow coexistence.
-- Adjust the start/end times.
-- Change the days of the week.
-- Select different devices.
-
-### Deleting Schedules
-
-Admins, managers, and standard users can delete schedules within their departments.
-
-When a schedule is created, updated, or deleted, all affected devices are notified via WebSocket in real-time.
 
 ---
 
@@ -746,58 +291,9 @@ The page includes a device table showing each device's Name, Type, Status, and c
 
 ---
 
-## Remote Control
-
-![Remote Control](images/remote_control.png)
-
-Remote Control lets you take manual control of what's playing on any device in your departments.
-
-### Accessing Remote Control
-
-- Click **Remote Control** in the top navigation, or
-- From the Dashboard, click the "Remote Control" button on a device card.
-
-### Selecting a Device
-
-Use the device dropdown to select a device. You can also arrive with a device pre-selected via the Dashboard link (`?device={id}`).
-
-### When a Program Is Playing
-
-The display shows:
-- **Status badge**: PLAYING (green), MENU (amber), IDLE/OFFLINE (gray)
-- **Slide preview**: Current slide thumbnail or icon
-- **Slide counter**: "Slide N of Total"
-
-**Playback controls:**
-
-| Button | Action |
-|---|---|
-| ![Prev](icons/skip-previous.svg) Prev | Go to previous slide |
-| ![Pause](icons/pause.svg) Pause | Pause/resume the current slide |
-| Next ![Next](icons/skip-next.svg) | Advance to next slide (or end program if on last slide) |
-| ![Stop](icons/stop.svg) End Program | Stop the program entirely (confirmation required) |
-
-**Slide thumbnail strip:**
-- A horizontal scrollable strip of all slides in the current program.
-- The current slide has a blue border.
-- Click any thumbnail to jump directly to that slide.
-
-### When No Program Is Playing (Idle)
-
-- A program selector dropdown shows:
-  - Programs from the device's schedules
-  - Programs that have this device listed in "Available Devices"
-- Click **Load Program** to start it on the device.
-
-### Real-Time Updates
-
-Device status and slide position update in real-time via WebSocket. You don't need to refresh the page to see changes.
-
----
-
 ## Health Dashboard
 
-An admin-only page showing live status of all devices, with summary counters at the top (e.g. "Online: 3 / Stale: 1 / Offline: 0"). Navigate via **Admin > Health** in the top navigation bar.
+An admin-only page showing live status of all devices, with summary counters at the top (e.g. "Online: 3 / Stale: 1 / Offline: 0"). Navigate via **Admin > Device Health Dashboard** in the top navigation bar.
 
 ![Health Dashboard](images/health.png)
 
