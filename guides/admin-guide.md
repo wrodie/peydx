@@ -376,29 +376,37 @@ If YouTube import is not enabled, YouTube content can still be used via the YouT
 
 ### Importing from PowerPoint
 
-The **Import PPTX** button appears on the Programs list view (not the Media list). This is because importing a `.pptx` file creates both media items and a program.
+The **Import PPTX** button appears on both the **Programs** and **Media** list views. Importing a `.pptx` file extracts the full-screen images, videos, and audio into the media library and can optionally create a program. On the Programs list the default is to create a program; on the Media list the default is to import media only — and when a folder is selected, the media is placed directly into that folder (otherwise into a subfolder named after the file).
+
+When a user belongs to multiple departments, they choose a **Department for media** and a **Department for program** separately.
 
 See the [User Guide — Importing a PowerPoint File](../guides/user-guide.md#importing-a-powerpoint-file) for step-by-step instructions.
 
 **Technical details:**
+- Header button order on the Media list: **Create New → Bulk Upload → Import PDF → Import PPT → Import from YouTube**. On the Programs list: **Create New → Import PDF → Import PPT**.
 - Files over 90 MB are automatically split into 80 MB chunks for upload (necessary when the server sits behind Cloudflare's free-tier 100 MB upload limit). Chunks are stored temporarily in the server's `/tmp` directory and reassembled on the final chunk.
 - Incompatible codecs (EMF, WMF, WMV) are automatically skipped with logged warnings.
-- Audio tracks set to "play across slides" (`numSld > 1` in the PPTX timing tree) are wrapped in a Segment block with background audio.
-- The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content.
+- Audio tracks set to "play across slides" (`numSld > 1` in the PPTX timing tree) are wrapped in a Segment block with background audio (media-and-program mode only).
+- The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content (media-only import into a selected folder on the Media page goes directly into that folder instead).
 - Thumbnail generation and duration extraction run in the background after the import completes.
+- Media-only import skips program creation entirely.
 
 ### Importing from PDF
 
-The **Import PDF** button appears on the Programs list view (not the Media list). This is because importing a `.pdf` file creates both media items and a program.
+The **Import PDF** button appears on both the **Programs** and **Media** list views. Importing a `.pdf` file renders each page as an image in the media library and can optionally create a program. On the Programs list the default is to create a program; on the Media list the default is to import media only — and when a folder is selected, the media is placed directly into that folder (otherwise into a subfolder named after the file).
+
+When a user belongs to multiple departments, they choose a **Department for media** and a **Department for program** separately.
 
 See the [User Guide — Importing a PDF File](../guides/user-guide.md#importing-a-pdf-file) for step-by-step instructions.
 
 **Technical details:**
+- Header button order on the Media list: **Create New → Bulk Upload → Import PDF → Import PPT → Import from YouTube**. On the Programs list: **Create New → Import PDF → Import PPT**.
 - Each page is rendered to a PNG image at 1920px wide using `pdftoppm` (poppler-utils, installed in the server Docker image), then imported as a media item.
-- Pages are created as Image slides with `advanceMode: "manual"` and a fade transition.
+- Pages are created as Image slides with `advanceMode: "manual"` and a fade transition (media-and-program mode only).
 - Files over 90 MB are automatically split into 80 MB chunks for upload (necessary when the server sits behind Cloudflare's free-tier 100 MB upload limit). Chunks are stored temporarily in the server's `/tmp` directory and reassembled on the final chunk.
 - Text, shapes, and vector graphics are flattened into the rendered page image — they cannot be edited in PeydX after import.
-- The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content.
+- The system creates a dedicated media subfolder for the imported files, keeping them organized separately from other content (media-only import into a selected folder on the Media page goes directly into that folder instead).
+- Media-only import skips program creation entirely.
 
 ### Organizing Media with Folders
 
