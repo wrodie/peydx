@@ -173,7 +173,31 @@ If your system has YouTube import enabled, you'll see an **"Import from YouTube"
 2. Paste a YouTube video URL or video ID.
 3. The video will be downloaded and added to your media library. (This may take some time - so please be patient.)
 
-> **Note:** PowerPoint and PDF import are available from the **Programs** page. See [Importing a PowerPoint File](#importing-a-powerpoint-file) and [Importing a PDF File](#importing-a-pdf-file) in the Create & Edit Programs section.
+> **Note:** PowerPoint and PDF import are available from both the **Media** and **Programs** pages. Importing from the Media page lets you bring the file's images, videos, and audio into your library — optionally creating a program at the same time. See [Importing PowerPoint and PDF Media](#importing-powerpoint-and-pdf-media) below, and [Importing a PowerPoint File](#importing-a-powerpoint-file) / [Importing a PDF File](#importing-a-pdf-file) in Create & Edit Programs.
+
+### Importing PowerPoint and PDF Media
+
+You can import a PowerPoint (`.pptx`) or PDF (`.pdf`) file straight into your media library without creating a program. The **Import PPT** and **Import PDF** buttons appear in the header of the Media page.
+
+1. Click **Media** in the top navigation.
+2. Click **Import PPT** or **Import PDF** above the media list.
+3. Select the file from your computer.
+4. Choose what you want to do:
+   - **Import media only** (the default on the Media page) — extracts the file's full-screen images, videos, and audio and adds them to your media library. No program is created.
+   - **Import media and create a program** — does the above and also creates a new program with the slides laid out in order.
+5. If you belong to multiple departments:
+   - In **media only** mode you choose the **Department for media**. If you have a folder selected in the sidebar, that folder is used instead and no department choice is shown.
+   - In **media and program** mode you choose a **Department for media** and a **Department for program**.
+6. Click **Import**.
+
+**Where the media goes:**
+- If you imported **media only** while a folder was selected, the files are placed directly into that folder.
+- Otherwise, the files go into a **subfolder named after your file** (for example "My Presentation") inside the destination department — keeping imported content separate from the rest of your library.
+- When you also create a program, it is placed in the **programs root folder** of the program's department.
+
+> **Tips:**
+> - Depending on the file size, importing may take some time — the progress bar shows you what's happening.
+> - Files over 90 MB are automatically split into chunks for upload. You'll see an "Uploading" progress step before the import begins. A **Cancel** button lets you abort the upload at any time.
 
 ---
 
@@ -267,19 +291,19 @@ You can quickly add slides by dragging media from the browser directly onto the 
 
 ### Importing a PowerPoint File
 
-You can import a `.pptx` file directly from the Programs page. This creates a new program with slides created from your PowerPoint content.
+You can import a `.pptx` file from either the **Programs** or the **Media** page. On the Programs page the default is to create a new program with slides created from your PowerPoint content; on the Media page the default is to import the media only.
 
-1. Click **Programs** in the top navigation.
-2. Click the **Import PPTX** button above the program list.
+1. Navigate to **Programs** (or **Media**).
+2. Click the **Import PPTX** button above the list.
 3. Select a `.pptx` file from your computer.
-4. If you belong to multiple departments, choose which department to import into.
-5. Click **Import**.
+4. Choose whether to **import media only** or **import media and create a program**.
+5. If you belong to multiple departments, choose the **Department for media** and, when creating a program, the **Department for program**.
+6. Click **Import**.
 
 The import process:
 - Parses the file and shows progress as each media file is processed
-- Creates a new **program** with your slides in order
-- Creates a **media subfolder** named after your file
-- Imports full-screen images, videos, and audio into that subfolder
+- Imports full-screen images, videos, and audio into a **media subfolder** named after your file (unless you imported media only into a selected folder on the Media page, in which case it goes directly into that folder)
+- Creates a new **program** with your slides in order (media-and-program mode only)
 
 **What gets imported:**
 - ✅ Full-screen images (photos that fill the entire slide)
@@ -288,33 +312,34 @@ The import process:
 - ❌ **Not imported:** Text, shapes, logos, small graphics, charts, or complex layouts — PowerPoint slides are complex documents and this importer focuses on media content only.
 
 > **Tips:**
-> - The new program will have `advanceMode: "manual"` for images and `"onEnd"` for video/audio — you can adjust these in the program editor.
-> - The program is placed in your department's programs root folder. You can move it later.
+> - In media-and-program mode, the new program will have `advanceMode: "manual"` for images and `"onEnd"` for video/audio — you can adjust these in the program editor.
+> - The program (when created) is placed in your department's programs root folder. You can move it later.
 > - Depending on the file size, importing may take some time — the progress bar shows you what's happening.
 > - Files over 90 MB are automatically split into chunks for upload. You'll see an "Uploading" progress step before the import begins. A **Cancel** button lets you abort the upload at any time.
 
 ### Importing a PDF File
 
-You can import a `.pdf` file directly from the Programs page. This creates a new program where each PDF page becomes an image slide.
+You can import a `.pdf` file from either the **Programs** or the **Media** page. On the Programs page the default is to create a new program where each PDF page becomes an image slide; on the Media page the default is to import the media only.
 
-1. Click **Programs** in the top navigation.
-2. Click the **Import PDF** button above the program list.
+1. Navigate to **Programs** (or **Media**).
+2. Click the **Import PDF** button above the list.
 3. Select a `.pdf` file from your computer.
-4. If you belong to multiple departments, choose which department to import into.
-5. Click **Import**.
+4. Choose whether to **import media only** or **import media and create a program**.
+5. If you belong to multiple departments, choose the **Department for media** and, when creating a program, the **Department for program**.
+6. Click **Import**.
 
 The import process:
 - Renders each page as an image and shows progress as each page is imported
-- Creates a new **program** with one image slide per page, in order
-- Creates a **media subfolder** named after your file
+- Imports the pages into a **media subfolder** named after your file (unless you imported media only into a selected folder on the Media page, in which case it goes directly into that folder)
+- Creates a new **program** with one image slide per page, in order (media-and-program mode only)
 
 **What gets imported:**
 - ✅ Every page becomes a full-slide image
 - ❌ **Not editable:** Text, shapes, and graphics are baked into the page image — you cannot edit them in PeydX afterward
 
 > **Tips:**
-> - Each page's slide is created with manual advance and a fade transition — you can adjust these in the program editor.
-> - The program is placed in your department's programs root folder. You can move it later.
+> - In media-and-program mode, each page's slide is created with manual advance and a fade transition — you can adjust these in the program editor.
+> - The program (when created) is placed in your department's programs root folder. You can move it later.
 > - Depending on the file size, importing may take some time — the progress bar shows you what's happening.
 > - Files over 90 MB are automatically split into chunks for upload. You'll see an "Uploading" progress step before the import begins. A **Cancel** button lets you abort the upload at any time.
 

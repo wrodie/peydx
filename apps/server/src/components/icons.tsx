@@ -99,3 +99,21 @@ export const ChevronLeftIcon = createIcon(['M561-240 320-481l241-241 43 43-198 1
 export const ArrowDropDownIcon = createIcon(['M480-360 280-559h400L480-360Z'])
 
 export const MenuIcon = createIcon(['M120-240v-60h720v60H120Zm0-210v-60h720v60H120Zm0-210v-60h720v60H120Z'])
+
+export const PdfFileIcon: FC<IconProps> = ({ size = 14, ...props }) => (
+  <svg viewBox="0 0 36 16" width={size * 2.25} height={size} {...props}
+    style={{ verticalAlign: 'middle', ...props.style }}>
+    <rect x="0" y="0" width="36" height="16" rx="3" fill="#E62B1A" />
+    <text x="18" y="11.5" textAnchor="middle" fill="#fff"
+      fontSize="8" fontWeight="700" fontFamily="Arial, sans-serif">PDF</text>
+  </svg>
+)
+
+export const PptxFileIcon: FC<IconProps> = ({ size = 14, ...props }) => (
+  <svg viewBox="0 0 36 16" width={size * 2.25} height={size} {...props}
+    style={{ verticalAlign: 'middle', ...props.style }}>
+    <rect x="0" y="0" width="36" height="16" rx="3" fill="#D35224" />
+    <text x="18" y="11.5" textAnchor="middle" fill="#fff"
+      fontSize="8" fontWeight="700" fontFamily="Arial, sans-serif">PPT</text>
+  </svg>
+)

@@ -122,33 +122,52 @@ export interface MediaItem {
 export interface StreamImportParams {
   req: any
   fileName: string
-  departmentId?: number
+  mode?: 'media' | 'media-and-program'
+  mediaDepartmentId?: number
+  programDepartmentId?: number
+  targetFolderId?: number
   mediaItems: MediaItem[]
-  buildSlides: (mediaIdMap: Map<string, number>) => any[]
+  buildSlides?: (mediaIdMap: Map<string, number>) => any[]
   skipped?: string[]
+  // Backwards compat: departmentId still accepted if both media/program IDs are unset
+  departmentId?: number
 }
 
 export async function streamImport(params: StreamImportParams): Promise<Response> {
-  const { req, fileName, departmentId, mediaItems, buildSlides } = params
+  const { req, fileName, mediaItems, buildSlides } = params
   const skipped: string[] = [...(params.skipped || [])]
 
-  const mediaFolderId = await ensureImportFolder(
-    req.payload, fileName, 'media', req.user, departmentId,
-  )
+  const mediaDepartmentId = params.mediaDepartmentId ?? params.departmentId
+  const programDepartmentId = params.programDepartmentId ?? params.departmentId
+  const mode = params.mode ?? 'media-and-program'
 
-  const programsRoot = await req.payload.find({
-    collection: 'folders',
-    depth: 0,
-    limit: 1,
-    pagination: false,
-    overrideAccess: true,
-    where: {
-      type: { equals: 'programs' },
-      parent: { exists: false },
-      ...(departmentId ? { department: { equals: departmentId } } : {}),
-    },
-  })
-  const programsFolderId = programsRoot.docs?.[0]?.id
+  let mediaFolderId: number | undefined
+  let mediaFolderOwned = true
+  if (params.targetFolderId) {
+    mediaFolderId = params.targetFolderId
+    mediaFolderOwned = false
+  } else {
+    mediaFolderId = await ensureImportFolder(
+      req.payload, fileName, 'media', req.user, mediaDepartmentId,
+    )
+  }
+
+  let programsFolderId: number | undefined
+  if (mode === 'media-and-program') {
+    const programsRoot = await req.payload.find({
+      collection: 'folders',
+      depth: 0,
+      limit: 1,
+      pagination: false,
+      overrideAccess: true,
+      where: {
+        type: { equals: 'programs' },
+        parent: { exists: false },
+        ...(programDepartmentId ? { department: { equals: programDepartmentId } } : {}),
+      },
+    })
+    programsFolderId = programsRoot.docs?.[0]?.id
+  }
 
   const stream = new ReadableStream({
     start: async (controller) => {
@@ -194,7 +213,7 @@ export async function streamImport(params: StreamImportParams): Promise<Response
       }
 
       if (createdMedia.length === 0) {
-        if (mediaFolderId) {
+        if (mediaFolderId && mediaFolderOwned) {
           await req.payload.delete({ collection: 'folders', id: mediaFolderId }).catch(() => {})
         }
         controller.enqueue(ndjson({ type: 'error', message: 'No media could be imported from this file', skipped }))
@@ -202,7 +221,35 @@ export async function streamImport(params: StreamImportParams): Promise<Response
         return
       }
 
-      const slides: any[] = buildSlides(mediaIdMap)
+      if (mode === 'media') {
+        if (mediaFolderId) {
+          for (const m of createdMedia) {
+            try {
+              await req.payload.update({
+                collection: 'media',
+                id: m.id,
+                data: { folder: mediaFolderId },
+                overrideAccess: true,
+                user: req.user,
+              })
+            } catch (err: any) {
+              req.payload.logger.error(
+                { mediaId: m.id, folderId: mediaFolderId, err: String(err) },
+                '[streamImport] Failed to assign media folder',
+              )
+            }
+          }
+        }
+        controller.enqueue(ndjson({
+          type: 'result',
+          mediaCreated: createdMedia,
+          skipped,
+        }))
+        controller.close()
+        return
+      }
+
+      const slides: any[] = buildSlides!(mediaIdMap)
 
       if (slides.length === 0) {
         for (const m of createdMedia) {
@@ -287,10 +334,17 @@ export async function streamImport(params: StreamImportParams): Promise<Response
   })
 }
 
+export interface StreamImportOpts {
+  mode: 'media' | 'media-and-program'
+  mediaDepartmentId?: number
+  programDepartmentId?: number
+  targetFolderId?: number
+}
+
 export interface ChunkedEndpointOptions {
   uploadsDirName: string
   allowedExt: string
-  processImport: (req: any, fileBuffer: Buffer, fileName: string, departmentId?: number) => Promise<Response>
+  processImport: (req: any, fileBuffer: Buffer, fileName: string, opts: StreamImportOpts) => Promise<Response>
 }
 
 export function createChunkedEndpoints(options: ChunkedEndpointOptions): {
@@ -337,7 +391,10 @@ export function createChunkedEndpoints(options: ChunkedEndpointOptions): {
       let chunkIndex: number
       let totalChunks: number
       let fileName: string
-      let departmentId: number | undefined
+      let mode: 'media' | 'media-and-program' = 'media-and-program'
+      let mediaDepartmentId: number | undefined
+      let programDepartmentId: number | undefined
+      let targetFolderId: number | undefined
 
       try {
         const formData = await req.formData()
@@ -346,8 +403,26 @@ export function createChunkedEndpoints(options: ChunkedEndpointOptions): {
         chunkIndex = parseInt(String(formData.get('chunkIndex') ?? ''), 10)
         totalChunks = parseInt(String(formData.get('totalChunks') ?? ''), 10)
         fileName = String(formData.get('fileName') ?? '')
+
+        const modeVal = formData.get('mode')
+        if (modeVal === 'media') mode = 'media'
+
+        const mediaDeptVal = formData.get('mediaDepartment')
+        if (mediaDeptVal) mediaDepartmentId = parseInt(String(mediaDeptVal), 10) || undefined
+
+        const programDeptVal = formData.get('programDepartment')
+        if (programDeptVal) programDepartmentId = parseInt(String(programDeptVal), 10) || undefined
+
+        const targetFolderVal = formData.get('targetFolderId')
+        if (targetFolderVal) targetFolderId = parseInt(String(targetFolderVal), 10) || undefined
+
+        // Backwards compat: old `department` field maps to both IDs when new fields absent
         const deptVal = formData.get('department')
-        if (deptVal) departmentId = parseInt(String(deptVal), 10) || undefined
+        if (deptVal && mediaDepartmentId === undefined && programDepartmentId === undefined) {
+          const legacyDeptId = parseInt(String(deptVal), 10) || undefined
+          mediaDepartmentId = legacyDeptId
+          programDepartmentId = legacyDeptId
+        }
       } catch {
         return Response.json({ error: 'Invalid multipart form data' }, { status: 400 })
       }
@@ -412,7 +487,12 @@ export function createChunkedEndpoints(options: ChunkedEndpointOptions): {
         // best-effort cleanup
       }
 
-      return processImport(req, fileBuffer, chunkBaseName, departmentId)
+      return processImport(req, fileBuffer, chunkBaseName, {
+        mode,
+        mediaDepartmentId,
+        programDepartmentId,
+        targetFolderId,
+      })
     },
   }
 

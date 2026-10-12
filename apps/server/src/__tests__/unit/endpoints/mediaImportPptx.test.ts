@@ -1,12 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { readdir, mkdir, writeFile, readFile, rm, stat } from 'fs/promises'
+import path from 'path'
+import os from 'os'
 
+vi.mock('fs/promises')
 vi.mock('../../../utilities/pptxImporter', () => ({
   parsePptx: vi.fn(),
 }))
 
-import { mediaImportPptx } from '../../../endpoints/mediaImportPptx'
+import { mediaImportPptx, mediaImportPptxChunk } from '../../../endpoints/mediaImportPptx'
 import { parsePptx } from '../../../utilities/pptxImporter'
 import type { SlideMedia } from '../../../utilities/pptxImporter'
+
+const PPTX_UPLOADS_DIR = path.join(os.tmpdir(), 'pptx-uploads')
 
 interface SlideInput {
   images?: SlideMedia[]
@@ -57,7 +63,7 @@ function makeParsedPptx(slides: SlideInput[]) {
   }
 }
 
-function makeReq(options: { payloadOverrides?: Record<string, any> } = {}) {
+function makeReq(options: { payloadOverrides?: Record<string, any>; formFields?: Record<string, any> } = {}) {
   let mediaId = 100
   const payload = {
     create: vi.fn(async (args: any) => {
@@ -97,6 +103,15 @@ function makeReq(options: { payloadOverrides?: Record<string, any> } = {}) {
     }),
   )
 
+  const fields: Record<string, any> = options.formFields ?? {
+    mode: 'media-and-program',
+    mediaDepartment: '1',
+    programDepartment: '1',
+  }
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined) formData.append(key, String(value))
+  }
+
   const user = { id: 1, departments: [{ id: 1, name: 'Test Dept' }] }
 
   return {
@@ -105,6 +120,50 @@ function makeReq(options: { payloadOverrides?: Record<string, any> } = {}) {
     formData: async () => formData,
     url: 'http://localhost/api/import-pptx',
   }
+}
+
+function makeChunkFormData(overrides: Record<string, any> = {}) {
+  const formData = new FormData()
+  const defaults: Record<string, any> = {
+    chunk: new Blob(['chunk-data'], { type: 'application/octet-stream' }),
+    uploadId: '550e8400-e29b-41d4-a716-446655440000',
+    chunkIndex: '0',
+    totalChunks: '2',
+    fileName: 'test.pptx',
+    mode: 'media-and-program',
+    mediaDepartment: '1',
+    programDepartment: '1',
+  }
+  const merged = { ...defaults, ...overrides }
+  for (const [key, value] of Object.entries(merged)) {
+    if (value !== undefined) formData.append(key, value)
+  }
+  return formData
+}
+
+function makeChunkReq(overrides: Record<string, any> = {}) {
+  const formData = overrides.formData ?? makeChunkFormData(overrides.formFields)
+  const user = { id: 1, departments: [{ id: 1, name: 'Test Dept' }] }
+  const payload = {
+    create: vi.fn(),
+    find: vi.fn(),
+    findByID: vi.fn(),
+    delete: vi.fn(),
+    update: vi.fn(),
+    logger: { error: vi.fn() },
+    config: { secret: 'test-secret' },
+  }
+  return {
+    user: overrides.user === null ? null : (overrides.user ?? user),
+    payload: overrides.payload ?? payload,
+    formData: async () => formData,
+    url: overrides.url ?? 'http://localhost/api/import-pptx-chunk',
+    ...overrides.extra,
+  }
+}
+
+function asResponse(res: any): Response {
+  return res instanceof Response ? res : new Response(JSON.stringify(res), { status: 200 })
 }
 
 async function readNdjson(res: Response): Promise<any[]> {
@@ -323,5 +382,132 @@ describe('POST /api/import-pptx', () => {
 
     const result = lines.find((l) => l.type === 'result')
     expect(result.mediaCreated).toHaveLength(3)
+  })
+
+  it('media-only mode skips program creation', async () => {
+    vi.mocked(parsePptx).mockResolvedValue(makeParsedPptx([
+      { images: [makeFullScreenImageMedia('ppt/media/image1.png')] },
+      { images: [makeFullScreenImageMedia('ppt/media/image2.png')] },
+    ]))
+
+    const req = makeReq({ formFields: { mode: 'media', mediaDepartment: '1' } })
+    const res = await mediaImportPptx.handler(req)
+    const lines = await readNdjson(res)
+
+    const mediaCalls = collectionCalls(req.payload.create, 'media')
+    expect(mediaCalls).toHaveLength(2)
+    expect(collectionCalls(req.payload.create, 'programs')).toHaveLength(0)
+
+    const updateCalls = req.payload.update.mock.calls.map((c: any[]) => c[0])
+    expect(updateCalls).toHaveLength(2)
+    expect(updateCalls[0]).toMatchObject({ collection: 'media', id: 100, data: { folder: 11 } })
+    expect(updateCalls[1]).toMatchObject({ collection: 'media', id: 101, data: { folder: 11 } })
+
+    const result = lines[lines.length - 1]
+    expect(result.type).toBe('result')
+    expect(result.program).toBeUndefined()
+    expect(result.mediaCreated).toHaveLength(2)
+  })
+
+  it('uses separate departments for media and program', async () => {
+    vi.mocked(parsePptx).mockResolvedValue(makeParsedPptx([
+      { images: [makeFullScreenImageMedia('ppt/media/image1.png')] },
+    ]))
+
+    const req = makeReq({
+      formFields: { mode: 'media-and-program', mediaDepartment: '1', programDepartment: '2' },
+    })
+    const res = await mediaImportPptx.handler(req)
+    await readNdjson(res)
+
+    const findCalls = req.payload.find.mock.calls.map((c: any[]) => c[0])
+    const mediaRootCall = findCalls.find(
+      (c) => c?.where?.type?.equals === 'media' && c?.where?.parent?.exists === false,
+    )
+    const programsRootCall = findCalls.find(
+      (c) => c?.where?.type?.equals === 'programs' && c?.where?.parent?.exists === false,
+    )
+    expect(mediaRootCall.where.department.equals).toBe(1)
+    expect(programsRootCall.where.department.equals).toBe(2)
+
+    const programData = collectionCalls(req.payload.create, 'programs')[0].data
+    expect(programData.folder).toBe(20)
+    const updateCalls = req.payload.update.mock.calls.map((c: any[]) => c[0])
+    expect(updateCalls[0]).toMatchObject({ collection: 'media', id: 100, data: { folder: 11 } })
+  })
+
+  it('targetFolderId uses provided folder directly', async () => {
+    vi.mocked(parsePptx).mockResolvedValue(makeParsedPptx([
+      { images: [makeFullScreenImageMedia('ppt/media/image1.png')] },
+    ]))
+
+    const req = makeReq({ formFields: { mode: 'media', targetFolderId: '99' } })
+    const res = await mediaImportPptx.handler(req)
+    const lines = await readNdjson(res)
+
+    expect(req.payload.find).not.toHaveBeenCalled()
+    expect(collectionCalls(req.payload.create, 'folders')).toHaveLength(0)
+    expect(collectionCalls(req.payload.create, 'programs')).toHaveLength(0)
+
+    const updateCalls = req.payload.update.mock.calls.map((c: any[]) => c[0])
+    expect(updateCalls).toHaveLength(1)
+    expect(updateCalls[0]).toMatchObject({ collection: 'media', id: 100, data: { folder: 99 } })
+
+    const result = lines[lines.length - 1]
+    expect(result.mediaCreated).toHaveLength(1)
+  })
+
+  it('backwards compat: old department field still works', async () => {
+    vi.mocked(parsePptx).mockResolvedValue(makeParsedPptx([
+      { images: [makeFullScreenImageMedia('ppt/media/image1.png')] },
+    ]))
+
+    const req = makeReq({ formFields: { department: '1' } })
+    const res = await mediaImportPptx.handler(req)
+    const lines = await readNdjson(res)
+
+    expect(collectionCalls(req.payload.create, 'media')).toHaveLength(1)
+    const programData = collectionCalls(req.payload.create, 'programs')[0].data
+    expect(programData.folder).toBe(20)
+    const updateCalls = req.payload.update.mock.calls.map((c: any[]) => c[0])
+    expect(updateCalls[0]).toMatchObject({ collection: 'media', id: 100, data: { folder: 11 } })
+    expect(lines[lines.length - 1].type).toBe('result')
+  })
+})
+
+describe('POST /api/import-pptx-chunk', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(readdir).mockResolvedValue([])
+    vi.mocked(mkdir).mockResolvedValue(undefined)
+    vi.mocked(writeFile).mockResolvedValue(undefined)
+    vi.mocked(readFile).mockResolvedValue(Buffer.from('chunk-data'))
+    vi.mocked(stat).mockResolvedValue({ mtimeMs: Date.now() } as any)
+    vi.mocked(rm).mockResolvedValue(undefined)
+  })
+
+  it('passes new form fields through to the import on final chunk', async () => {
+    vi.mocked(parsePptx).mockResolvedValue(makeParsedPptx([
+      { images: [makeFullScreenImageMedia('ppt/media/image1.png')] },
+    ]))
+
+    const req = makeChunkReq({
+      formFields: { mode: 'media', mediaDepartment: '1', chunkIndex: '1', totalChunks: '2' },
+    })
+    let mediaId = 100
+    req.payload.create.mockImplementation(async (args: any) => {
+      if (args?.collection === 'media') return { id: mediaId++, name: args?.data?.name }
+      if (args?.collection === 'folders') return { id: 11 }
+      return { id: 999 }
+    })
+    req.payload.find.mockResolvedValue({ docs: [] })
+    req.payload.update.mockResolvedValue({})
+
+    const res = asResponse(await mediaImportPptxChunk.handler(req))
+    expect(res.status).toBe(200)
+
+    expect(vi.mocked(readFile)).toHaveBeenCalledTimes(2)
+    expect(collectionCalls(req.payload.create, 'programs')).toHaveLength(0)
+    expect(collectionCalls(req.payload.create, 'media')).toHaveLength(1)
   })
 })
