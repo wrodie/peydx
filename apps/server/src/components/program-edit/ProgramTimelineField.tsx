@@ -18,6 +18,7 @@ import { ProgramTimeline } from './ProgramTimeline'
 import { SlideEditDrawer } from './SlideEditDrawer'
 import { computeMove, findTopLevelSegmentIndex } from './computeMove'
 import { stripInternal } from './stripInternal'
+import { createAutosaveQueue, type AutosaveOp, type AutosaveQueue } from './autosaveQueue'
 import {
   ImageIcon,
   MovieIcon,
@@ -244,30 +245,109 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   const activeDragRef = useRef(activeDrag)
   activeDragRef.current = activeDrag
   const durationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const submittingRef = useRef(false)
   const idRef = useRef(id)
   idRef.current = id
   const getDataByPathRef = useRef(getDataByPath)
   getDataByPathRef.current = getDataByPath
   const submitRef = useRef(submit)
   submitRef.current = submit
+  const dispatchFieldsRef = useRef(dispatchFields)
+  dispatchFieldsRef.current = dispatchFields
+  const addFieldRowRef = useRef(addFieldRow)
+  addFieldRowRef.current = addFieldRow
+  const removeFieldRowRef = useRef(removeFieldRow)
+  removeFieldRowRef.current = removeFieldRow
+  const moveFieldRowRef = useRef(moveFieldRow)
+  moveFieldRowRef.current = moveFieldRow
+  const replaceFieldRowRef = useRef(replaceFieldRow)
+  replaceFieldRowRef.current = replaceFieldRow
 
-  const scheduleSubmit = useCallback(() => {
-    const currentId = idRef.current
-    const currentTitle = getDataByPathRef.current('title')
-    if (submittingRef.current) return
-    if (!currentId && !currentTitle) return
-    if (durationTimerRef.current) clearTimeout(durationTimerRef.current)
-    durationTimerRef.current = setTimeout(async () => {
-      durationTimerRef.current = null
-      submittingRef.current = true
-      try {
-        await submitRef.current()
-      } finally {
-        submittingRef.current = false
-      }
-    }, 400)
+  const applyOp = useCallback((op: AutosaveOp) => {
+    switch (op.kind) {
+      case 'update':
+        dispatchFieldsRef.current({ type: 'UPDATE', path: op.path, value: op.value })
+        break
+      case 'addRow':
+        addFieldRowRef.current({
+          path: op.path,
+          rowIndex: op.rowIndex,
+          blockType: op.blockType,
+          schemaPath: op.schemaPath,
+          subFieldState: op.subFieldState,
+        })
+        break
+      case 'removeRow':
+        removeFieldRowRef.current({ path: op.path, rowIndex: op.rowIndex })
+        break
+      case 'moveRow':
+        moveFieldRowRef.current({
+          path: op.path,
+          moveFromIndex: op.moveFromIndex,
+          moveToIndex: op.moveToIndex,
+        })
+        break
+      case 'replaceRow':
+        replaceFieldRowRef.current({
+          path: op.path,
+          rowIndex: op.rowIndex,
+          schemaPath: op.schemaPath,
+          subFieldState: op.subFieldState,
+        })
+        break
+    }
   }, [])
+
+  const queueRef = useRef<AutosaveQueue | null>(null)
+  if (!queueRef.current) {
+    queueRef.current = createAutosaveQueue({
+      submit: () => submitRef.current(),
+      applyOp,
+      canSave: () => Boolean(idRef.current) || Boolean(getDataByPathRef.current('title')),
+      debounceMs: 400,
+    })
+  }
+
+  const scheduleSubmit = useCallback(() => queueRef.current?.schedule(), [])
+
+  const qUpdate = useCallback((fieldPath: string, value: unknown) => {
+    dispatchFields({ type: 'UPDATE', path: fieldPath, value })
+    queueRef.current?.record({ kind: 'update', path: fieldPath, value })
+  }, [dispatchFields])
+
+  const qAddRow = useCallback((opArgs: {
+    path: string
+    rowIndex?: number
+    blockType?: string
+    schemaPath?: string
+    subFieldState?: Record<string, unknown>
+  }) => {
+    addFieldRow(opArgs)
+    queueRef.current?.record({ kind: 'addRow', ...opArgs })
+  }, [addFieldRow])
+
+  const qRemoveRow = useCallback((opArgs: { path: string; rowIndex: number }) => {
+    removeFieldRow(opArgs)
+    queueRef.current?.record({ kind: 'removeRow', ...opArgs })
+  }, [removeFieldRow])
+
+  const qMoveRow = useCallback((opArgs: {
+    path: string
+    moveFromIndex: number
+    moveToIndex: number
+  }) => {
+    moveFieldRow(opArgs)
+    queueRef.current?.record({ kind: 'moveRow', ...opArgs })
+  }, [moveFieldRow])
+
+  const qReplaceRow = useCallback((opArgs: {
+    path: string
+    rowIndex: number
+    schemaPath?: string
+    subFieldState?: Record<string, unknown>
+  }) => {
+    replaceFieldRow(opArgs)
+    queueRef.current?.record({ kind: 'replaceRow', ...opArgs })
+  }, [replaceFieldRow])
 
   useEffect(() => {
     document.body.classList.add('program-editor-autosave')
@@ -384,7 +464,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       const def = newSlideDefaults[blockType]
       if (!def) return
       if (blockType === 'blackScreenBlock') {
-        addFieldRow({
+        qAddRow({
           path,
           blockType,
           schemaPath: `${path}.${blockType}`,
@@ -398,7 +478,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       setEditingSegmentId(undefined)
       setDrawerOpen(true)
     },
-    [path, addFieldRow, rawSlides, scheduleSubmit]
+    [path, qAddRow, rawSlides, scheduleSubmit]
   )
 
   const handleEditSlide = useCallback(
@@ -415,7 +495,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     (updatedSlide: any, index: number, segmentId?: string) => {
       if (updatedSlide._isNew) {
         delete updatedSlide._isNew
-        addFieldRow({
+        qAddRow({
           path,
           blockType: updatedSlide.blockType,
           schemaPath: `${path}.${updatedSlide.blockType}`,
@@ -425,7 +505,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         const segIdx = segmentId != null ? rawSlides.findIndex((s: any) => s && s.id === segmentId) : -1
         if (segIdx < 0) return
         const rowPath = `${path}.${segIdx}.slides`
-        replaceFieldRow({
+        qReplaceRow({
           path: rowPath,
           rowIndex: index,
           schemaPath: `${path}.${updatedSlide.blockType}`,
@@ -434,14 +514,10 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       } else if (updatedSlide.blockType === 'segmentBlock') {
         const segFields = ['name', 'backgroundAudio', 'loop', 'advanceMode', 'duration']
         for (const field of segFields) {
-          dispatchFields({
-            type: 'UPDATE',
-            path: `${path}.${index}.${field}`,
-            value: updatedSlide[field] ?? null,
-          })
+          qUpdate(`${path}.${index}.${field}`, updatedSlide[field] ?? null)
         }
       } else {
-        replaceFieldRow({
+        qReplaceRow({
           path,
           rowIndex: index,
           schemaPath: `${path}.${updatedSlide.blockType}`,
@@ -454,7 +530,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       setEditingSegmentId(undefined)
       scheduleSubmit()
     },
-    [path, addFieldRow, replaceFieldRow, rawSlides, dispatchFields, scheduleSubmit]
+    [path, qAddRow, qReplaceRow, rawSlides, qUpdate, scheduleSubmit]
   )
 
   const handleRemoveSlide = useCallback(
@@ -463,35 +539,31 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       if (segmentId) {
         const segIdx = rawSlides.findIndex((s: any) => s && s.id === segmentId)
         if (segIdx >= 0) {
-          removeFieldRow({ path: `${path}.${segIdx}.slides`, rowIndex: index })
+          qRemoveRow({ path: `${path}.${segIdx}.slides`, rowIndex: index })
         }
       } else {
-        removeFieldRow({ path, rowIndex: index })
+        qRemoveRow({ path, rowIndex: index })
       }
       scheduleSubmit()
     },
-    [path, removeFieldRow, rawSlides, scheduleSubmit]
+    [path, qRemoveRow, rawSlides, scheduleSubmit]
   )
 
   const handleEditSegmentName = useCallback(
     (segmentId: string, name: string, segmentIndex: number) => {
-      dispatchFields({
-        type: 'UPDATE',
-        path: `${path}.${segmentIndex}.name`,
-        value: name,
-      })
+      qUpdate(`${path}.${segmentIndex}.name`, name)
       scheduleSubmit()
     },
-    [path, dispatchFields, scheduleSubmit]
+    [path, qUpdate, scheduleSubmit]
   )
 
   const handleRemoveSegment = useCallback(
     (segmentIndex: number) => {
       if (!confirm('Remove this entire segment?')) return
-      removeFieldRow({ path, rowIndex: segmentIndex })
+      qRemoveRow({ path, rowIndex: segmentIndex })
       scheduleSubmit()
     },
-    [path, removeFieldRow, scheduleSubmit]
+    [path, qRemoveRow, scheduleSubmit]
   )
 
   const handleImportProgram = useCallback(
@@ -518,7 +590,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             })
           slideData.slides = []
 
-          addFieldRow({
+          qAddRow({
             path,
             blockType: slideData.blockType,
             schemaPath: `${path}.${slideData.blockType}`,
@@ -527,7 +599,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
           const segIdx = currentLen + i
           for (const childSlide of childSlides) {
-            addFieldRow({
+            qAddRow({
               path: `${path}.${segIdx}.slides`,
               blockType: childSlide.blockType,
               schemaPath: `${path}.${childSlide.blockType}`,
@@ -535,7 +607,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
             })
           }
         } else {
-          addFieldRow({
+          qAddRow({
             path,
             blockType: slideData.blockType,
             schemaPath: `${path}.${slideData.blockType}`,
@@ -545,7 +617,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       }
       scheduleSubmit()
     },
-    [path, rawSlides.length, addFieldRow, scheduleSubmit]
+    [path, rawSlides.length, qAddRow, scheduleSubmit]
   )
 
   const handleModeChange = useCallback(
@@ -572,52 +644,28 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       if (!currentSlide) return
 
       if (currentSlide.blockType === 'segmentBlock') {
-        dispatchFields({
-          type: 'UPDATE',
-          path: `${rowPath}.${index}.advanceMode`,
-          value: newMode,
-        })
+        qUpdate(`${rowPath}.${index}.advanceMode`, newMode)
         if (newMode === 'timed') {
           if (currentSlide.duration == null || currentSlide.duration <= 0) {
-            dispatchFields({
-              type: 'UPDATE',
-              path: `${rowPath}.${index}.duration`,
-              value: 1,
-            })
+            qUpdate(`${rowPath}.${index}.duration`, 1)
           }
         } else if (currentSlide.advanceMode === 'timed') {
-          dispatchFields({
-            type: 'UPDATE',
-            path: `${rowPath}.${index}.duration`,
-            value: null,
-          })
+          qUpdate(`${rowPath}.${index}.duration`, null)
         }
       } else {
-        dispatchFields({
-          type: 'UPDATE',
-          path: `${rowPath}.${index}.advanceMode`,
-          value: newMode,
-        })
+        qUpdate(`${rowPath}.${index}.advanceMode`, newMode)
         if (newMode === 'timed') {
           if (currentSlide.duration == null || currentSlide.duration <= 0) {
-            dispatchFields({
-              type: 'UPDATE',
-              path: `${rowPath}.${index}.duration`,
-              value: 5,
-            })
+            qUpdate(`${rowPath}.${index}.duration`, 5)
           }
         } else if (currentSlide.advanceMode === 'timed') {
-          dispatchFields({
-            type: 'UPDATE',
-            path: `${rowPath}.${index}.duration`,
-            value: null,
-          })
+          qUpdate(`${rowPath}.${index}.duration`, null)
         }
       }
 
       scheduleSubmit()
     },
-    [path, getDataByPath, dispatchFields, scheduleSubmit]
+    [path, getDataByPath, qUpdate, scheduleSubmit]
   )
 
   const handleDurationChange = useCallback(
@@ -639,23 +687,15 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       if (!currentSlide) return
 
       if (currentSlide.blockType === 'segmentBlock') {
-        dispatchFields({
-          type: 'UPDATE',
-          path: `${rowPath}.${index}.duration`,
-          value: newDuration,
-        })
+        qUpdate(`${rowPath}.${index}.duration`, newDuration)
       } else {
-        dispatchFields({
-          type: 'UPDATE',
-          path: `${rowPath}.${index}.duration`,
-          value: newDuration,
-        })
+        qUpdate(`${rowPath}.${index}.duration`, newDuration)
       }
 
       if (durationTimerRef.current) clearTimeout(durationTimerRef.current)
       scheduleSubmit()
     },
-    [path, getDataByPath, dispatchFields, scheduleSubmit]
+    [path, getDataByPath, qUpdate, scheduleSubmit]
   )
 
   const handleLoopChange = useCallback(
@@ -671,14 +711,10 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       } else {
         rowPath = path
       }
-      dispatchFields({
-        type: 'UPDATE',
-        path: `${rowPath}.${index}.loop`,
-        value: newLoop,
-      })
+      qUpdate(`${rowPath}.${index}.loop`, newLoop)
       scheduleSubmit()
     },
-    [path, getDataByPath, dispatchFields, scheduleSubmit]
+    [path, getDataByPath, qUpdate, scheduleSubmit]
   )
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -735,7 +771,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         }
 
         if (dst.container === null) {
-          addFieldRow({
+          qAddRow({
             path,
             blockType: slideData.blockType,
             rowIndex: insertIdx,
@@ -745,7 +781,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         } else {
           const segIdx = findTopLevelSegmentIndex(rawSlides, dst.container)
           if (segIdx < 0) return
-          addFieldRow({
+          qAddRow({
             path: `${path}.${segIdx}.slides`,
             blockType: slideData.blockType,
             rowIndex: insertIdx,
@@ -759,7 +795,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
 
       mediaClearRef.current?.()
     },
-    [path, addFieldRow, rawSlides, slides.length, segmentCounts]
+    [path, qAddRow, rawSlides, slides.length, segmentCounts]
   )
 
   const moveSlideTo = useCallback(
@@ -787,7 +823,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
       if (!result) return
 
       if (result.kind === 'same-container') {
-        moveFieldRow({
+        qMoveRow({
           path: result.path,
           moveFromIndex: result.moveFromIndex,
           moveToIndex: result.moveToIndex,
@@ -797,7 +833,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         const movedSlide = removeArr?.[result.removeIndex]
         if (!movedSlide) return
 
-        removeFieldRow({ path: result.removePath, rowIndex: result.removeIndex })
+        qRemoveRow({ path: result.removePath, rowIndex: result.removeIndex })
 
         let actualInsertPath = result.insertPath
         if (result.removePath === path && result.insertPath !== path) {
@@ -811,7 +847,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
           }
         }
 
-        addFieldRow({
+        qAddRow({
           path: actualInsertPath,
           blockType: movedSlide.blockType,
           rowIndex: result.insertIndex,
@@ -820,7 +856,7 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
         })
       }
     },
-    [path, slides, segmentCounts, moveFieldRow, removeFieldRow, addFieldRow, getDataByPath]
+    [path, slides, segmentCounts, qMoveRow, qRemoveRow, qAddRow, getDataByPath]
   )
 
   const renderDragOverlay = () => {
