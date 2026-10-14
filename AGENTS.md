@@ -127,6 +127,20 @@ Auth modes on `Devices`:
    endpoints via `importShared.ts` (`createChunkedEndpoints`): files >90 MB are
    auto-split client-side (`ImportPdfButton.tsx`; 80 MB chunks) →
    `POST /api/import-pdf-chunk`; `DELETE /api/import-pdf-chunk` aborts.
+7. **Program editor autosave (record-and-replay)**: the program editor
+   autosaves the whole program via Payload's form `submit()` →
+   `PATCH /api/programs/:id`. Because `acceptValues` defaults to `true`, a
+   successful submit rebuilds form state from the server and reverts any local
+   edits made while the PATCH was in flight. `autosaveQueue.ts` (pure,
+   dependency-free) fixes this: mutation call sites are wrapped in
+   `qUpdate`/`qAddRow`/`qRemoveRow`/`qMoveRow`/`qReplaceRow`, which dispatch to
+   the form and `record` an op **only while a submit is in flight**. After a
+   submit resolves, queued ops are replayed (with `inFlight` already false, so
+   replays aren't re-recorded) and a single follow-up save is scheduled, looping
+   until the server catches up. `schedule()` coalesces via a 400ms debounce and
+   never drops edits while in flight (it sets `pending`). Keep call sites going
+   through the wrappers — calling raw `dispatchFields`/`addFieldRow`/etc. skips
+   recording. Tests: `apps/server/src/__tests__/unit/components/autosaveQueue.test.ts`.
 
 (Folders, media name auto-fill, device self-read, media download URLs, and the
 schedule device-access pattern are routine behavior enforced by hooks/tests —
