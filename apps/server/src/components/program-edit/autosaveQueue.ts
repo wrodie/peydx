@@ -5,8 +5,8 @@ export type AutosaveOp =
       path: string
       rowIndex?: number
       blockType?: string
-      schemaPath?: string
-      subFieldState?: Record<string, unknown>
+      schemaPath: string
+      subFieldState?: Record<string, any>
     }
   | { kind: 'removeRow'; path: string; rowIndex: number }
   | { kind: 'moveRow'; path: string; moveFromIndex: number; moveToIndex: number }
@@ -14,8 +14,8 @@ export type AutosaveOp =
       kind: 'replaceRow'
       path: string
       rowIndex: number
-      schemaPath?: string
-      subFieldState?: Record<string, unknown>
+      schemaPath: string
+      subFieldState?: Record<string, any>
     }
 
 export type AutosaveQueueArgs = {

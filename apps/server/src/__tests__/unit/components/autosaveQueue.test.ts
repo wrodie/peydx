@@ -168,10 +168,22 @@ describe('autosaveQueue', () => {
     await vi.advanceTimersByTimeAsync(400)
     expect(h.submitCount).toBe(1)
 
-    h.edit({ kind: 'addRow', path: 'slides', blockType: 'imageBlock', subFieldState: { tag: 'E' } })
+    h.edit({
+      kind: 'addRow',
+      path: 'slides',
+      blockType: 'imageBlock',
+      schemaPath: 'slides.imageBlock',
+      subFieldState: { tag: 'E' },
+    })
     h.edit({ kind: 'removeRow', path: 'slides', rowIndex: 0 })
     h.edit({ kind: 'moveRow', path: 'slides', moveFromIndex: 0, moveToIndex: 2 })
-    h.edit({ kind: 'replaceRow', path: 'slides', rowIndex: 1, subFieldState: { tag: 'Z' } })
+    h.edit({
+      kind: 'replaceRow',
+      path: 'slides',
+      rowIndex: 1,
+      schemaPath: 'slides.imageBlock',
+      subFieldState: { tag: 'Z' },
+    })
 
     h.deferreds[0].resolve()
     await vi.advanceTimersByTimeAsync(0)

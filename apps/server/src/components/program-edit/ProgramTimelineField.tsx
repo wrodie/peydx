@@ -318,8 +318,8 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
     path: string
     rowIndex?: number
     blockType?: string
-    schemaPath?: string
-    subFieldState?: Record<string, unknown>
+    schemaPath: string
+    subFieldState?: Record<string, any>
   }) => {
     addFieldRow(opArgs)
     queueRef.current?.record({ kind: 'addRow', ...opArgs })
@@ -342,8 +342,8 @@ export const ProgramTimelineField: FC<ProgramTimelineFieldProps> = ({ path }) =>
   const qReplaceRow = useCallback((opArgs: {
     path: string
     rowIndex: number
-    schemaPath?: string
-    subFieldState?: Record<string, unknown>
+    schemaPath: string
+    subFieldState?: Record<string, any>
   }) => {
     replaceFieldRow(opArgs)
     queueRef.current?.record({ kind: 'replaceRow', ...opArgs })
